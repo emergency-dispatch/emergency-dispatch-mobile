@@ -405,13 +405,14 @@ const styles = StyleSheet.create({
   },
   addressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
   },
   addressText: {
     fontSize: 11,
     color: '#CBD5E1',
     flex: 1,
+    lineHeight: 15,
   },
   bloodTypeSection: {
     flexDirection: 'row',

@@ -296,14 +296,16 @@ export const ProfileScreen: React.FC = () => {
               </Text>
             </View>
 
-            <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+            <View style={styles.addressSection}>
               <View style={styles.infoLabelRow}>
                 <MapPin size={14} color="#94A3B8" />
                 <Text style={styles.infoLabel}>Nơi ở thường trú</Text>
               </View>
-              <Text style={[styles.infoValue, { flex: 1, textAlign: 'right' }]}>
-                {profile.address}
-              </Text>
+              <View style={styles.addressBox}>
+                <Text style={styles.addressBoxText}>
+                  {profile.address || 'Chưa cập nhật'}
+                </Text>
+              </View>
             </View>
           </View>
         </AccordionSection>
@@ -701,10 +703,11 @@ const styles = StyleSheet.create({
   },
   heroAddressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   addressIcon: {
     marginRight: 8,
+    marginTop: 2,
   },
   heroAddressText: {
     fontSize: 12,
@@ -798,6 +801,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   infoLabel: {
     fontSize: 12.5,
@@ -807,6 +811,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  addressSection: {
+    paddingTop: 2,
+    gap: 8,
+  },
+  addressBox: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  addressBoxText: {
+    fontSize: 13,
+    color: '#F8FAFC',
+    fontWeight: '600',
+    lineHeight: 19,
   },
   bloodTypeCardRow: {
     flexDirection: 'row',

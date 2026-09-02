@@ -39,9 +39,10 @@ interface ProfileEditModalProps {
   onClose: () => void;
   profile: UserEmergencyProfile;
   onSave: (updatedProfile: UserEmergencyProfile) => void;
+  initialTab?: TabKey;
 }
 
-type TabKey = 'identity' | 'medical' | 'ice' | 'special';
+export type TabKey = 'identity' | 'medical' | 'ice' | 'special';
 
 const BLOOD_TYPES: BloodType[] = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Chưa rõ'];
 
@@ -79,8 +80,15 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onClose,
   profile,
   onSave,
+  initialTab = 'identity',
 }) => {
-  const [activeTab, setActiveTab] = useState<TabKey>('identity');
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+
+  React.useEffect(() => {
+    if (visible && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [visible, initialTab]);
 
   // Form states initialized with current profile
   const [fullName, setFullName] = useState(profile.fullName);

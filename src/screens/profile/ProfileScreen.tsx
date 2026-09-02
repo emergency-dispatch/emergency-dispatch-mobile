@@ -26,11 +26,12 @@ import {
   Languages,
   FileText,
   Edit3,
-  ShieldAlert,
   ChevronRight,
   Info,
-  QrCode,
   Sparkles,
+  Layers,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -38,7 +39,11 @@ import { BloodTypeBadge } from '../../components/profile/BloodTypeBadge';
 import { EmergencyBadge } from '../../components/profile/EmergencyBadge';
 import { IceContactCard } from '../../components/profile/IceContactCard';
 import { MedicalIdCardModal } from '../../components/profile/MedicalIdCardModal';
-import { ProfileEditModal } from '../../components/profile/ProfileEditModal';
+import {
+  ProfileEditModal,
+  TabKey,
+} from '../../components/profile/ProfileEditModal';
+import { AccordionSection, SummaryBadgeItem } from '../../components/profile/AccordionSection';
 import { UserEmergencyProfile } from '../../types/profile';
 
 export const ProfileScreen: React.FC = () => {
@@ -52,12 +57,45 @@ export const ProfileScreen: React.FC = () => {
 
   const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
+
+  // Accordion state: Track which cards are expanded
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
+    identity: false,
+    medical: true, // Medical ID expanded by default for rescue priority
+    ice: false,
+    special: false,
+  });
 
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
 
   const { medicalId, ice, specialInfo } = profile;
+
+  const toggleCard = (key: string) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const isAllExpanded = Object.values(expandedCards).every(Boolean);
+
+  const toggleExpandAll = () => {
+    const nextState = !isAllExpanded;
+    setExpandedCards({
+      identity: nextState,
+      medical: nextState,
+      ice: nextState,
+      special: nextState,
+    });
+  };
+
+  const handleOpenEditTab = (tab: TabKey) => {
+    setEditInitialTab(tab);
+    setIsEditModalVisible(true);
+  };
 
   const handleToggleSms = (val: boolean) => {
     toggleAutoSendSms(val);
@@ -73,6 +111,32 @@ export const ProfileScreen: React.FC = () => {
     updateProfile(updated);
   };
 
+  // Summary badges for collapsed preview
+  const identityBadges: SummaryBadgeItem[] = [
+    { text: profile.fullName, color: '#FFFFFF', bg: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.3)' },
+    { text: profile.phoneNumber, color: '#38BDF8' },
+    { text: 'Đã xác thực', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
+  ];
+
+  const medicalBadges: SummaryBadgeItem[] = [
+    { text: `Máu: ${medicalId.bloodType || 'O+'}`, color: '#FFFFFF', bg: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' },
+    { text: `${medicalId.allergies?.length || 0} Dị ứng`, color: '#FCA5A5' },
+    { text: `${medicalId.chronicConditions?.length || 0} Bệnh nền`, color: '#FCD34D' },
+  ];
+
+  const iceBadges: SummaryBadgeItem[] = [
+    { text: `${ice.contacts?.length || 0} Người thân`, color: '#FFFFFF', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
+    {
+      text: ice.autoSendSmsOnSos ? 'SMS SOS: BẬT' : 'SMS SOS: TẮT',
+      color: ice.autoSendSmsOnSos ? '#10B981' : '#94A3B8',
+    },
+  ];
+
+  const specialBadges: SummaryBadgeItem[] = [
+    { text: specialInfo.preferredLanguage || 'Tiếng Việt', color: '#FCD34D' },
+    { text: specialInfo.dependentsNote ? 'Có người phụ thuộc' : 'Không có phụ thuộc', color: '#CBD5E1' },
+  ];
+
   return (
     <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
       {/* 1. Header Bar */}
@@ -84,7 +148,7 @@ export const ProfileScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.editHeaderBtn}
-          onPress={() => setIsEditModalVisible(true)}
+          onPress={() => handleOpenEditTab('identity')}
           activeOpacity={0.7}
           accessible={true}
           accessibilityLabel="Chỉnh sửa hồ sơ"
@@ -161,27 +225,43 @@ export const ProfileScreen: React.FC = () => {
           <ChevronRight size={20} color="#FCA5A5" />
         </TouchableOpacity>
 
-        {/* ========================================================= */}
-        {/* GROUP 1: THÔNG TIN ĐỊNH DANH & LIÊN LẠC                   */}
-        {/* ========================================================= */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-              <User size={18} color="#38BDF8" />
-            </View>
-            <View style={styles.sectionHeaderCol}>
-              <Text style={styles.sectionTitle}>1. Thông Tin Định Danh & Liên Lạc</Text>
-              <Text style={styles.sectionPurpose}>
-                Mục đích: Xác thực danh tính & hỗ trợ nhận dạng nạn nhân tại hiện trường
-              </Text>
-            </View>
+        {/* 4. Controls: Section List Title & Toggle All Button */}
+        <View style={styles.controlsRow}>
+          <View style={styles.controlsLeft}>
+            <Layers size={16} color="#38BDF8" />
+            <Text style={styles.controlsTitle}>CÁC NHÓM THÔNG TIN CỨU HỘ</Text>
           </View>
+          <TouchableOpacity
+            style={styles.toggleAllBtn}
+            onPress={toggleExpandAll}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.toggleAllText}>
+              {isAllExpanded ? 'Thu gọn tất cả' : 'Mở tất cả'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
+        {/* ========================================================= */}
+        {/* CARD 1: THÔNG TIN ĐỊNH DANH & LIÊN LẠC (EXPANDABLE)       */}
+        {/* ========================================================= */}
+        <AccordionSection
+          id="identity"
+          title="1. Định Danh & Liên Lạc"
+          subtitle="Xác thực danh tính & nhận diện nạn nhân tại hiện trường"
+          icon={<User size={20} color="#38BDF8" />}
+          iconBgColor="rgba(56, 189, 248, 0.15)"
+          titleColor="#38BDF8"
+          isExpanded={!!expandedCards.identity}
+          onToggle={() => toggleCard('identity')}
+          summaryBadges={identityBadges}
+          onQuickEdit={() => handleOpenEditTab('identity')}
+        >
           <View style={styles.cardContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <User size={14} color="#94A3B8" />
-                <Text style={styles.infoLabel}>Họ và tên</Text>
+                <Text style={styles.infoLabel}>Họ và tên đầy đủ</Text>
               </View>
               <Text style={styles.infoValue}>{profile.fullName}</Text>
             </View>
@@ -189,7 +269,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <Phone size={14} color="#94A3B8" />
-                <Text style={styles.infoLabel}>Số điện thoại</Text>
+                <Text style={styles.infoLabel}>Số điện thoại chính chủ</Text>
               </View>
               <Text style={[styles.infoValue, { color: '#38BDF8' }]}>
                 {profile.phoneNumber}
@@ -226,26 +306,23 @@ export const ProfileScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-        </View>
+        </AccordionSection>
 
         {/* ========================================================= */}
-        {/* GROUP 2: THÔNG TIN Y TẾ KHẨN CẤP (MEDICAL ID)              */}
+        {/* CARD 2: THÔNG TIN Y TẾ KHẨN CẤP (MEDICAL ID - EXPANDABLE)  */}
         {/* ========================================================= */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-              <HeartPulse size={18} color="#EF4444" />
-            </View>
-            <View style={styles.sectionHeaderCol}>
-              <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>
-                2. Thông Tin Y Tế Khẩn Cấp (Medical ID)
-              </Text>
-              <Text style={styles.sectionPurpose}>
-                Mục đích: Chuẩn bị phác đồ cấp cứu, chống sốc phản vệ & biến chứng truyền máu
-              </Text>
-            </View>
-          </View>
-
+        <AccordionSection
+          id="medical"
+          title="2. Y Tế Khẩn Cấp (Medical ID)"
+          subtitle="Chuẩn bị phác đồ cấp cứu & phòng ngừa sốc phản vệ"
+          icon={<HeartPulse size={20} color="#EF4444" />}
+          iconBgColor="rgba(239, 68, 68, 0.15)"
+          titleColor="#EF4444"
+          isExpanded={!!expandedCards.medical}
+          onToggle={() => toggleCard('medical')}
+          summaryBadges={medicalBadges}
+          onQuickEdit={() => handleOpenEditTab('medical')}
+        >
           <View style={styles.cardContent}>
             {/* Blood Type Display */}
             <View style={styles.bloodTypeCardRow}>
@@ -362,26 +439,23 @@ export const ProfileScreen: React.FC = () => {
               </View>
             ) : null}
           </View>
-        </View>
+        </AccordionSection>
 
         {/* ========================================================= */}
-        {/* GROUP 3: LIÊN HỆ KHẨN CẤP (ICE - IN CASE OF EMERGENCY)     */}
+        {/* CARD 3: LIÊN HỆ KHẨN CẤP (ICE - EXPANDABLE)               */}
         {/* ========================================================= */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <PhoneCall size={18} color="#10B981" />
-            </View>
-            <View style={styles.sectionHeaderCol}>
-              <Text style={[styles.sectionTitle, { color: '#10B981' }]}>
-                3. Liên Hệ Khẩn Cấp (ICE)
-              </Text>
-              <Text style={styles.sectionPurpose}>
-                Mục đích: Báo tin tức thời & liên lạc người thân khi nạn nhân nguy kịch
-              </Text>
-            </View>
-          </View>
-
+        <AccordionSection
+          id="ice"
+          title="3. Người Thân Khẩn Cấp (ICE)"
+          subtitle="Báo tin tức thời & liên lạc người thân khi nguy kịch"
+          icon={<PhoneCall size={20} color="#10B981" />}
+          iconBgColor="rgba(16, 185, 129, 0.15)"
+          titleColor="#10B981"
+          isExpanded={!!expandedCards.ice}
+          onToggle={() => toggleCard('ice')}
+          summaryBadges={iceBadges}
+          onQuickEdit={() => handleOpenEditTab('ice')}
+        >
           <View style={styles.cardContent}>
             {/* Toggle: Auto Send SMS GPS */}
             <View style={styles.smsToggleBox}>
@@ -428,31 +502,28 @@ export const ProfileScreen: React.FC = () => {
               </View>
             )}
           </View>
-        </View>
+        </AccordionSection>
 
         {/* ========================================================= */}
-        {/* GROUP 4: THÔNG TIN BỔ SUNG ĐẶC THÙ & HỘ GIA ĐÌNH          */}
+        {/* CARD 4: THÔNG TIN BỔ SUNG ĐẶC THÙ (EXPANDABLE)           */}
         {/* ========================================================= */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-              <Users size={18} color="#F59E0B" />
-            </View>
-            <View style={styles.sectionHeaderCol}>
-              <Text style={[styles.sectionTitle, { color: '#F59E0B' }]}>
-                4. Thông Tin Bổ Sung Đặc Thù
-              </Text>
-              <Text style={styles.sectionPurpose}>
-                Mục đích: Ưu tiên nguồn lực cứu nạn khi sơ tán trẻ nhỏ & người già
-              </Text>
-            </View>
-          </View>
-
+        <AccordionSection
+          id="special"
+          title="4. Thông Tin Đặc Thù & Gia Đình"
+          subtitle="Ưu tiên nguồn lực cứu nạn khi sơ tán trẻ nhỏ & người già"
+          icon={<Users size={20} color="#F59E0B" />}
+          iconBgColor="rgba(245, 158, 11, 0.15)"
+          titleColor="#F59E0B"
+          isExpanded={!!expandedCards.special}
+          onToggle={() => toggleCard('special')}
+          summaryBadges={specialBadges}
+          onQuickEdit={() => handleOpenEditTab('special')}
+        >
           <View style={styles.cardContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <Languages size={14} color="#94A3B8" />
-                <Text style={styles.infoLabel}>Ngôn ngữ ưu tiên</Text>
+                <Text style={styles.infoLabel}>Ngôn ngữ ưu tiên giao tiếp</Text>
               </View>
               <Text style={[styles.infoValue, { fontWeight: '700' }]}>
                 {specialInfo.preferredLanguage || 'Tiếng Việt'}
@@ -472,12 +543,12 @@ export const ProfileScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-        </View>
+        </AccordionSection>
 
-        {/* Bottom Button to Edit */}
+        {/* Bottom Button to Edit Everything */}
         <TouchableOpacity
           style={styles.fullEditBtn}
-          onPress={() => setIsEditModalVisible(true)}
+          onPress={() => handleOpenEditTab('identity')}
           activeOpacity={0.8}
         >
           <Edit3 size={18} color="#FFFFFF" />
@@ -500,6 +571,7 @@ export const ProfileScreen: React.FC = () => {
         onClose={() => setIsEditModalVisible(false)}
         profile={profile}
         onSave={handleSaveProfile}
+        initialTab={editInitialTab}
       />
     </ScreenContainer>
   );
@@ -549,7 +621,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    gap: 16,
+    gap: 14,
   },
   heroCard: {
     backgroundColor: '#1E293B',
@@ -567,16 +639,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 2.5,
     borderColor: '#38BDF8',
   },
   avatarPlaceholder: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center',
@@ -612,12 +684,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroName: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   heroPhone: {
-    fontSize: 14,
+    fontSize: 13.5,
     color: '#38BDF8',
     fontWeight: '600',
     marginTop: 2,
@@ -643,7 +715,7 @@ const styles = StyleSheet.create({
   medicalIdBanner: {
     backgroundColor: '#DC2626',
     borderRadius: 18,
-    padding: 16,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -660,9 +732,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   medicalBannerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -672,7 +744,7 @@ const styles = StyleSheet.create({
   },
   medicalBannerTitle: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -681,40 +753,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  sectionContainer: {
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  sectionHeader: {
+  controlsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 14,
-  },
-  sectionIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 4,
+    marginTop: 4,
+    marginBottom: -4,
   },
-  sectionHeaderCol: {
-    flex: 1,
+  controlsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  sectionTitle: {
-    fontSize: 15,
+  controlsTitle: {
+    fontSize: 11.5,
     fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  sectionPurpose: {
-    fontSize: 11,
     color: '#94A3B8',
-    marginTop: 3,
-    lineHeight: 15,
-    fontStyle: 'italic',
+    letterSpacing: 0.6,
+  },
+  toggleAllBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  toggleAllText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#38BDF8',
   },
   cardContent: {
     gap: 12,
@@ -723,7 +790,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
@@ -733,7 +800,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoLabel: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#94A3B8',
   },
   infoValue: {
@@ -775,7 +842,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subCatTitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   badgeFlexWrap: {
@@ -804,7 +871,7 @@ const styles = StyleSheet.create({
   },
   smsToggleBox: {
     backgroundColor: '#0F172A',
-    padding: 14,
+    padding: 12,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -864,7 +931,7 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   dependentsText: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#CBD5E1',
     lineHeight: 18,
   },
@@ -881,6 +948,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    marginTop: 6,
   },
   fullEditBtnText: {
     color: '#FFFFFF',

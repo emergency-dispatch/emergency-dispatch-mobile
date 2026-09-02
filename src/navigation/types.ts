@@ -9,6 +9,7 @@ export type MainTabParamList = {
   HomeTab: undefined;
   SafetyMapTab: undefined;
   ReportsTab: undefined;
+  ProfileTab: undefined;
 };
 
 export type RootStackParamList = {

@@ -4,7 +4,8 @@ import { MainTabParamList } from './types';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { MyReportsScreen } from '../screens/reports/MyReportsScreen';
-import { ShieldAlert, Map, FileText } from 'lucide-react-native';
+import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { ShieldAlert, Map, FileText, UserCheck } from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -24,7 +25,7 @@ export const AppNavigator: React.FC = () => {
         tabBarActiveTintColor: '#EF4444',
         tabBarInactiveTintColor: '#64748B',
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: '700',
         },
       }}
@@ -53,9 +54,19 @@ export const AppNavigator: React.FC = () => {
         name="ReportsTab"
         component={MyReportsScreen}
         options={{
-          tabBarLabel: 'Báo Cáo Của Tôi',
+          tabBarLabel: 'Báo Cáo Sự Cố',
           tabBarIcon: ({ color, size }) => (
             <FileText color={color} size={size || 22} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Hồ Sơ Cứu Hộ',
+          tabBarIcon: ({ color, size }) => (
+            <UserCheck color={color} size={size || 22} />
           ),
         }}
       />

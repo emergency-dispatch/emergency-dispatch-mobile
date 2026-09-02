@@ -1,3 +1,5 @@
+export * from './profile';
+
 export interface User {
   id: string;
   email: string;

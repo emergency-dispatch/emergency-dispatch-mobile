@@ -1,37 +1,893 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Switch,
+  Alert,
+} from 'react-native';
+import {
+  User,
+  ShieldCheck,
+  MapPin,
+  Phone,
+  Calendar,
+  CreditCard,
+  HeartPulse,
+  AlertTriangle,
+  Pill,
+  Accessibility,
+  PhoneCall,
+  MessageSquare,
+  Users,
+  Languages,
+  FileText,
+  Edit3,
+  ShieldAlert,
+  ChevronRight,
+  Info,
+  QrCode,
+  Sparkles,
+} from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { Typography } from '../../constants/typography';
-import { Colors } from '../../constants/colors';
+import { useProfileStore } from '../../store/useProfileStore';
+import { BloodTypeBadge } from '../../components/profile/BloodTypeBadge';
+import { EmergencyBadge } from '../../components/profile/EmergencyBadge';
+import { IceContactCard } from '../../components/profile/IceContactCard';
+import { MedicalIdCardModal } from '../../components/profile/MedicalIdCardModal';
+import { ProfileEditModal } from '../../components/profile/ProfileEditModal';
+import { UserEmergencyProfile } from '../../types/profile';
 
 export const ProfileScreen: React.FC = () => {
+  const {
+    profile,
+    loadProfile,
+    updateProfile,
+    toggleAutoSendSms,
+    removeIceContact,
+  } = useProfileStore();
+
+  const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const { medicalId, ice, specialInfo } = profile;
+
+  const handleToggleSms = (val: boolean) => {
+    toggleAutoSendSms(val);
+    Alert.alert(
+      val ? 'Đã bật tự động gửi SMS' : 'Đã tắt tự động gửi SMS',
+      val
+        ? 'Khi bạn nhấn SOS, toạ độ GPS chính xác sẽ được tự động gửi qua tin nhắn SMS đến các liên hệ ICE.'
+        : 'Hệ thống sẽ không tự động gửi tin nhắn SMS khi bạn kích hoạt SOS.'
+    );
+  };
+
+  const handleSaveProfile = (updated: UserEmergencyProfile) => {
+    updateProfile(updated);
+  };
+
   return (
-    <ScreenContainer style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Tài khoản</Text>
-        <Text style={styles.subtitle}>Màn hình tài khoản mẫu (Skeleton)</Text>
+    <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
+      {/* 1. Header Bar */}
+      <View style={styles.headerBar}>
+        <View>
+          <Text style={styles.headerTitle}>Hồ Sơ Cứu Hộ</Text>
+          <Text style={styles.headerSubtitle}>Medical ID & Thông Tin Định Danh</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.editHeaderBtn}
+          onPress={() => setIsEditModalVisible(true)}
+          activeOpacity={0.7}
+          accessible={true}
+          accessibilityLabel="Chỉnh sửa hồ sơ"
+        >
+          <Edit3 size={16} color="#38BDF8" />
+          <Text style={styles.editHeaderBtnText}>Chỉnh sửa</Text>
+        </TouchableOpacity>
       </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* 2. Hero Identity Card */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View style={styles.avatarWrapper}>
+              {profile.avatarUrl ? (
+                <Image
+                  source={{ uri: profile.avatarUrl }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <User size={36} color="#94A3B8" />
+                </View>
+              )}
+              <View style={styles.verifiedBadge}>
+                <ShieldCheck size={12} color="#FFFFFF" />
+              </View>
+            </View>
+
+            <View style={styles.heroTextInfo}>
+              <View style={styles.statusPill}>
+                <Sparkles size={11} color="#10B981" />
+                <Text style={styles.statusPillText}>HỒ SƠ ĐÃ SẴN SÀNG CỨU HỘ</Text>
+              </View>
+              <Text style={styles.heroName}>{profile.fullName}</Text>
+              <Text style={styles.heroPhone}>{profile.phoneNumber}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroDivider} />
+
+          <View style={styles.heroAddressRow}>
+            <MapPin size={15} color="#38BDF8" style={styles.addressIcon} />
+            <Text style={styles.heroAddressText} numberOfLines={2}>
+              {profile.address}
+            </Text>
+          </View>
+        </View>
+
+        {/* 3. Hero Action: Open Emergency Medical ID Sheet */}
+        <TouchableOpacity
+          style={styles.medicalIdBanner}
+          activeOpacity={0.8}
+          onPress={() => setIsMedicalModalVisible(true)}
+          accessible={true}
+          accessibilityLabel="Mở thẻ y tế cấp cứu khẩn cấp"
+        >
+          <View style={styles.medicalBannerLeft}>
+            <View style={styles.medicalBannerIconWrap}>
+              <HeartPulse size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.medicalBannerTextCol}>
+              <Text style={styles.medicalBannerTitle}>
+                THẺ Y TẾ CẤP CỨU (MEDICAL ID)
+              </Text>
+              <Text style={styles.medicalBannerSubtitle}>
+                Chế độ hiển thị nhanh cho Bác sĩ & Cứu hộ 114/115
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color="#FCA5A5" />
+        </TouchableOpacity>
+
+        {/* ========================================================= */}
+        {/* GROUP 1: THÔNG TIN ĐỊNH DANH & LIÊN LẠC                   */}
+        {/* ========================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+              <User size={18} color="#38BDF8" />
+            </View>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={styles.sectionTitle}>1. Thông Tin Định Danh & Liên Lạc</Text>
+              <Text style={styles.sectionPurpose}>
+                Mục đích: Xác thực danh tính & hỗ trợ nhận dạng nạn nhân tại hiện trường
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <User size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Họ và tên</Text>
+              </View>
+              <Text style={styles.infoValue}>{profile.fullName}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <Phone size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Số điện thoại</Text>
+              </View>
+              <Text style={[styles.infoValue, { color: '#38BDF8' }]}>
+                {profile.phoneNumber}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <CreditCard size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Số CCCD / CMND</Text>
+              </View>
+              <Text style={styles.infoValue}>
+                {profile.idCardNumber || 'Chưa cập nhật'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <Calendar size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Ngày sinh & Giới tính</Text>
+              </View>
+              <Text style={styles.infoValue}>
+                {profile.dateOfBirth || '--'} • {profile.gender || 'Nam'}
+              </Text>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+              <View style={styles.infoLabelRow}>
+                <MapPin size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Nơi ở thường trú</Text>
+              </View>
+              <Text style={[styles.infoValue, { flex: 1, textAlign: 'right' }]}>
+                {profile.address}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ========================================================= */}
+        {/* GROUP 2: THÔNG TIN Y TẾ KHẨN CẤP (MEDICAL ID)              */}
+        {/* ========================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+              <HeartPulse size={18} color="#EF4444" />
+            </View>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>
+                2. Thông Tin Y Tế Khẩn Cấp (Medical ID)
+              </Text>
+              <Text style={styles.sectionPurpose}>
+                Mục đích: Chuẩn bị phác đồ cấp cứu, chống sốc phản vệ & biến chứng truyền máu
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            {/* Blood Type Display */}
+            <View style={styles.bloodTypeCardRow}>
+              <BloodTypeBadge bloodType={medicalId.bloodType} size="medium" />
+              <View style={styles.bloodTypeNote}>
+                <Text style={styles.bloodTypeNoteTitle}>Nhóm máu chỉ định</Text>
+                <Text style={styles.bloodTypeNoteDesc}>
+                  Hỗ trợ lực lượng 115 chuẩn bị sẵn túi máu tương thích khi tiếp cận.
+                </Text>
+              </View>
+            </View>
+
+            {/* Allergies */}
+            <View style={styles.subCategoryBlock}>
+              <View style={styles.subCatHeader}>
+                <AlertTriangle size={15} color="#EF4444" />
+                <Text style={[styles.subCatTitle, { color: '#FCA5A5' }]}>
+                  Dị ứng (Thuốc / Thức ăn / Môi trường)
+                </Text>
+              </View>
+              {medicalId.allergies && medicalId.allergies.length > 0 ? (
+                <View style={styles.badgeFlexWrap}>
+                  {medicalId.allergies.map((alg, index) => (
+                    <EmergencyBadge
+                      key={`alg_${index}`}
+                      label={alg}
+                      variant="allergy"
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyNoteText}>Chưa ghi nhận dị ứng</Text>
+              )}
+            </View>
+
+            {/* Chronic Conditions */}
+            <View style={styles.subCategoryBlock}>
+              <View style={styles.subCatHeader}>
+                <HeartPulse size={15} color="#F59E0B" />
+                <Text style={[styles.subCatTitle, { color: '#FCD34D' }]}>
+                  Tiền sử bệnh nền mãn tính
+                </Text>
+              </View>
+              {medicalId.chronicConditions &&
+              medicalId.chronicConditions.length > 0 ? (
+                <View style={styles.badgeFlexWrap}>
+                  {medicalId.chronicConditions.map((cond, index) => (
+                    <EmergencyBadge
+                      key={`cond_${index}`}
+                      label={cond}
+                      variant="condition"
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyNoteText}>Không có bệnh nền mãn tính</Text>
+              )}
+            </View>
+
+            {/* Medications */}
+            <View style={styles.subCategoryBlock}>
+              <View style={styles.subCatHeader}>
+                <Pill size={15} color="#38BDF8" />
+                <Text style={[styles.subCatTitle, { color: '#7DD3FC' }]}>
+                  Thuốc đang điều trị thường xuyên
+                </Text>
+              </View>
+              {medicalId.currentMedications &&
+              medicalId.currentMedications.length > 0 ? (
+                <View style={styles.badgeFlexWrap}>
+                  {medicalId.currentMedications.map((med, index) => (
+                    <EmergencyBadge
+                      key={`med_${index}`}
+                      label={med}
+                      variant="medication"
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyNoteText}>Không dùng thuốc định kỳ</Text>
+              )}
+            </View>
+
+            {/* Mobility / Disability */}
+            <View style={styles.subCategoryBlock}>
+              <View style={styles.subCatHeader}>
+                <Accessibility size={15} color="#A855F7" />
+                <Text style={[styles.subCatTitle, { color: '#D8B4FE' }]}>
+                  Tình trạng khuyết tật & Khó khăn vận động
+                </Text>
+              </View>
+              {medicalId.mobilityLimitations &&
+              medicalId.mobilityLimitations.length > 0 ? (
+                <View style={styles.badgeFlexWrap}>
+                  {medicalId.mobilityLimitations.map((mob, index) => (
+                    <EmergencyBadge
+                      key={`mob_${index}`}
+                      label={mob}
+                      variant="mobility"
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyNoteText}>Vận động bình thường</Text>
+              )}
+            </View>
+
+            {medicalId.additionalNotes ? (
+              <View style={styles.additionalNoteBox}>
+                <Info size={14} color="#94A3B8" />
+                <Text style={styles.additionalNoteText}>
+                  {medicalId.additionalNotes}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* ========================================================= */}
+        {/* GROUP 3: LIÊN HỆ KHẨN CẤP (ICE - IN CASE OF EMERGENCY)     */}
+        {/* ========================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <PhoneCall size={18} color="#10B981" />
+            </View>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={[styles.sectionTitle, { color: '#10B981' }]}>
+                3. Liên Hệ Khẩn Cấp (ICE)
+              </Text>
+              <Text style={styles.sectionPurpose}>
+                Mục đích: Báo tin tức thời & liên lạc người thân khi nạn nhân nguy kịch
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            {/* Toggle: Auto Send SMS GPS */}
+            <View style={styles.smsToggleBox}>
+              <View style={styles.smsToggleTextCol}>
+                <View style={styles.smsTagRow}>
+                  <MessageSquare size={13} color="#38BDF8" />
+                  <Text style={styles.smsTag}>TỰ ĐỘNG GỬI SMS</Text>
+                </View>
+                <Text style={styles.smsToggleTitle}>
+                  Gửi toạ độ cho người thân khi bấm SOS
+                </Text>
+                <Text style={styles.smsToggleDesc}>
+                  Khi bấm SOS, tự động gửi tin nhắn SMS chứa liên kết GPS tới các số điện thoại ICE bên dưới.
+                </Text>
+              </View>
+
+              <Switch
+                value={ice.autoSendSmsOnSos}
+                onValueChange={handleToggleSms}
+                trackColor={{ false: '#334155', true: '#10B981' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {/* List of ICE Contacts */}
+            <Text style={styles.iceListHeader}>
+              Danh sách người thân nhận báo động:
+            </Text>
+
+            {ice.contacts && ice.contacts.length > 0 ? (
+              ice.contacts.map((contact) => (
+                <IceContactCard
+                  key={contact.id}
+                  contact={contact}
+                  onDelete={removeIceContact}
+                  showActions={true}
+                />
+              ))
+            ) : (
+              <View style={styles.noIceBox}>
+                <Text style={styles.noIceText}>
+                  Chưa có người liên hệ khẩn cấp nào. Hãy bấm "Chỉnh sửa" để thêm người thân.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ========================================================= */}
+        {/* GROUP 4: THÔNG TIN BỔ SUNG ĐẶC THÙ & HỘ GIA ĐÌNH          */}
+        {/* ========================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <Users size={18} color="#F59E0B" />
+            </View>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={[styles.sectionTitle, { color: '#F59E0B' }]}>
+                4. Thông Tin Bổ Sung Đặc Thù
+              </Text>
+              <Text style={styles.sectionPurpose}>
+                Mục đích: Ưu tiên nguồn lực cứu nạn khi sơ tán trẻ nhỏ & người già
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <Languages size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Ngôn ngữ ưu tiên</Text>
+              </View>
+              <Text style={[styles.infoValue, { fontWeight: '700' }]}>
+                {specialInfo.preferredLanguage || 'Tiếng Việt'}
+              </Text>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+              <View style={styles.infoLabelRow}>
+                <FileText size={14} color="#94A3B8" />
+                <Text style={styles.infoLabel}>Ghi chú người phụ thuộc</Text>
+              </View>
+            </View>
+
+            <View style={styles.dependentsBox}>
+              <Text style={styles.dependentsText}>
+                {specialInfo.dependentsNote || 'Không có ghi chú người phụ thuộc đặc biệt.'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Bottom Button to Edit */}
+        <TouchableOpacity
+          style={styles.fullEditBtn}
+          onPress={() => setIsEditModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Edit3 size={18} color="#FFFFFF" />
+          <Text style={styles.fullEditBtnText}>Cập Nhật Toàn Bộ Hồ Sơ</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footerSpace} />
+      </ScrollView>
+
+      {/* Modal: Full Emergency Medical ID Sheet */}
+      <MedicalIdCardModal
+        visible={isMedicalModalVisible}
+        onClose={() => setIsMedicalModalVisible(false)}
+        profile={profile}
+      />
+
+      {/* Modal: Edit Profile */}
+      <ProfileEditModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        profile={profile}
+        onSave={handleSaveProfile}
+      />
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 0,
   },
-  content: {
-    flex: 1,
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+    backgroundColor: '#0F172A',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  editHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  editHeaderBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  scrollContent: {
+    padding: 16,
+    gap: 16,
+  },
+  heroCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 2.5,
+    borderColor: '#38BDF8',
+  },
+  avatarPlaceholder: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: Typography.fontSize.xxl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.light.text,
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+  },
+  heroTextInfo: {
+    flex: 1,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginBottom: 4,
+  },
+  statusPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.5,
+  },
+  heroName: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroPhone: {
+    fontSize: 14,
+    color: '#38BDF8',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: '#334155',
+    marginVertical: 12,
+  },
+  heroAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addressIcon: {
+    marginRight: 8,
+  },
+  heroAddressText: {
+    fontSize: 12,
+    color: '#CBD5E1',
+    flex: 1,
+    lineHeight: 17,
+  },
+  medicalIdBanner: {
+    backgroundColor: '#DC2626',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  medicalBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  medicalBannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  medicalBannerTextCol: {
+    flex: 1,
+  },
+  medicalBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  medicalBannerSubtitle: {
+    color: '#FEE2E2',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  sectionContainer: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  sectionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionHeaderCol: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  sectionPurpose: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 3,
+    lineHeight: 15,
+    fontStyle: 'italic',
+  },
+  cardContent: {
+    gap: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  infoLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  infoValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  bloodTypeCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    padding: 12,
+    borderRadius: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  bloodTypeNote: {
+    flex: 1,
+  },
+  bloodTypeNoteTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F87171',
+  },
+  bloodTypeNoteDesc: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  subCategoryBlock: {
+    marginTop: 4,
+  },
+  subCatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.light.textSecondary,
+  subCatTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  badgeFlexWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emptyNoteText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  additionalNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#0F172A',
+    padding: 10,
+    borderRadius: 10,
+    gap: 8,
+    marginTop: 4,
+  },
+  additionalNoteText: {
+    fontSize: 12,
+    color: '#CBD5E1',
+    flex: 1,
+    lineHeight: 16,
+  },
+  smsToggleBox: {
+    backgroundColor: '#0F172A',
+    padding: 14,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  smsToggleTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  smsTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 3,
+  },
+  smsTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#38BDF8',
+    letterSpacing: 0.5,
+  },
+  smsToggleTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  smsToggleDesc: {
+    fontSize: 11,
+    color: '#94A3B8',
+    lineHeight: 15,
+  },
+  iceListHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  noIceBox: {
+    backgroundColor: '#0F172A',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  noIceText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  dependentsBox: {
+    backgroundColor: '#0F172A',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  dependentsText: {
+    fontSize: 13,
+    color: '#CBD5E1',
+    lineHeight: 18,
+  },
+  fullEditBtn: {
+    backgroundColor: '#0284C7',
+    borderRadius: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  fullEditBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  footerSpace: {
+    height: 30,
   },
 });

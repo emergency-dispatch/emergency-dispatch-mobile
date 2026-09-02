@@ -19,6 +19,7 @@ import {
   FileEdit,
   Sparkles,
   RefreshCw,
+  HeartPulse,
 } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { SosPulseButton } from '../../components/sos/SosPulseButton';
@@ -148,6 +149,18 @@ export const HomeScreen: React.FC = () => {
           accessibilityRole="button"
         >
           <Clock size={20} color="#38BDF8" />
+        </TouchableOpacity>
+
+        {/* Medical ID / Profile Quick Button */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('ProfileTab')}
+          style={[styles.historyButton, styles.profileButton]}
+          accessible={true}
+          accessibilityLabel="Xem hồ sơ y tế cứu hộ"
+          accessibilityRole="button"
+        >
+          <HeartPulse size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
 
@@ -306,6 +319,10 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profileButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   scrollContent: {
     paddingBottom: 24,

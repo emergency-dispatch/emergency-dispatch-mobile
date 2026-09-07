@@ -32,8 +32,11 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  LogOut,
 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { BloodTypeBadge } from '../../components/profile/BloodTypeBadge';
 import { EmergencyBadge } from '../../components/profile/EmergencyBadge';
@@ -47,6 +50,8 @@ import { AccordionSection, SummaryBadgeItem } from '../../components/profile/Acc
 import { UserEmergencyProfile } from '../../types/profile';
 
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const { logout } = useAppStore();
   const {
     profile,
     loadProfile,
@@ -58,6 +63,24 @@ export const ProfileScreen: React.FC = () => {
   const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng Xuất Tài Khoản',
+      'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống điều phối cứu hộ?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng Xuất',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            (navigation as any).navigate('Auth', { screen: 'Login' });
+          },
+        },
+      ]
+    );
+  };
 
   // Accordion state: Track which cards are expanded
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
@@ -557,6 +580,16 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.fullEditBtnText}>Cập Nhật Toàn Bộ Hồ Sơ</Text>
         </TouchableOpacity>
 
+        {/* Logout / Switch Account Button */}
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <LogOut size={18} color="#EF4444" />
+          <Text style={styles.logoutBtnText}>Đăng Xuất / Đổi Tài Khoản</Text>
+        </TouchableOpacity>
+
         <View style={styles.footerSpace} />
       </ScrollView>
 
@@ -978,6 +1011,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  logoutBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    marginTop: 12,
+  },
+  logoutBtnText: {
+    color: '#F87171',
+    fontSize: 14.5,
+    fontWeight: '700',
   },
   footerSpace: {
     height: 30,

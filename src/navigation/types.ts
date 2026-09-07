@@ -2,7 +2,13 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
   Login: undefined;
-  Register?: undefined;
+  Register: undefined;
+  ForgotPassword: { emailOrPhone?: string } | undefined;
+  OtpVerification: {
+    emailOrPhone: string;
+    flow: 'register' | 'forgot_password' | 'phone_auth';
+    targetRoute?: keyof AuthStackParamList;
+  };
 };
 
 export type MainTabParamList = {

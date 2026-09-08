@@ -79,14 +79,27 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <History size={moderateScale(16)} color="#38BDF8" />
-          <Text style={styles.sectionTitle}>LỊCH SỬ CA TRỰC GẦN NHẤT</Text>
+          <Text
+            style={styles.sectionTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            LỊCH SỬ CA TRỰC GẦN NHẤT
+          </Text>
         </View>
         <TouchableOpacity
           activeOpacity={0.7}
           style={styles.viewAllButton}
           onPress={onPressViewAll}
         >
-          <Text style={styles.viewAllText}>Xem tất cả</Text>
+          <Text
+            style={styles.viewAllText}
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.15}
+          >
+            Xem tất cả
+          </Text>
           <ChevronRight size={moderateScale(13)} color="#38BDF8" />
         </TouchableOpacity>
       </View>
@@ -114,34 +127,53 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
                   <View style={[styles.typeIconBg, { backgroundColor: typeConfig.bgColor }]}>
                     <IconComp size={moderateScale(15)} color={typeConfig.color} />
                   </View>
-                  <View>
-                    <Text style={styles.missionCode}>{mission.code}</Text>
-                    <Text style={styles.completedTime}>{mission.completedAt}</Text>
+                  <View style={styles.codeTextGroup}>
+                    <Text style={styles.missionCode} numberOfLines={1}>
+                      {mission.code}
+                    </Text>
+                    <Text style={styles.completedTime} numberOfLines={1}>
+                      {mission.completedAt}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.badgeGroup}>
                   <View style={[styles.severityBadge, { backgroundColor: severityConfig.bg }]}>
-                    <Text style={[styles.severityText, { color: severityConfig.color }]}>
+                    <Text
+                      style={[styles.severityText, { color: severityConfig.color }]}
+                      numberOfLines={1}
+                    >
                       {severityConfig.label}
                     </Text>
                   </View>
                   <View style={styles.statusBadge}>
                     <CheckCircle2 size={moderateScale(11)} color="#10B981" />
-                    <Text style={styles.statusText}>Hoàn tất</Text>
+                    <Text style={styles.statusText} numberOfLines={1}>
+                      Hoàn tất
+                    </Text>
                   </View>
                 </View>
               </View>
 
               {/* Incident Title */}
-              <Text style={styles.incidentTitle} numberOfLines={1}>
+              <Text
+                style={styles.incidentTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                maxFontSizeMultiplier={1.2}
+              >
                 {mission.title}
               </Text>
 
               {/* Address */}
               <View style={styles.addressRow}>
                 <MapPin size={moderateScale(12)} color="#64748B" />
-                <Text style={styles.addressText} numberOfLines={1}>
+                <Text
+                  style={styles.addressText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  maxFontSizeMultiplier={1.15}
+                >
                   {mission.address}
                 </Text>
               </View>
@@ -150,22 +182,24 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
               <View style={styles.metricsFooter}>
                 <View style={styles.metricItem}>
                   <Navigation size={moderateScale(11)} color="#94A3B8" />
-                  <Text style={styles.metricItemText}>{mission.distanceKm} km</Text>
-                </View>
-
-                <View style={styles.metricDivider} />
-
-                <View style={styles.metricItem}>
-                  <Clock size={moderateScale(11)} color="#94A3B8" />
-                  <Text style={styles.metricItemText}>
-                    Phản ứng: {mission.etaMinutes} phút
+                  <Text style={styles.metricItemText} numberOfLines={1}>
+                    {mission.distanceKm} km
                   </Text>
                 </View>
 
                 <View style={styles.metricDivider} />
 
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricItemText}>
+                  <Clock size={moderateScale(11)} color="#94A3B8" />
+                  <Text style={styles.metricItemText} numberOfLines={1}>
+                    Phản ứng: {mission.etaMinutes}m
+                  </Text>
+                </View>
+
+                <View style={styles.metricDivider} />
+
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricItemText} numberOfLines={1}>
                     Tổng: {mission.durationMinutes}m
                   </Text>
                 </View>
@@ -239,6 +273,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(8),
+  },
+  codeTextGroup: {
+    justifyContent: 'center',
   },
   typeIconBg: {
     width: moderateScale(30),

@@ -66,10 +66,24 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
           onPress={onPressCheckSupplies}
         >
           <View style={[styles.iconWrapper, styles.suppliesIconWrapper]}>
-            <PackageCheck size={moderateScale(20)} color="#06B6D4" />
+            <PackageCheck size={moderateScale(19)} color="#06B6D4" />
           </View>
-          <Text style={styles.buttonLabel}>Kiểm Tra Vật Tư</Text>
-          <Text style={styles.buttonSublabel}>Oxy • AED • Thuốc</Text>
+          <Text
+            style={styles.buttonLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Kiểm tra vật tư
+          </Text>
+          <Text
+            style={styles.buttonSublabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Oxy • AED • Thuốc
+          </Text>
         </TouchableOpacity>
 
         {/* Action 2: Call Dispatch (SOS Hotline) - Prominent Center Action */}
@@ -85,9 +99,23 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
             ]}
           />
           <View style={styles.sosMainButton}>
-            <PhoneCall size={moderateScale(22)} color="#FFFFFF" strokeWidth={2.4} />
-            <Text style={styles.sosButtonText}>GỌI ĐIỀU PHỐI</Text>
-            <Text style={styles.sosSubText}>Hotline 115 TT</Text>
+            <PhoneCall size={moderateScale(20)} color="#FFFFFF" strokeWidth={2.4} />
+            <Text
+              style={styles.sosButtonText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
+              GỌI ĐIỀU PHỐI
+            </Text>
+            <Text
+              style={styles.sosSubText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
+              Hotline 115 TT
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -98,10 +126,24 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
           onPress={onPressHistory}
         >
           <View style={[styles.iconWrapper, styles.historyIconWrapper]}>
-            <ClipboardList size={moderateScale(20)} color="#A78BFA" />
+            <ClipboardList size={moderateScale(19)} color="#A78BFA" />
           </View>
-          <Text style={styles.buttonLabel}>Lịch Sử Chi Tiết</Text>
-          <Text style={styles.buttonSublabel}>Biên bản • Báo cáo</Text>
+          <Text
+            style={styles.buttonLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Lịch sử ca trực
+          </Text>
+          <Text
+            style={styles.buttonSublabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Biên bản • Báo cáo
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -113,8 +155,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.96)',
     borderTopWidth: 1,
     borderTopColor: '#334155',
-    paddingTop: verticalScale(10),
-    paddingHorizontal: scale(14),
+    paddingTop: verticalScale(8),
+    paddingHorizontal: scale(12),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.35,
@@ -125,27 +167,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: scale(10),
+    gap: scale(8),
   },
   dockButton: {
     flex: 1,
     backgroundColor: '#1E293B',
     borderRadius: moderateScale(14),
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(6),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#334155',
-    minHeight: verticalScale(74),
+    minHeight: verticalScale(72),
+    minWidth: 0,
   },
   iconWrapper: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(18),
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: verticalScale(4),
+    marginBottom: verticalScale(3),
   },
   suppliesIconWrapper: {
     backgroundColor: 'rgba(6, 182, 212, 0.15)',
@@ -154,23 +197,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167, 139, 250, 0.15)',
   },
   buttonLabel: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10.5),
     fontWeight: '700',
     color: '#F1F5F9',
     textAlign: 'center',
+    width: '100%',
   },
   buttonSublabel: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(8.5),
     fontWeight: '500',
     color: '#94A3B8',
-    marginTop: verticalScale(2),
+    marginTop: verticalScale(1.5),
     textAlign: 'center',
+    width: '100%',
   },
   sosButtonContainer: {
     flex: 1.25,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    minWidth: 0,
   },
   sosGlowRing: {
     position: 'absolute',
@@ -183,13 +229,13 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#EF4444',
     borderRadius: moderateScale(14),
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(6),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: '#FECACA',
-    minHeight: verticalScale(74),
+    minHeight: verticalScale(72),
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
@@ -197,16 +243,20 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   sosButtonText: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(11),
     fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: verticalScale(4),
-    letterSpacing: 0.4,
+    marginTop: verticalScale(3),
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    width: '100%',
   },
   sosSubText: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(8.5),
     fontWeight: '600',
     color: '#FEE2E2',
     marginTop: verticalScale(1),
+    textAlign: 'center',
+    width: '100%',
   },
 });

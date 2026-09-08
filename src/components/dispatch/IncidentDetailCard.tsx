@@ -124,7 +124,13 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
               onPress={handleCallCaller}
             >
               <Phone size={moderateScale(16)} color="#FFFFFF" />
-              <Text style={styles.callNowText}>Gọi Ngay</Text>
+              <Text
+                style={styles.callNowText}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.15}
+              >
+                Gọi Ngay
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -133,21 +139,31 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
         <View style={styles.emergencyWarningBox}>
           <View style={styles.warningHeaderRow}>
             <AlertTriangle size={moderateScale(18)} color="#F59E0B" />
-            <Text style={styles.warningHeaderTitle}>CẢNH BÁO HIỆN TRƯỜNG KHẨN CẤP</Text>
+            <Text
+              style={styles.warningHeaderTitle}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.15}
+            >
+              CẢNH BÁO HIỆN TRƯỜNG KHẨN CẤP
+            </Text>
           </View>
 
-          <Text style={styles.warningNotesText}>
+          <Text style={styles.warningNotesText} maxFontSizeMultiplier={1.2}>
             "{incident.emergencyNotes}"
           </Text>
 
           {/* Required Gear Badges */}
           <View style={styles.gearTagsContainer}>
-            <Text style={styles.gearTitle}>Thiết bị cần mang:</Text>
+            <Text style={styles.gearTitle} numberOfLines={1}>
+              Thiết bị cần mang:
+            </Text>
             <View style={styles.gearTagsRow}>
               {incident.requiredEquipment.map((item, idx) => (
                 <View key={idx} style={styles.gearTag}>
                   <PackageCheck size={moderateScale(11)} color="#FBBF24" />
-                  <Text style={styles.gearTagText}>{item}</Text>
+                  <Text style={styles.gearTagText} numberOfLines={1}>
+                    {item}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -160,9 +176,15 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
             <Building2 size={moderateScale(18)} color="#10B981" />
           </View>
           <View style={styles.hospitalTextGroup}>
-            <Text style={styles.hospitalLabel}>BỆNH VIỆN TIẾP NHẬN ĐỀ XUẤT</Text>
-            <Text style={styles.hospitalName}>{incident.recommendedHospital}</Text>
-            <Text style={styles.hospitalDistanceText}>{incident.hospitalDistance}</Text>
+            <Text style={styles.hospitalLabel} numberOfLines={1}>
+              BỆNH VIỆN TIẾP NHẬN ĐỀ XUẤT
+            </Text>
+            <Text style={styles.hospitalName} numberOfLines={1}>
+              {incident.recommendedHospital}
+            </Text>
+            <Text style={styles.hospitalDistanceText} numberOfLines={1}>
+              {incident.hospitalDistance}
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -188,8 +210,22 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
             <View style={styles.advanceButtonInner}>
               <Flame size={moderateScale(20)} color="#FFFFFF" />
               <View style={styles.advanceTextGroup}>
-                <Text style={styles.advanceButtonText}>ĐÃ ĐẾN HIỆN TRƯỜNG (ON SCENE)</Text>
-                <Text style={styles.advanceButtonSubtext}>Tiếp cận nạn nhân & Bắt đầu sơ cứu</Text>
+                <Text
+                  style={styles.advanceButtonText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
+                >
+                  ĐÃ ĐẾN HIỆN TRƯỜNG (ON SCENE)
+                </Text>
+                <Text
+                  style={styles.advanceButtonSubtext}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
+                >
+                  Tiếp cận nạn nhân & Bắt đầu sơ cứu
+                </Text>
               </View>
               <ArrowRight size={moderateScale(20)} color="#FFFFFF" />
             </View>
@@ -205,8 +241,22 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
             <View style={styles.advanceButtonInner}>
               <ShieldCheck size={moderateScale(22)} color="#FFFFFF" strokeWidth={2.5} />
               <View style={styles.advanceTextGroup}>
-                <Text style={styles.advanceButtonText}>HOÀN THÀNH NHIỆM VỤ (COMPLETED)</Text>
-                <Text style={styles.advanceButtonSubtext}>Bàn giao viện & Hoàn tất hồ sơ</Text>
+                <Text
+                  style={styles.advanceButtonText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
+                >
+                  HOÀN THÀNH NHIỆM VỤ (COMPLETED)
+                </Text>
+                <Text
+                  style={styles.advanceButtonSubtext}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
+                >
+                  Bàn giao viện & Hoàn tất hồ sơ
+                </Text>
               </View>
               <CheckCircle2 size={moderateScale(20)} color="#FFFFFF" />
             </View>
@@ -216,7 +266,12 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
         {currentStage === 'completed' && (
           <View style={styles.completedBadgeBox}>
             <CheckCircle2 size={moderateScale(22)} color="#10B981" strokeWidth={2.5} />
-            <Text style={styles.completedBadgeText}>
+            <Text
+              style={styles.completedBadgeText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
               CA CẤP CỨU ĐÃ HOÀN TẤT THÀNH CÔNG
             </Text>
           </View>

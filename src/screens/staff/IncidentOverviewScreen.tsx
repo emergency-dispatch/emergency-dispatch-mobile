@@ -112,7 +112,9 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           {/* Incident Code Badge */}
           <View style={styles.incidentCodeBadge}>
             <View style={styles.livePulseDot} />
-            <Text style={styles.incidentCodeText}>{incident.code}</Text>
+            <Text style={styles.incidentCodeText} numberOfLines={1}>
+              {incident.code}
+            </Text>
           </View>
 
           {/* Call Dispatcher Button */}
@@ -122,7 +124,14 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             onPress={() => setIsCallDispatcherModalVisible(true)}
           >
             <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
-            <Text style={styles.callDispatcherText}>Gọi Dispatcher</Text>
+            <Text
+              style={styles.callDispatcherText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
+              Gọi Điều Phối
+            </Text>
           </TouchableOpacity>
         </View>
 

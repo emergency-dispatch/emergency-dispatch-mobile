@@ -122,19 +122,31 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
         {/* Staff ID Badge */}
         <View style={styles.metaBadge}>
           <View style={[styles.badgeIconBg, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-            <Shield size={moderateScale(12)} color="#06B6D4" />
+            <Shield size={moderateScale(13)} color="#06B6D4" />
           </View>
-          <Text style={styles.badgeLabel}>Mã NV:</Text>
-          <Text style={styles.badgeValue}>#{staffId}</Text>
+          <View style={styles.badgeTextCol}>
+            <Text style={styles.badgeLabel} numberOfLines={1}>
+              Mã nhân viên
+            </Text>
+            <Text style={styles.badgeValue} numberOfLines={1}>
+              #{staffId}
+            </Text>
+          </View>
         </View>
 
         {/* Ambulance License Plate Badge */}
         <View style={styles.metaBadge}>
           <View style={[styles.badgeIconBg, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-            <Truck size={moderateScale(12)} color="#EF4444" />
+            <Truck size={moderateScale(13)} color="#EF4444" />
           </View>
-          <Text style={styles.badgeLabel}>Xe Cứu Thương:</Text>
-          <Text style={[styles.badgeValue, styles.plateValue]}>{vehiclePlate}</Text>
+          <View style={styles.badgeTextCol}>
+            <Text style={styles.badgeLabel} numberOfLines={1}>
+              Biển số xe trực
+            </Text>
+            <Text style={[styles.badgeValue, styles.plateValue]} numberOfLines={1}>
+              {vehiclePlate}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -276,28 +288,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(8),
     borderWidth: 1,
     borderColor: '#334155',
+    minWidth: 0,
   },
   badgeIconBg: {
-    width: moderateScale(22),
-    height: moderateScale(22),
-    borderRadius: moderateScale(11),
+    width: moderateScale(26),
+    height: moderateScale(26),
+    borderRadius: moderateScale(13),
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: scale(6),
+    marginRight: scale(7),
+  },
+  badgeTextCol: {
+    flex: 1,
+    justifyContent: 'center',
+    minWidth: 0,
   },
   badgeLabel: {
-    fontSize: moderateScale(10.5),
-    fontWeight: '500',
+    fontSize: moderateScale(9.5),
+    fontWeight: '600',
     color: '#64748B',
-    marginRight: scale(4),
   },
   badgeValue: {
-    fontSize: moderateScale(11),
-    fontWeight: '700',
+    fontSize: moderateScale(11.5),
+    fontWeight: '800',
     color: '#F1F5F9',
+    marginTop: verticalScale(1),
   },
   plateValue: {
     color: '#FCA5A5',
-    letterSpacing: 0.3,
+    fontFamily: 'monospace',
+    letterSpacing: 0.4,
   },
 });

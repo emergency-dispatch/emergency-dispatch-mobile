@@ -84,12 +84,22 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
           <Building2 size={moderateScale(18)} color="#38BDF8" />
         </View>
         <View style={styles.stationTextGroup}>
-          <Text style={styles.stationTitle} numberOfLines={1}>
+          <Text
+            style={styles.stationTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
             {stationName}
           </Text>
           <View style={styles.addressRow}>
             <MapPin size={moderateScale(11)} color="#64748B" />
-            <Text style={styles.stationAddress} numberOfLines={1}>
+            <Text
+              style={styles.stationAddress}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              maxFontSizeMultiplier={1.15}
+            >
               {stationAddress}
             </Text>
           </View>
@@ -162,7 +172,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
         {/* Map Top Badge: Live Coordinates */}
         <View style={styles.coordsBadge}>
           <Crosshair size={moderateScale(11)} color="#06B6D4" />
-          <Text style={styles.coordsText}>
+          <Text style={styles.coordsText} numberOfLines={1}>
             {latitude.toFixed(4)}° N, {longitude.toFixed(4)}° E
           </Text>
         </View>
@@ -171,7 +181,14 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
         <View style={styles.mapBottomBar}>
           <View style={styles.statusPill}>
             <View style={styles.liveGreenDot} />
-            <Text style={styles.statusPillText}>Đang định vị trực tiếp</Text>
+            <Text
+              style={styles.statusPillText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
+              Đang định vị trực tiếp
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -179,7 +196,13 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
             style={styles.expandMapButton}
             onPress={onPressOpenFullMap}
           >
-            <Text style={styles.expandMapText}>Bản Đồ</Text>
+            <Text
+              style={styles.expandMapText}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.15}
+            >
+              Bản Đồ
+            </Text>
             <ExternalLink size={moderateScale(12)} color="#38BDF8" />
           </TouchableOpacity>
         </View>
@@ -188,10 +211,20 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
       {/* Vehicle Info & Quick Navigate Button */}
       <View style={styles.footerRow}>
         <View style={styles.vehicleInfoGroup}>
-          <Text style={styles.vehicleModelText} numberOfLines={1}>
+          <Text
+            style={styles.vehicleModelText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
             {vehicleModel}
           </Text>
-          <Text style={styles.vehicleStatusText} numberOfLines={1}>
+          <Text
+            style={styles.vehicleStatusText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            maxFontSizeMultiplier={1.15}
+          >
             {vehicleStatus}
           </Text>
         </View>
@@ -202,7 +235,14 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
           onPress={onPressNavigateStation}
         >
           <Navigation size={moderateScale(13)} color="#FFFFFF" />
-          <Text style={styles.navigateButtonText}>Về Trạm</Text>
+          <Text
+            style={styles.navigateButtonText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Về Trạm
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

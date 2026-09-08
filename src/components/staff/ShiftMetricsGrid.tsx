@@ -38,9 +38,21 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <TrendingUp size={moderateScale(15)} color="#38BDF8" />
-          <Text style={styles.sectionTitle}>THỐNG KÊ CA TRỰC HÔM NAY</Text>
+          <Text
+            style={styles.sectionTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            THỐNG KÊ CA TRỰC HÔM NAY
+          </Text>
         </View>
-        <Text style={styles.shiftTimeText}>
+        <Text
+          style={styles.shiftTimeText}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.15}
+        >
           {shiftHoursElapsed}h / {totalShiftHours}h ({shiftProgressPercent}%)
         </Text>
       </View>
@@ -63,12 +75,28 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             <CheckCircle2 size={moderateScale(18)} color="#10B981" />
           </View>
           <View style={styles.valueRow}>
-            <Text style={styles.metricValue}>{completedMissions}</Text>
-            <Text style={styles.metricUnit}>ca</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
+              {completedMissions}
+            </Text>
+            <Text style={styles.metricUnit} numberOfLines={1}>
+              ca
+            </Text>
           </View>
-          <Text style={styles.metricLabel}>Số ca hoàn tất</Text>
+          <Text
+            style={styles.metricLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Số ca hoàn tất
+          </Text>
           <View style={styles.subBadge}>
-            <Text style={[styles.subBadgeText, { color: '#34D399' }]}>
+            <Text
+              style={[styles.subBadgeText, { color: '#34D399' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
               {onTimeRate}% đúng hạn
             </Text>
           </View>
@@ -80,12 +108,28 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             <Navigation size={moderateScale(18)} color="#06B6D4" />
           </View>
           <View style={styles.valueRow}>
-            <Text style={styles.metricValue}>{totalDistanceKm}</Text>
-            <Text style={styles.metricUnit}>km</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
+              {totalDistanceKm}
+            </Text>
+            <Text style={styles.metricUnit} numberOfLines={1}>
+              km
+            </Text>
           </View>
-          <Text style={styles.metricLabel}>Quãng đường</Text>
+          <Text
+            style={styles.metricLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            Quãng đường
+          </Text>
           <View style={styles.subBadge}>
-            <Text style={[styles.subBadgeText, { color: '#38BDF8' }]}>
+            <Text
+              style={[styles.subBadgeText, { color: '#38BDF8' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
               Nhiên liệu 85%
             </Text>
           </View>
@@ -97,12 +141,28 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             <Clock size={moderateScale(18)} color="#F59E0B" />
           </View>
           <View style={styles.valueRow}>
-            <Text style={styles.metricValue}>{avgEtaMinutes}</Text>
-            <Text style={styles.metricUnit}>phút</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
+              {avgEtaMinutes}
+            </Text>
+            <Text style={styles.metricUnit} numberOfLines={1}>
+              phút
+            </Text>
           </View>
-          <Text style={styles.metricLabel}>ETA Trung bình</Text>
+          <Text
+            style={styles.metricLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            ETA Trung bình
+          </Text>
           <View style={styles.subBadge}>
-            <Text style={[styles.subBadgeText, { color: '#FBBF24' }]}>
+            <Text
+              style={[styles.subBadgeText, { color: '#FBBF24' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.15}
+            >
               Nhanh hơn 1.2m
             </Text>
           </View>

@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -51,6 +52,10 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
   const [secondsRemaining, setSecondsRemaining] = useState<number>(TOTAL_COUNTDOWN);
   const [isDeclineModalVisible, setIsDeclineModalVisible] = useState<boolean>(false);
 
+  // Safe area insets calculation across Android/iOS devices
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : insets.top;
+  const topSafePadding = Math.max(insets.top, statusBarHeight, 24);
+  const bottomSafePadding = Math.max(insets.bottom, 16);
 
   // Animation values
   const pulseBorderAnim = useRef(new Animated.Value(0.4)).current;
@@ -63,7 +68,6 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     if (visible) {
-
       setSecondsRemaining(TOTAL_COUNTDOWN);
       progressAnim.setValue(1);
 
@@ -178,8 +182,16 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
       transparent={false}
       statusBarTranslucent
     >
-      <StatusBar barStyle="light-content" backgroundColor="#180404" />
-      <View style={[styles.modalRoot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#0E0304" translucent />
+      <View
+        style={[
+          styles.modalRoot,
+          {
+            paddingTop: topSafePadding + verticalScale(4),
+            paddingBottom: bottomSafePadding,
+          },
+        ]}
+      >
         {/* Pulsing Danger Ambient Outer Glow Frame */}
         <Animated.View
           style={[
@@ -203,7 +215,9 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
               ]}
             />
             <ShieldAlert size={moderateScale(15)} color="#FCA5A5" />
-            <Text style={styles.severityBadgeText}>{incident.severityLabel}</Text>
+            <Text style={styles.severityBadgeText} numberOfLines={1}>
+              {incident.severityLabel}
+            </Text>
           </View>
 
           {/* Countdown Pill */}
@@ -222,6 +236,7 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
                 styles.countdownText,
                 isUrgentTimer && styles.countdownTextUrgent,
               ]}
+              numberOfLines={1}
             >
               Còn {secondsRemaining}s
             </Text>
@@ -474,18 +489,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderWidth: moderateScale(4),
-    zIndex: 99,
+    borderWidth: moderateScale(3),
+    zIndex: 1,
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: scale(14),
-    paddingTop: verticalScale(12),
-    paddingBottom: verticalScale(8),
+    paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(6),
+    gap: scale(8),
   },
   severityBadge: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(220, 38, 38, 0.3)',
@@ -495,6 +512,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(5),
     paddingHorizontal: scale(10),
     gap: scale(6),
+    minWidth: 0,
   },
   sirenDot: {
     width: moderateScale(8),
@@ -503,21 +521,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   severityBadgeText: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10.5),
     fontWeight: '900',
     color: '#FEE2E2',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
+    flexShrink: 1,
   },
   countdownBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.6)',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.7)',
     borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(4),
+    paddingVertical: verticalScale(5),
     paddingHorizontal: scale(10),
     gap: scale(5),
+    flexShrink: 0,
   },
   countdownBadgeUrgent: {
     backgroundColor: 'rgba(239, 68, 68, 0.3)',
@@ -525,9 +545,10 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: moderateScale(12),
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FBBF24',
     fontFamily: 'monospace',
+    letterSpacing: 0.3,
   },
   countdownTextUrgent: {
     color: '#EF4444',
@@ -891,8 +912,8 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(239, 68, 68, 0.3)',
   },
   declineButton: {
-    width: '30%',
-    height: verticalScale(56),
+    flex: 3,
+    height: verticalScale(54),
     borderRadius: moderateScale(14),
     borderWidth: 1.5,
     borderColor: 'rgba(239, 68, 68, 0.5)',
@@ -907,8 +928,8 @@ const styles = StyleSheet.create({
     color: '#FCA5A5',
   },
   acceptButton: {
-    width: '67%',
-    height: verticalScale(56),
+    flex: 7,
+    height: verticalScale(54),
     borderRadius: moderateScale(14),
     backgroundColor: '#10B981',
     alignItems: 'center',

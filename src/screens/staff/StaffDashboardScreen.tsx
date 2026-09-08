@@ -412,6 +412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: verticalScale(6),
+    gap: scale(6),
   },
   emergencyTag: {
     flexDirection: 'row',
@@ -421,6 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     gap: scale(4),
+    flexShrink: 1,
   },
   emergencyTagText: {
     fontSize: moderateScale(10),
@@ -435,6 +437,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: '#F59E0B',
+    flexShrink: 0,
   },
   liveTimerText: {
     fontSize: moderateScale(10),

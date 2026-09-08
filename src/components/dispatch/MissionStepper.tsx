@@ -163,6 +163,8 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
                     isPending && styles.stepLabelPending,
                   ]}
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
                 >
                   {step.label}
                 </Text>
@@ -173,6 +175,8 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
                     isActive && styles.stepSublabelActive,
                   ]}
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
                 >
                   {step.sublabel}
                 </Text>

@@ -134,6 +134,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
                     : '#EF4444',
               },
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             {currentStatus === 'online'
               ? 'SẴN SÀNG NHẬN CA'
@@ -167,6 +170,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentText,
               currentStatus === 'online' && styles.segmentTextOnlineActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Online
           </Text>
@@ -175,6 +181,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentSubtext,
               currentStatus === 'online' && styles.segmentSubtextOnlineActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Sẵn sàng
           </Text>
@@ -201,6 +210,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentText,
               currentStatus === 'busy' && styles.segmentTextBusyActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Busy
           </Text>
@@ -209,6 +221,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentSubtext,
               currentStatus === 'busy' && styles.segmentSubtextBusyActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Tạm nghỉ
           </Text>
@@ -235,6 +250,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentText,
               currentStatus === 'offline' && styles.segmentTextOfflineActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Offline
           </Text>
@@ -243,6 +261,9 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
               styles.segmentSubtext,
               currentStatus === 'offline' && styles.segmentSubtextOfflineActive,
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
           >
             Nghỉ ca
           </Text>
@@ -255,19 +276,25 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
         <View style={styles.telemetryBadge}>
           <View style={[styles.telemetryDot, { backgroundColor: '#10B981' }]} />
           <MapPin size={moderateScale(11)} color="#10B981" />
-          <Text style={styles.telemetryText}>{gpsStatusText}</Text>
+          <Text style={styles.telemetryText} numberOfLines={1} maxFontSizeMultiplier={1.15}>
+            {gpsStatusText}
+          </Text>
         </View>
 
         {/* Server Badge */}
         <View style={styles.telemetryBadge}>
           <Wifi size={moderateScale(11)} color="#38BDF8" />
-          <Text style={styles.telemetryText}>{serverStatusText}</Text>
+          <Text style={styles.telemetryText} numberOfLines={1} maxFontSizeMultiplier={1.15}>
+            {serverStatusText}
+          </Text>
         </View>
 
         {/* Radio Channel Badge */}
         <View style={styles.telemetryBadge}>
           <Radio size={moderateScale(11)} color="#A78BFA" />
-          <Text style={styles.telemetryText}>{radioChannelText}</Text>
+          <Text style={styles.telemetryText} numberOfLines={1} maxFontSizeMultiplier={1.15}>
+            {radioChannelText}
+          </Text>
         </View>
       </View>
     </View>

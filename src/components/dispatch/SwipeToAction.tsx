@@ -233,7 +233,12 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
           <ChevronsRight size={moderateScale(18)} color="#38BDF8" />
         </Animated.View>
 
-        <Text style={styles.titleText} numberOfLines={1}>
+        <Text
+          style={styles.titleText}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.15}
+        >
           {title}
         </Text>
 
@@ -248,7 +253,14 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
       {isCompleted && (
         <View style={styles.completedContainer} pointerEvents="none">
           <ShieldCheck size={moderateScale(20)} color="#FFFFFF" />
-          <Text style={styles.completedText}>{successTitle}</Text>
+          <Text
+            style={styles.completedText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.15}
+          >
+            {successTitle}
+          </Text>
         </View>
       )}
 

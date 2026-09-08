@@ -7,7 +7,8 @@ import { HomeScreen } from '../screens/home/HomeScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { MyReportsScreen } from '../screens/reports/MyReportsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { ShieldAlert, Map, FileText, UserCheck } from 'lucide-react-native';
+import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
+import { ShieldAlert, Map, FileText, UserCheck, Truck } from 'lucide-react-native';
 import { useResponsive } from '../utils/responsive';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -71,9 +72,19 @@ export const AppNavigator: React.FC = () => {
         name="ReportsTab"
         component={MyReportsScreen}
         options={{
-          tabBarLabel: 'Báo Cáo Sự Cố',
+          tabBarLabel: 'Báo Cáo',
           tabBarIcon: ({ color }) => (
             <FileText color={color} size={iconSize} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="StaffTab"
+        component={StaffDashboardScreen}
+        options={{
+          tabBarLabel: 'Đội Cứu Hộ',
+          tabBarIcon: ({ color }) => (
+            <Truck color={color} size={iconSize} strokeWidth={2.2} />
           ),
         }}
       />
@@ -81,7 +92,7 @@ export const AppNavigator: React.FC = () => {
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Hồ Sơ Cứu Hộ',
+          tabBarLabel: 'Hồ Sơ',
           tabBarIcon: ({ color }) => (
             <UserCheck color={color} size={iconSize} />
           ),

@@ -1,0 +1,334 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  History,
+  AlertTriangle,
+  HeartPulse,
+  Flame,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  ChevronRight,
+  Navigation,
+  Activity,
+  UserCheck,
+} from 'lucide-react-native';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { MissionItem } from '../../types/staff';
+
+interface RecentMissionsListProps {
+  missions: MissionItem[];
+  onPressMission: (mission: MissionItem) => void;
+  onPressViewAll: () => void;
+}
+
+export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
+  missions,
+  onPressMission,
+  onPressViewAll,
+}) => {
+  const getMissionTypeIcon = (type: MissionItem['type']) => {
+    switch (type) {
+      case 'traffic_accident':
+        return {
+          icon: AlertTriangle,
+          color: '#EF4444',
+          bgColor: 'rgba(239, 68, 68, 0.15)',
+        };
+      case 'cardiac_arrest':
+        return {
+          icon: HeartPulse,
+          color: '#EC4899',
+          bgColor: 'rgba(236, 72, 153, 0.15)',
+        };
+      case 'fire_rescue':
+        return {
+          icon: Flame,
+          color: '#F97316',
+          bgColor: 'rgba(249, 115, 22, 0.15)',
+        };
+      case 'respiratory':
+        return {
+          icon: Activity,
+          color: '#06B6D4',
+          bgColor: 'rgba(6, 182, 212, 0.15)',
+        };
+      default:
+        return {
+          icon: AlertTriangle,
+          color: '#38BDF8',
+          bgColor: 'rgba(56, 189, 248, 0.15)',
+        };
+    }
+  };
+
+  const getSeverityBadge = (severity: MissionItem['severity']) => {
+    switch (severity) {
+      case 'critical':
+        return { label: 'BÁO ĐỘNG ĐỎ', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' };
+      case 'urgent':
+        return { label: 'KHẨN CẤP', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' };
+      default:
+        return { label: 'TIÊU CHUẨN', color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.15)' };
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header with Title & View All */}
+      <View style={styles.headerRow}>
+        <View style={styles.titleGroup}>
+          <History size={moderateScale(16)} color="#38BDF8" />
+          <Text style={styles.sectionTitle}>LỊCH SỬ CA TRỰC GẦN NHẤT</Text>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.viewAllButton}
+          onPress={onPressViewAll}
+        >
+          <Text style={styles.viewAllText}>Xem tất cả</Text>
+          <ChevronRight size={moderateScale(13)} color="#38BDF8" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Missions List */}
+      <View style={styles.list}>
+        {missions.map((mission, index) => {
+          const typeConfig = getMissionTypeIcon(mission.type);
+          const IconComp = typeConfig.icon;
+          const severityConfig = getSeverityBadge(mission.severity);
+
+          return (
+            <TouchableOpacity
+              key={mission.id}
+              activeOpacity={0.75}
+              style={[
+                styles.missionCard,
+                index === missions.length - 1 && styles.lastCard,
+              ]}
+              onPress={() => onPressMission(mission)}
+            >
+              {/* Mission Header: Code & Status & Urgency */}
+              <View style={styles.missionHeader}>
+                <View style={styles.codeRow}>
+                  <View style={[styles.typeIconBg, { backgroundColor: typeConfig.bgColor }]}>
+                    <IconComp size={moderateScale(15)} color={typeConfig.color} />
+                  </View>
+                  <View>
+                    <Text style={styles.missionCode}>{mission.code}</Text>
+                    <Text style={styles.completedTime}>{mission.completedAt}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.badgeGroup}>
+                  <View style={[styles.severityBadge, { backgroundColor: severityConfig.bg }]}>
+                    <Text style={[styles.severityText, { color: severityConfig.color }]}>
+                      {severityConfig.label}
+                    </Text>
+                  </View>
+                  <View style={styles.statusBadge}>
+                    <CheckCircle2 size={moderateScale(11)} color="#10B981" />
+                    <Text style={styles.statusText}>Hoàn tất</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Incident Title */}
+              <Text style={styles.incidentTitle} numberOfLines={1}>
+                {mission.title}
+              </Text>
+
+              {/* Address */}
+              <View style={styles.addressRow}>
+                <MapPin size={moderateScale(12)} color="#64748B" />
+                <Text style={styles.addressText} numberOfLines={1}>
+                  {mission.address}
+                </Text>
+              </View>
+
+              {/* Bottom Metrics: ETA, Distance, Duration */}
+              <View style={styles.metricsFooter}>
+                <View style={styles.metricItem}>
+                  <Navigation size={moderateScale(11)} color="#94A3B8" />
+                  <Text style={styles.metricItemText}>{mission.distanceKm} km</Text>
+                </View>
+
+                <View style={styles.metricDivider} />
+
+                <View style={styles.metricItem}>
+                  <Clock size={moderateScale(11)} color="#94A3B8" />
+                  <Text style={styles.metricItemText}>
+                    Phản ứng: {mission.etaMinutes} phút
+                  </Text>
+                </View>
+
+                <View style={styles.metricDivider} />
+
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricItemText}>
+                    Tổng: {mission.durationMinutes}m
+                  </Text>
+                </View>
+
+                <ChevronRight size={moderateScale(14)} color="#475569" style={styles.arrowIcon} />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#1E293B',
+    borderRadius: moderateScale(16),
+    padding: moderateScale(14),
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: verticalScale(12),
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(12),
+  },
+  titleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  sectionTitle: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(2),
+  },
+  viewAllText: {
+    fontSize: moderateScale(11),
+    fontWeight: '600',
+    color: '#38BDF8',
+  },
+  list: {
+    gap: verticalScale(10),
+  },
+  missionCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: moderateScale(12),
+    padding: moderateScale(12),
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  lastCard: {
+    marginBottom: 0,
+  },
+  missionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(8),
+  },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  typeIconBg: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  missionCode: {
+    fontSize: moderateScale(12),
+    fontWeight: '800',
+    color: '#F8FAFC',
+    letterSpacing: 0.3,
+  },
+  completedTime: {
+    fontSize: moderateScale(10),
+    color: '#64748B',
+    marginTop: verticalScale(1),
+  },
+  badgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  severityBadge: {
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: scale(6),
+    borderRadius: moderateScale(4),
+  },
+  severityText: {
+    fontSize: moderateScale(9),
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: scale(6),
+    borderRadius: moderateScale(4),
+    gap: scale(3),
+  },
+  statusText: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  incidentTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: verticalScale(6),
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    marginBottom: verticalScale(8),
+  },
+  addressText: {
+    fontSize: moderateScale(11),
+    color: '#94A3B8',
+    flex: 1,
+  },
+  metricsFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(6),
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+  },
+  metricItemText: {
+    fontSize: moderateScale(10),
+    fontWeight: '600',
+    color: '#CBD5E1',
+  },
+  metricDivider: {
+    width: 1,
+    height: verticalScale(10),
+    backgroundColor: '#334155',
+    marginHorizontal: scale(8),
+  },
+  arrowIcon: {
+    marginLeft: 'auto',
+  },
+});

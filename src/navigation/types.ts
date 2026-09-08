@@ -15,6 +15,7 @@ export type MainTabParamList = {
   HomeTab: undefined;
   SafetyMapTab: undefined;
   ReportsTab: undefined;
+  StaffTab: undefined;
   ProfileTab: undefined;
 };
 

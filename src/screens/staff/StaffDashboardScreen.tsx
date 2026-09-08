@@ -1,0 +1,342 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Alert,
+  Linking,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import {
+  StaffProfileHeader,
+  DutyStatusSelector,
+  DutyStatus,
+  ShiftMetricsGrid,
+  StationMiniMapCard,
+  RecentMissionsList,
+  QuickActionDock,
+  MedicalEquipmentModal,
+  MissionDetailModal,
+  StaffNotificationsModal,
+} from '../../components/staff';
+import { MissionItem, DispatchNotification } from '../../types/staff';
+
+// Mock Initial Missions Data
+const MOCK_MISSIONS: MissionItem[] = [
+  {
+    id: 'm1',
+    code: '#EM-240901',
+    type: 'traffic_accident',
+    title: 'Tai nạn giao thông - Va chạm đa chấn thương',
+    severity: 'critical',
+    address: 'Ngã tư CMT8 - Nguyễn Đình Chiểu, Phường 5, Quận 3',
+    completedAt: '11:20 (35 phút trước)',
+    durationMinutes: 28,
+    distanceKm: 4.2,
+    etaMinutes: 6.5,
+    status: 'completed',
+    patientCount: 2,
+    destinationHospital: 'Bệnh viện Cấp Cứu Trưng Vương',
+    notes: '2 nạn nhân đa chấn thương gãy cẳng chân, đã nẹp cố định & truyền dịch NaCl 0.9%.',
+  },
+  {
+    id: 'm2',
+    code: '#EM-240898',
+    type: 'cardiac_arrest',
+    title: 'Cấp cứu tim mạch - Đau thắt ngực khó thở',
+    severity: 'urgent',
+    address: 'Căn hộ 12B, Chung cư Hà Đô Centrosa, P.12, Quận 10',
+    completedAt: '09:45 (2 giờ trước)',
+    durationMinutes: 34,
+    distanceKm: 2.8,
+    etaMinutes: 5.0,
+    status: 'completed',
+    patientCount: 1,
+    destinationHospital: 'Bệnh viện Tim Tâm Đức / Chợ Rẫy',
+    notes: 'Bệnh nhân nam 62 tuổi có tiền sử nhồi máu cơ tim, đã sốc tim AED 1 nhịp và hỗ trợ thở Oxy mask.',
+  },
+  {
+    id: 'm3',
+    code: '#EM-240885',
+    type: 'fire_rescue',
+    title: 'Hỗ trợ sơ cứu nạn nhân ngạt khói dân cư',
+    severity: 'urgent',
+    address: 'Hẻm 458 Ba Tháng Hai, Phường 14, Quận 10',
+    completedAt: '07:50 (4 giờ trước)',
+    durationMinutes: 45,
+    distanceKm: 3.5,
+    etaMinutes: 7.2,
+    status: 'completed',
+    patientCount: 3,
+    destinationHospital: 'Bệnh viện Trưng Vương TP.HCM',
+    notes: 'Phối hợp Đội PCCC & CNCH Quận 10, cấp cứu ngạt khí CO cho 3 cư dân.',
+  },
+];
+
+// Mock Dispatch Notifications
+const MOCK_NOTIFICATIONS: DispatchNotification[] = [
+  {
+    id: 'n1',
+    title: 'Lệnh điều động dự bị ưu tiên Vùng 2',
+    message: 'Trung tâm 115 chuyển mức sẵn sàng lên cấp 1 do thời tiết mưa lớn giờ cao điểm.',
+    type: 'urgent',
+    timestamp: '11:45',
+    isRead: false,
+  },
+  {
+    id: 'n2',
+    title: 'Cảnh báo kẹt xe & ngập nước cục bộ',
+    message: 'Tuyến đường Ba Tháng Hai giao Lê Đại Hành ngập sâu 30cm. Đề xuất xe cứu thương chọn hướng Lý Thường Kiệt.',
+    type: 'traffic',
+    timestamp: '10:30',
+    isRead: false,
+  },
+  {
+    id: 'n3',
+    title: 'Bệnh viện Chợ Rẫy mở thêm 4 giường ICU',
+    message: 'Khoa Cấp cứu tiếp nhận bình thường cho các ca chấn thương sọ não và tim mạch.',
+    type: 'info',
+    timestamp: '08:15',
+    isRead: true,
+  },
+];
+
+export const StaffDashboardScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
+
+  // State
+  const [dutyStatus, setDutyStatus] = useState<DutyStatus>('online');
+  const [refreshing, setRefreshing] = useState(false);
+  const [notifications, setNotifications] = useState<DispatchNotification[]>(MOCK_NOTIFICATIONS);
+
+  // Modals state
+  const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
+  const [selectedMission, setSelectedMission] = useState<MissionItem | null>(null);
+  const [isNotificationModalVisible, setIsNotificationModalVisible] = useState(false);
+
+  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+
+  // Refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 800);
+  }, []);
+
+  // SOS Emergency Hotline Call
+  const handleSosCall = () => {
+    Alert.alert(
+      '🚨 GỌI TRỰC BAN ĐIỀU PHỐI 115',
+      'Bạn đang yêu cầu kết nối thoại khẩn cấp đến Trung tâm Chỉ huy Điều phối Cứu hộ 115 TP.HCM.',
+      [
+        { text: 'Hủy Bỏ', style: 'cancel' },
+        {
+          text: 'GỌI NGAY (115)',
+          style: 'destructive',
+          onPress: () => {
+            const phoneNumber = 'tel:115';
+            Linking.canOpenURL(phoneNumber)
+              .then((supported) => {
+                if (supported) {
+                  Linking.openURL(phoneNumber);
+                } else {
+                  Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
+                }
+              })
+              .catch(() => {
+                Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
+              });
+          },
+        },
+      ]
+    );
+  };
+
+  // Navigate to Station
+  const handleNavigateStation = () => {
+    Alert.alert(
+      'Dẫn Đường Về Trạm Cứu Hộ',
+      'Khởi chạy lộ trình ưu tiên dẫn đường xe cấp cứu về Trạm Quận 10 - Bệnh viện Trưng Vương.',
+      [
+        { text: 'Đóng', style: 'cancel' },
+        {
+          text: 'Bắt Đầu Đi',
+          onPress: () => {
+            // Can open native map apps or route in-app
+            const url = Platform.select({
+              ios: 'maps:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
+              android: 'geo:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
+            });
+            if (url) Linking.openURL(url).catch(() => {});
+          },
+        },
+      ]
+    );
+  };
+
+  // Open Full Map
+  const handleOpenFullMap = () => {
+    Alert.alert('Bản Đồ Cứu Hộ', 'Đang mở giao diện Bản đồ Tác chiến & Định vị Đội xe...');
+  };
+
+  // Settings action
+  const handleOpenSettings = () => {
+    Alert.alert(
+      'Cấu Hình Ca Trực & Xe',
+      '• Mã kíp trực: Đội ICU 01\n• Bác sĩ phụ trách: BS. Trần Văn Minh\n• Điều dưỡng: Nguyễn Thị Lan\n• Lái xe: Lê Quốc Huy\n• Xe cấp cứu: 51A-999.99',
+      [{ text: 'Đóng' }]
+    );
+  };
+
+  // Full Mission History
+  const handleViewAllHistory = () => {
+    Alert.alert(
+      'Nhật Ký Ca Trực',
+      'Đã hoàn thành 3 ca cấp cứu trong ngày hôm nay. Tổng quãng đường di chuyển: 42 km.',
+      [{ text: 'Đóng' }]
+    );
+  };
+
+  // Mark all notifications read
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  return (
+    <ScreenContainer
+      backgroundColor="#0B0F19"
+      edges={['top', 'left', 'right']}
+      safeArea
+      statusBarStyle="light-content"
+    >
+      <View style={styles.mainWrapper}>
+        {/* Scrollable Dashboard Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: verticalScale(16) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#38BDF8"
+              colors={['#38BDF8', '#10B981', '#EF4444']}
+            />
+          }
+        >
+          {/* 1. Staff Profile Bar */}
+          <StaffProfileHeader
+            name="Lê Quốc Huy"
+            role="Đội Cứu Hộ 01 • Cấp Cứu 115"
+            staffId="ST-8821"
+            vehiclePlate="51A-999.99"
+            dutyStatus={dutyStatus}
+            unreadNotificationsCount={unreadNotificationsCount}
+            onPressNotifications={() => setIsNotificationModalVisible(true)}
+            onPressSettings={handleOpenSettings}
+            onPressAvatar={() =>
+              Alert.alert('Nhân Viên', 'Lê Quốc Huy - Lái xe Cấp Cứu Hạng 1\nKinh nghiệm: 5 năm điều phối')
+            }
+          />
+
+          {/* 2. Duty Status Selector */}
+          <DutyStatusSelector
+            currentStatus={dutyStatus}
+            onStatusChange={setDutyStatus}
+            gpsStatusText="GPS: Tốt (±3m)"
+            serverStatusText="Máy chủ: Đã kết nối"
+            radioChannelText="Kênh 04 (115 TT)"
+          />
+
+          {/* 3. Shift Summary Metrics Grid */}
+          <ShiftMetricsGrid
+            completedMissions={3}
+            totalDistanceKm={42}
+            avgEtaMinutes={8.5}
+            shiftHoursElapsed={6.5}
+            totalShiftHours={12}
+            onTimeRate={100}
+          />
+
+          {/* 4. Station & Vehicle Mini-Map Card */}
+          <StationMiniMapCard
+            stationName="Trạm Cứu Hộ Quận 10 - BV Trưng Vương"
+            stationAddress="201 Lý Thường Kiệt, P.7, Q.10, TP.HCM"
+            vehicleModel="Xe Cứu Thương ICU Chuyên Dụng #AMB-04"
+            vehicleStatus={
+              dutyStatus === 'online'
+                ? 'Đang trực tại trạm • Sẵn sàng xuất kích'
+                : dutyStatus === 'busy'
+                ? 'Tạm nghỉ bảo dưỡng & nạp Oxy'
+                : 'Đã nghỉ ca • Bàn giao xe'
+            }
+            latitude={10.7712}
+            longitude={106.6578}
+            onPressNavigateStation={handleNavigateStation}
+            onPressOpenFullMap={handleOpenFullMap}
+          />
+
+          {/* 5. Recent Missions List */}
+          <RecentMissionsList
+            missions={MOCK_MISSIONS}
+            onPressMission={(mission) => setSelectedMission(mission)}
+            onPressViewAll={handleViewAllHistory}
+          />
+        </ScrollView>
+
+        {/* 6. Sticky Bottom Quick Action Dock */}
+        <QuickActionDock
+          onPressCheckSupplies={() => setIsEquipmentModalVisible(true)}
+          onPressSosCall={handleSosCall}
+          onPressHistory={handleViewAllHistory}
+        />
+
+        {/* Interactive Modals */}
+        {/* Medical Supplies & Gear Checklist Modal */}
+        <MedicalEquipmentModal
+          visible={isEquipmentModalVisible}
+          onClose={() => setIsEquipmentModalVisible(false)}
+        />
+
+        {/* Detailed Mission Incident Modal */}
+        <MissionDetailModal
+          visible={!!selectedMission}
+          mission={selectedMission}
+          onClose={() => setSelectedMission(null)}
+        />
+
+        {/* Dispatch Notifications Modal */}
+        <StaffNotificationsModal
+          visible={isNotificationModalVisible}
+          notifications={notifications}
+          onClose={() => setIsNotificationModalVisible(false)}
+          onMarkAllRead={handleMarkAllRead}
+        />
+      </View>
+    </ScreenContainer>
+  );
+};
+
+const styles = StyleSheet.create({
+  mainWrapper: {
+    flex: 1,
+    backgroundColor: '#0B0F19',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: scale(14),
+    paddingTop: verticalScale(10),
+  },
+});

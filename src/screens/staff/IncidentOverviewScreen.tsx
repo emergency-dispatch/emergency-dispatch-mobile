@@ -19,6 +19,7 @@ import {
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { ConfirmationModal } from '../../components/common';
 import { MissionStepper } from '../../components/dispatch/MissionStepper';
 import { IncidentTacticalMap } from '../../components/dispatch/IncidentTacticalMap';
 import { IncidentDetailCard } from '../../components/dispatch/IncidentDetailCard';
@@ -47,82 +48,47 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   // Mission State Management (4 Stages)
   const [currentStage, setCurrentStage] = useState<MissionStage>('accepted');
 
+  // Confirmation Modal states
+  const [isCallDispatcherModalVisible, setIsCallDispatcherModalVisible] = useState(false);
+  const [isEnRouteModalVisible, setIsEnRouteModalVisible] = useState(false);
+  const [isOnSceneModalVisible, setIsOnSceneModalVisible] = useState(false);
+  const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
+
   // Quick Dispatcher Hotline Call
-  const handleCallDispatcher = useCallback(() => {
-    Alert.alert(
-      '🚨 GỌI TRỰC BAN ĐIỀU PHỐI 115',
-      `Đang kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ 115 TP.HCM cho Ca trực ${incident.code}.`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'GỌI TỔNG ĐÀI (115)',
-          style: 'destructive',
-          onPress: () => {
-            const phoneNumber = 'tel:115';
-            Linking.canOpenURL(phoneNumber)
-              .then((supported) => {
-                if (supported) {
-                  Linking.openURL(phoneNumber);
-                } else {
-                  Alert.alert('Đàm Thoại Nội Bộ', 'Đang kết nối qua kênh vô tuyến số 115...');
-                }
-              })
-              .catch(() => {
-                Alert.alert('Đàm Thoại Nội Bộ', 'Đang kết nối qua kênh vô tuyến số 115...');
-              });
-          },
-        },
-      ]
-    );
-  }, [incident.code]);
+  const handleConfirmCallDispatcher = () => {
+    setIsCallDispatcherModalVisible(false);
+    Linking.openURL('tel:115').catch(() => {
+      Alert.alert('Đàm Thoại', 'Đang kết nối qua kênh vô tuyến số 115...');
+    });
+  };
 
   // Handle Swipe to En Route
   const handleSwipeEnRoute = useCallback(() => {
     setCurrentStage('en_route');
-    Alert.alert(
-      '🚑 XUẤT PHÁT THÀNH CÔNG!',
-      `Xe cứu thương ${incident.assignedUnit} đã chuyển trạng thái [EN ROUTE]. Đang bật còi ưu tiên và dẫn đường tới ${incident.address}.`
-    );
-  }, [incident.assignedUnit, incident.address]);
+    setIsEnRouteModalVisible(true);
+  }, []);
 
   // Handle Advance Stage
   const handleAdvanceStage = useCallback((nextStage: MissionStage) => {
     setCurrentStage(nextStage);
     if (nextStage === 'on_scene') {
-      Alert.alert(
-        '📍 ĐÃ ĐẾN HIỆN TRƯỜNG (ON SCENE)',
-        'Kíp trực đã tiếp cận hiện trường. Bắt đầu phân loại Triage và sơ cứu nạn nhân.'
-      );
+      setIsOnSceneModalVisible(true);
     }
   }, []);
 
   // Handle Complete Mission
   const handleCompleteMission = useCallback(() => {
     setCurrentStage('completed');
-    Alert.alert(
-      '✅ HOÀN THÀNH CA CẤP CỨU',
-      'Đã bàn giao 3 nạn nhân an toàn cho Bệnh viện Trưng Vương. Báo cáo ca trực đã được đồng bộ về Trung tâm 115.',
-      [
-        {
-          text: 'Về Bảng Điều Khiển',
-          onPress: () => {
-            if (navigation?.canGoBack()) {
-              navigation.goBack();
-            }
-          },
-        },
-      ]
-    );
-  }, [navigation]);
+    setIsCompleteModalVisible(true);
+  }, []);
 
   // Handle Back
   const handleGoBack = () => {
     if (navigation?.canGoBack()) {
       navigation.goBack();
-    } else {
-      Alert.alert('Thông Báo', 'Quay lại Bảng điều khiển Đội cứu hộ.');
     }
   };
+
 
   return (
     <ScreenContainer
@@ -153,7 +119,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.callDispatcherBtn}
-            onPress={handleCallDispatcher}
+            onPress={() => setIsCallDispatcherModalVisible(true)}
           >
             <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
             <Text style={styles.callDispatcherText}>Gọi Dispatcher</Text>
@@ -176,9 +142,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               incidentAddress={incident.address}
               distanceKm={incident.distanceKm}
               etaMinutes={incident.etaMinutes}
-              onRecenter={() =>
-                Alert.alert('Định Vị GPS', 'Đã căn giữa bản đồ theo vị trí xe cấp cứu ICU-01.')
-              }
+              onRecenter={() => {}}
             />
           </View>
 
@@ -193,10 +157,71 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             />
           </View>
         </View>
+
+        {/* 1. Modal: Call Dispatcher Hotline */}
+        <ConfirmationModal
+          visible={isCallDispatcherModalVisible}
+          type="danger"
+          title="Gọi Trực Ban Điều Phối 115"
+          description={`Kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ TP.HCM cho Ca trực ${incident.code}?`}
+          highlightBadge="KÊNH KHẨN CẤP 115"
+          confirmText="Gọi Ngay (115)"
+          cancelText="Hủy"
+          onConfirm={handleConfirmCallDispatcher}
+          onCancel={() => setIsCallDispatcherModalVisible(false)}
+        />
+
+        {/* 2. Modal: En Route Success Confirmation */}
+        <ConfirmationModal
+          visible={isEnRouteModalVisible}
+          type="warning"
+          title="Xuất Phát Thành Công (En Route)"
+          description={`Xe cứu thương ${incident.assignedUnit} đã chuyển trạng thái xuất phát.`}
+          highlightBadge="ĐANG DI CHUYỂN • BẬT CÒI ƯU TIÊN"
+          highlightText={`Đang dẫn đường tới hiện trường: ${incident.address}`}
+          singleButton
+          confirmText="Tiếp Tục Dẫn Đường"
+          onConfirm={() => setIsEnRouteModalVisible(false)}
+          onCancel={() => setIsEnRouteModalVisible(false)}
+        />
+
+        {/* 3. Modal: Arrived On Scene Confirmation */}
+        <ConfirmationModal
+          visible={isOnSceneModalVisible}
+          type="danger"
+          title="Đã Tiếp Cận Hiện Trường (On Scene)"
+          description="Kíp trực đã có mặt tại hiện trường. Bắt đầu phân loại Triage và sơ cứu nạn nhân."
+          highlightBadge="TRIAGE T1 • 3 NẠN NHÂN"
+          highlightText="Yêu cầu mang kìm cắt thủy lực và bình Oxy dự phòng theo đúng ghi chú hiện trường."
+          singleButton
+          confirmText="Bắt Đầu Cấp Cứu"
+          onConfirm={() => setIsOnSceneModalVisible(false)}
+          onCancel={() => setIsOnSceneModalVisible(false)}
+        />
+
+        {/* 4. Modal: Complete Mission Confirmation */}
+        <ConfirmationModal
+          visible={isCompleteModalVisible}
+          type="success"
+          title="Hoàn Thành Ca Cấp Cứu 🎉"
+          description="Đã bàn giao 3 nạn nhân an toàn cho Bệnh viện Cấp Cứu Trưng Vương."
+          highlightBadge="CA TRỰC HOÀN TẤT XUẤT SẮC"
+          highlightText="Báo cáo ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm 115."
+          singleButton
+          confirmText="Về Bảng Trực 115"
+          onConfirm={() => {
+            setIsCompleteModalVisible(false);
+            if (navigation?.canGoBack()) {
+              navigation.goBack();
+            }
+          }}
+          onCancel={() => setIsCompleteModalVisible(false)}
+        />
       </View>
     </ScreenContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   rootContainer: {

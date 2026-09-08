@@ -7,8 +7,9 @@ import { StaffTabParamList } from './types';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { StaffProfileScreen } from '../screens/staff/StaffProfileScreen';
 import { useResponsive } from '../utils/responsive';
+
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
 
@@ -77,7 +78,7 @@ export const StaffNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="StaffProfileTab"
-        component={ProfileScreen}
+        component={StaffProfileScreen}
         options={{
           tabBarLabel: 'Hồ Sơ Kíp Trực',
           tabBarIcon: ({ color }) => (
@@ -85,6 +86,7 @@ export const StaffNavigator: React.FC = () => {
           ),
         }}
       />
+
     </Tab.Navigator>
   );
 };

@@ -27,6 +27,7 @@ import {
   Zap,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 import { EmergencyIncident, MOCK_EMERGENCY_INCIDENT } from '../../types/dispatch';
 
 interface EmergencyAlertModalProps {
@@ -48,6 +49,8 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [secondsRemaining, setSecondsRemaining] = useState<number>(TOTAL_COUNTDOWN);
+  const [isDeclineModalVisible, setIsDeclineModalVisible] = useState<boolean>(false);
+
 
   // Animation values
   const pulseBorderAnim = useRef(new Animated.Value(0.4)).current;
@@ -415,7 +418,7 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.declineButton}
-            onPress={handleConfirmDecline}
+            onPress={() => setIsDeclineModalVisible(true)}
           >
             <X size={moderateScale(18)} color="#F87171" />
             <Text style={styles.declineButtonText}>Từ Chối</Text>
@@ -436,10 +439,28 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Reusable Confirmation Modal: Decline Incident */}
+        <ConfirmationModal
+          visible={isDeclineModalVisible}
+          type="danger"
+          title="Từ Chối Lệnh Điều Động?"
+          description="Bạn có chắc chắn muốn từ chối nhiệm vụ cấp cứu khẩn cấp này?"
+          highlightBadge="CODE RED • T1"
+          highlightText="Lệnh điều động sẽ được chuyển sang xe cứu thương dự bị tiếp theo trong khu vực."
+          confirmText="Xác Nhận Từ Chối"
+          cancelText="Quay Lại"
+          onConfirm={() => {
+            setIsDeclineModalVisible(false);
+            onDecline();
+          }}
+          onCancel={() => setIsDeclineModalVisible(false)}
+        />
       </View>
     </Modal>
   );
 };
+
 
 const styles = StyleSheet.create({
   modalRoot: {

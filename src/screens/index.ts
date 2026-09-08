@@ -5,5 +5,7 @@ export * from './auth/LoginScreen';
 export * from './profile/ProfileScreen';
 export * from './staff/StaffDashboardScreen';
 export * from './staff/IncidentOverviewScreen';
+export * from './staff/StaffProfileScreen';
+
 
 

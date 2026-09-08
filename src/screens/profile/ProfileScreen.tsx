@@ -33,11 +33,10 @@ import {
   ChevronDown,
   ChevronUp,
   LogOut,
-  Truck,
-  Repeat,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { ConfirmationModal } from '../../components/common';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 
@@ -55,7 +54,7 @@ import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { logout, user, switchDemoRole } = useAppStore();
+  const { logout } = useAppStore();
   const {
     profile,
     loadProfile,
@@ -67,42 +66,14 @@ export const ProfileScreen: React.FC = () => {
   const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Đăng Xuất Tài Khoản',
-      'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống điều phối cứu hộ?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đăng Xuất',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            (navigation as any).navigate('Auth', { screen: 'Login' });
-          },
-        },
-      ]
-    );
+  const handleConfirmLogout = () => {
+    setIsLogoutModalVisible(false);
+    logout();
+    (navigation as any).navigate('Auth', { screen: 'Login' });
   };
 
-  const handleSwitchRole = () => {
-    const nextRole = user?.role === 'staff' ? 'citizen' : 'staff';
-    const nextRoleName = nextRole === 'staff' ? 'Đội Cứu Hộ 115' : 'Người Dân';
-    Alert.alert(
-      'Chuyển Đổi Giao Diện Vai Trò',
-      `Bạn có muốn chuyển sang giao diện dành cho [${nextRoleName}]?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Chuyển Đổi Ngay',
-          onPress: () => {
-            switchDemoRole(nextRole);
-          },
-        },
-      ]
-    );
-  };
 
 
   // Accordion state: Track which cards are expanded
@@ -626,47 +597,10 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.fullEditBtnText}>Cập Nhật Toàn Bộ Hồ Sơ</Text>
         </TouchableOpacity>
 
-        {/* Role Switcher Quick Access Card */}
-        <View style={styles.roleCard}>
-          <View style={styles.roleCardLeft}>
-            <View
-              style={[
-                styles.roleIconWrap,
-                user?.role === 'staff'
-                  ? styles.roleIconWrapStaff
-                  : styles.roleIconWrapCitizen,
-              ]}
-            >
-              {user?.role === 'staff' ? (
-                <Truck size={moderateScale(18)} color="#38BDF8" />
-              ) : (
-                <User size={moderateScale(18)} color="#EF4444" />
-              )}
-            </View>
-            <View style={styles.roleInfoTextGroup}>
-              <Text style={styles.roleCurrentLabel}>VAI TRÒ GIAO DIỆN HIỆN TẠI</Text>
-              <Text style={styles.roleCurrentTitle}>
-                {user?.role === 'staff'
-                  ? 'Đội Cứu Hộ 115 (Staff)'
-                  : 'Người Dân (Citizen)'}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.switchRoleBtn}
-            activeOpacity={0.85}
-            onPress={handleSwitchRole}
-          >
-            <Repeat size={moderateScale(14)} color="#FFFFFF" />
-            <Text style={styles.switchRoleBtnText}>Đổi Role</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Logout / Switch Account Button */}
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={handleLogout}
+          onPress={() => setIsLogoutModalVisible(true)}
           activeOpacity={0.8}
         >
           <LogOut size={18} color="#EF4444" />
@@ -676,6 +610,17 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.footerSpace} />
       </ScrollView>
 
+      {/* Confirmation Modal: Logout */}
+      <ConfirmationModal
+        visible={isLogoutModalVisible}
+        type="danger"
+        title="Đăng Xuất Tài Khoản"
+        description="Bạn có chắc chắn muốn đăng xuất khỏi Hệ thống Cứu hộ Khẩn cấp?"
+        confirmText="Đăng Xuất"
+        cancelText="Ở Lại"
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setIsLogoutModalVisible(false)}
+      />
 
       {/* Modal: Full Emergency Medical ID Sheet */}
       <MedicalIdCardModal
@@ -695,6 +640,7 @@ export const ProfileScreen: React.FC = () => {
     </ScreenContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -1121,67 +1067,9 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
   },
-  roleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: moderateScale(12),
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginTop: 12,
-  },
-  roleCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  roleIconWrap: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(18),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roleIconWrapCitizen: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-  },
-  roleIconWrapStaff: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-  },
-  roleInfoTextGroup: {
-    flex: 1,
-  },
-  roleCurrentLabel: {
-    fontSize: moderateScale(9),
-    fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.4,
-  },
-  roleCurrentTitle: {
-    fontSize: moderateScale(12.5),
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 1,
-  },
-  switchRoleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0284C7',
-    paddingVertical: verticalScale(7),
-    paddingHorizontal: scale(10),
-    borderRadius: moderateScale(10),
-    gap: scale(4),
-  },
-  switchRoleBtnText: {
-    fontSize: moderateScale(11.5),
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
   footerSpace: {
     height: 30,
   },
 });
+
 

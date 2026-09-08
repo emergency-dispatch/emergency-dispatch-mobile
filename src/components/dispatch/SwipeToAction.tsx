@@ -53,17 +53,31 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
   // Pulse animation for chevrons
   const chevronPulse = useRef(new Animated.Value(0.4)).current;
 
+  // Refs for dynamic mutable state accessed inside PanResponder callbacks
+  const disabledRef = useRef(disabled);
+  const isCompletedRef = useRef(isCompleted);
+  const onSwipeSuccessRef = useRef(onSwipeSuccess);
+  const maxDragRef = useRef(0);
+  const trackWidthRef = useRef(0);
+
+  // Sync refs on each render
+  useEffect(() => {
+    disabledRef.current = disabled;
+    isCompletedRef.current = isCompleted;
+    onSwipeSuccessRef.current = onSwipeSuccess;
+  });
+
   useEffect(() => {
     const pulseAnim = Animated.loop(
       Animated.sequence([
         Animated.timing(chevronPulse, {
           toValue: 1,
-          duration: 900,
+          duration: 800,
           useNativeDriver: true,
         }),
         Animated.timing(chevronPulse, {
           toValue: 0.35,
-          duration: 900,
+          duration: 800,
           useNativeDriver: true,
         }),
       ])
@@ -77,44 +91,67 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width } = e.nativeEvent.layout;
-    setTrackWidth(width);
+    if (width > 0) {
+      setTrackWidth(width);
+      trackWidthRef.current = width;
+      const calculatedMax = Math.max(0, width - thumbSize - moderateScale(8));
+      maxDragRef.current = calculatedMax;
+    }
   };
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled && !isCompleted,
+      onStartShouldSetPanResponder: () => !disabledRef.current && !isCompletedRef.current,
+      onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return !disabled && !isCompleted && Math.abs(gestureState.dx) > 5;
+        return (
+          !disabledRef.current &&
+          !isCompletedRef.current &&
+          (Math.abs(gestureState.dx) > 3 || gestureState.dx > 0)
+        );
       },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        return (
+          !disabledRef.current &&
+          !isCompletedRef.current &&
+          Math.abs(gestureState.dx) > 3
+        );
+      },
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => {
         setIsDragging(true);
       },
       onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
-        if (isCompleted || disabled || maxDrag <= 0) return;
-        const newDx = Math.max(0, Math.min(gestureState.dx, maxDrag));
+        if (isCompletedRef.current || disabledRef.current) return;
+        const max = maxDragRef.current;
+        if (max <= 0) return;
+        const newDx = Math.max(0, Math.min(gestureState.dx, max));
         translateX.setValue(newDx);
       },
       onPanResponderRelease: (_, gestureState: PanResponderGestureState) => {
         setIsDragging(false);
-        if (isCompleted || disabled || maxDrag <= 0) return;
+        if (isCompletedRef.current || disabledRef.current) return;
+        const max = maxDragRef.current;
+        if (max <= 0) return;
 
-        // Trigger if dragged over 72% of max path
-        if (gestureState.dx >= maxDrag * 0.72) {
-          // Animate to end
+        // Trigger if dragged over 60% of track
+        if (gestureState.dx >= max * 0.6) {
+          // Smoothly animate thumb to the end
           Animated.timing(translateX, {
-            toValue: maxDrag,
-            duration: 150,
+            toValue: max,
+            duration: 120,
             useNativeDriver: false,
           }).start(() => {
             setIsCompleted(true);
-            onSwipeSuccess();
+            isCompletedRef.current = true;
+            onSwipeSuccessRef.current?.();
           });
         } else {
           // Snap back with spring
           Animated.spring(translateX, {
             toValue: 0,
             friction: 7,
-            tension: 40,
+            tension: 50,
             useNativeDriver: false,
           }).start();
         }
@@ -124,24 +161,27 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
         Animated.spring(translateX, {
           toValue: 0,
           friction: 7,
-          tension: 40,
+          tension: 50,
           useNativeDriver: false,
         }).start();
       },
     })
   ).current;
 
+  // Safe interpolation limits
+  const safeMaxDrag = Math.max(1, maxDrag);
+
   // Text opacity interpolates as thumb moves
   const textOpacity = translateX.interpolate({
-    inputRange: [0, maxDrag * 0.6 || 1],
-    outputRange: [1, 0.1],
+    inputRange: [0, safeMaxDrag * 0.55],
+    outputRange: [1, 0.05],
     extrapolate: 'clamp',
   });
 
   // Track progress fill width
   const trackFillWidth = translateX.interpolate({
-    inputRange: [0, maxDrag || 1],
-    outputRange: [thumbSize, maxDrag + thumbSize],
+    inputRange: [0, safeMaxDrag],
+    outputRange: [thumbSize + moderateScale(8), safeMaxDrag + thumbSize + moderateScale(8)],
     extrapolate: 'clamp',
   });
 
@@ -159,6 +199,7 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
         },
       ]}
       onLayout={handleLayout}
+      {...panResponder.panHandlers}
       accessibilityRole="button"
       accessibilityLabel={isCompleted ? successTitle : title}
     >
@@ -170,9 +211,12 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
             width: trackFillWidth,
             backgroundColor: isCompleted
               ? 'rgba(16, 185, 129, 0.85)'
+              : isDragging
+              ? 'rgba(56, 189, 248, 0.35)'
               : activeTrackColor,
           },
         ]}
+        pointerEvents="none"
       />
 
       {/* Guide Track Text & Pulsing Chevrons */}
@@ -210,17 +254,21 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
 
       {/* Draggable Thumb */}
       <Animated.View
-        {...panResponder.panHandlers}
         style={[
           styles.thumb,
           {
             width: thumbSize,
             height: thumbSize,
             borderRadius: thumbSize / 2,
-            backgroundColor: isCompleted ? '#10B981' : isDragging ? '#0284C7' : '#EF4444',
+            backgroundColor: isCompleted
+              ? '#10B981'
+              : isDragging
+              ? '#0284C7'
+              : '#EF4444',
             transform: [{ translateX }],
           },
         ]}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
         {isCompleted ? (
           <Check size={moderateScale(22)} color="#FFFFFF" strokeWidth={3} />

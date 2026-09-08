@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ShieldAlert, Zap, Radio, BellRing, Flame } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { ConfirmationModal } from '../../components/common';
 import {
   StaffProfileHeader,
   DutyStatusSelector,
@@ -30,6 +31,7 @@ import {
 import { EmergencyAlertModal } from '../../components/dispatch/EmergencyAlertModal';
 import { MissionItem, DispatchNotification } from '../../types/staff';
 import { MOCK_EMERGENCY_INCIDENT, EmergencyIncident } from '../../types/dispatch';
+
 
 
 // Mock Initial Missions Data
@@ -126,6 +128,9 @@ export const StaffDashboardScreen: React.FC = () => {
   const [selectedMission, setSelectedMission] = useState<MissionItem | null>(null);
   const [isNotificationModalVisible, setIsNotificationModalVisible] = useState(false);
   const [isEmergencyAlertVisible, setIsEmergencyAlertVisible] = useState(false);
+  const [isSosModalVisible, setIsSosModalVisible] = useState(false);
+  const [isNavigateStationModalVisible, setIsNavigateStationModalVisible] = useState(false);
+  const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
 
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
 
@@ -147,68 +152,28 @@ export const StaffDashboardScreen: React.FC = () => {
   );
 
   // SOS Emergency Hotline Call
-  const handleSosCall = () => {
-    Alert.alert(
-      '🚨 GỌI TRỰC BAN ĐIỀU PHỐI 115',
-      'Bạn đang yêu cầu kết nối thoại khẩn cấp đến Trung tâm Chỉ huy Điều phối Cứu hộ 115 TP.HCM.',
-      [
-        { text: 'Hủy Bỏ', style: 'cancel' },
-        {
-          text: 'GỌI NGAY (115)',
-          style: 'destructive',
-          onPress: () => {
-            const phoneNumber = 'tel:115';
-            Linking.canOpenURL(phoneNumber)
-              .then((supported) => {
-                if (supported) {
-                  Linking.openURL(phoneNumber);
-                } else {
-                  Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
-                }
-              })
-              .catch(() => {
-                Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
-              });
-          },
-        },
-      ]
-    );
+  const handleConfirmSosCall = () => {
+    setIsSosModalVisible(false);
+    Linking.openURL('tel:115').catch(() => {
+      Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
+    });
   };
 
   // Navigate to Station
-  const handleNavigateStation = () => {
-    Alert.alert(
-      'Dẫn Đường Về Trạm Cứu Hộ',
-      'Khởi chạy lộ trình ưu tiên dẫn đường xe cấp cứu về Trạm Quận 10 - Bệnh viện Trưng Vương.',
-      [
-        { text: 'Đóng', style: 'cancel' },
-        {
-          text: 'Bắt Đầu Đi',
-          onPress: () => {
-            const url = Platform.select({
-              ios: 'maps:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
-              android: 'geo:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
-            });
-            if (url) Linking.openURL(url).catch(() => {});
-          },
-        },
-      ]
-    );
-  };
-
-  // Open Full Map
-  const handleOpenFullMap = () => {
-    Alert.alert('Bản Đồ Cứu Hộ', 'Đang mở giao diện Bản đồ Tác chiến & Định vị Đội xe...');
+  const handleConfirmNavigateStation = () => {
+    setIsNavigateStationModalVisible(false);
+    const url = Platform.select({
+      ios: 'maps:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
+      android: 'geo:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
+    });
+    if (url) Linking.openURL(url).catch(() => {});
   };
 
   // Settings action
   const handleOpenSettings = () => {
-    Alert.alert(
-      'Cấu Hình Ca Trực & Xe',
-      '• Mã kíp trực: Đội ICU 01\n• Bác sĩ phụ trách: BS. Trần Văn Minh\n• Điều dưỡng: Nguyễn Thị Lan\n• Lái xe: Lê Quốc Huy\n• Xe cấp cứu: 51A-999.99',
-      [{ text: 'Đóng' }]
-    );
+    setIsSettingsModalVisible(true);
   };
+
 
   // Full Mission History
   const handleViewAllHistory = () => {
@@ -321,8 +286,8 @@ export const StaffDashboardScreen: React.FC = () => {
             }
             latitude={10.7712}
             longitude={106.6578}
-            onPressNavigateStation={handleNavigateStation}
-            onPressOpenFullMap={handleOpenFullMap}
+            onPressNavigateStation={() => setIsNavigateStationModalVisible(true)}
+            onPressOpenFullMap={() => setIsNavigateStationModalVisible(true)}
           />
 
           {/* 6. Recent Missions List */}
@@ -336,7 +301,7 @@ export const StaffDashboardScreen: React.FC = () => {
         {/* 7. Sticky Bottom Quick Action Dock */}
         <QuickActionDock
           onPressCheckSupplies={() => setIsEquipmentModalVisible(true)}
-          onPressSosCall={handleSosCall}
+          onPressSosCall={() => setIsSosModalVisible(true)}
           onPressHistory={handleViewAllHistory}
         />
 
@@ -348,6 +313,46 @@ export const StaffDashboardScreen: React.FC = () => {
           onAccept={handleAcceptEmergency}
           onDecline={() => setIsEmergencyAlertVisible(false)}
           onTimeout={() => setIsEmergencyAlertVisible(false)}
+        />
+
+        {/* Confirmation Modal: SOS Hotline Call */}
+        <ConfirmationModal
+          visible={isSosModalVisible}
+          type="danger"
+          title="Gọi Trực Ban Điều Phối 115"
+          description="Bạn đang yêu cầu kết nối thoại khẩn cấp đến Trung tâm Chỉ huy Điều phối Cứu hộ 115 TP.HCM."
+          highlightBadge="ĐÀM THOẠI TRỰC BAN 115"
+          confirmText="Gọi Ngay (115)"
+          cancelText="Hủy Bỏ"
+          onConfirm={handleConfirmSosCall}
+          onCancel={() => setIsSosModalVisible(false)}
+        />
+
+        {/* Confirmation Modal: Navigate to Station */}
+        <ConfirmationModal
+          visible={isNavigateStationModalVisible}
+          type="info"
+          title="Dẫn Đường Về Trạm Cứu Hộ"
+          description="Khởi chạy lộ trình ưu tiên dẫn đường xe cấp cứu về Trạm Quận 10 - Bệnh viện Trưng Vương."
+          highlightBadge="XE CẤP CỨU ICU 51A-999.99"
+          confirmText="Bắt Đầu Đi"
+          cancelText="Đóng"
+          onConfirm={handleConfirmNavigateStation}
+          onCancel={() => setIsNavigateStationModalVisible(false)}
+        />
+
+        {/* Confirmation Modal: Vehicle & Crew Config Info */}
+        <ConfirmationModal
+          visible={isSettingsModalVisible}
+          type="primary"
+          title="Cấu Hình Ca Trực & Xe"
+          description="Thông tin phân công nhiệm vụ kíp trực hiện tại:"
+          highlightBadge="KÍP TRỰC ĐỘI ICU 01"
+          highlightText="• Bác sĩ: BS. Trần Văn Minh\n• Điều dưỡng: Nguyễn Thị Lan\n• Lái xe: Lê Quốc Huy\n• Xe cấp cứu: 51A-999.99"
+          singleButton
+          confirmText="Đã Rõ"
+          onConfirm={() => setIsSettingsModalVisible(false)}
+          onCancel={() => setIsSettingsModalVisible(false)}
         />
 
         {/* Medical Supplies & Gear Checklist Modal */}
@@ -374,6 +379,7 @@ export const StaffDashboardScreen: React.FC = () => {
     </ScreenContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   mainWrapper: {

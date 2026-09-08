@@ -8,9 +8,12 @@ import {
   Alert,
   Linking,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { ShieldAlert, Zap, Radio, BellRing, Flame } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import {
   StaffProfileHeader,
@@ -24,7 +27,10 @@ import {
   MissionDetailModal,
   StaffNotificationsModal,
 } from '../../components/staff';
+import { EmergencyAlertModal } from '../../components/dispatch/EmergencyAlertModal';
 import { MissionItem, DispatchNotification } from '../../types/staff';
+import { MOCK_EMERGENCY_INCIDENT, EmergencyIncident } from '../../types/dispatch';
+
 
 // Mock Initial Missions Data
 const MOCK_MISSIONS: MissionItem[] = [
@@ -108,6 +114,7 @@ const MOCK_NOTIFICATIONS: DispatchNotification[] = [
 
 export const StaffDashboardScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
 
   // State
   const [dutyStatus, setDutyStatus] = useState<DutyStatus>('online');
@@ -118,6 +125,7 @@ export const StaffDashboardScreen: React.FC = () => {
   const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
   const [selectedMission, setSelectedMission] = useState<MissionItem | null>(null);
   const [isNotificationModalVisible, setIsNotificationModalVisible] = useState(false);
+  const [isEmergencyAlertVisible, setIsEmergencyAlertVisible] = useState(false);
 
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
 
@@ -128,6 +136,15 @@ export const StaffDashboardScreen: React.FC = () => {
       setRefreshing(false);
     }, 800);
   }, []);
+
+  // Accept emergency incident -> Go to IncidentOverviewScreen (Chặng 2)
+  const handleAcceptEmergency = useCallback(
+    (incident: EmergencyIncident) => {
+      setIsEmergencyAlertVisible(false);
+      navigation.navigate('IncidentOverview', { incident });
+    },
+    [navigation]
+  );
 
   // SOS Emergency Hotline Call
   const handleSosCall = () => {
@@ -168,7 +185,6 @@ export const StaffDashboardScreen: React.FC = () => {
         {
           text: 'Bắt Đầu Đi',
           onPress: () => {
-            // Can open native map apps or route in-app
             const url = Platform.select({
               ios: 'maps:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
               android: 'geo:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
@@ -248,7 +264,31 @@ export const StaffDashboardScreen: React.FC = () => {
             }
           />
 
-          {/* 2. Duty Status Selector */}
+          {/* 2. Priority Emergency Dispatch Alert Simulation Trigger Banner */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.emergencyAlertBanner}
+            onPress={() => setIsEmergencyAlertVisible(true)}
+          >
+            <View style={styles.emergencyBannerHeader}>
+              <View style={styles.emergencyTag}>
+                <Flame size={moderateScale(13)} color="#FFFFFF" />
+                <Text style={styles.emergencyTagText}>CODE RED • ĐIỀU ĐỘNG KHẨN</Text>
+              </View>
+              <View style={styles.liveTimerPill}>
+                <Text style={styles.liveTimerText}>CHẠM ĐỂ XEM ⚡</Text>
+              </View>
+            </View>
+
+            <Text style={styles.emergencyBannerTitle}>
+              TAI NẠN GIAO THÔNG LIÊN HOÀN (3 NẠN NHÂN)
+            </Text>
+            <Text style={styles.emergencyBannerSub}>
+              📍 120 Võ Văn Tần, P.6, Q.3 • Cách 2.4 km (ETA: 6 phút)
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3. Duty Status Selector */}
           <DutyStatusSelector
             currentStatus={dutyStatus}
             onStatusChange={setDutyStatus}
@@ -257,7 +297,7 @@ export const StaffDashboardScreen: React.FC = () => {
             radioChannelText="Kênh 04 (115 TT)"
           />
 
-          {/* 3. Shift Summary Metrics Grid */}
+          {/* 4. Shift Summary Metrics Grid */}
           <ShiftMetricsGrid
             completedMissions={3}
             totalDistanceKm={42}
@@ -267,7 +307,7 @@ export const StaffDashboardScreen: React.FC = () => {
             onTimeRate={100}
           />
 
-          {/* 4. Station & Vehicle Mini-Map Card */}
+          {/* 5. Station & Vehicle Mini-Map Card */}
           <StationMiniMapCard
             stationName="Trạm Cứu Hộ Quận 10 - BV Trưng Vương"
             stationAddress="201 Lý Thường Kiệt, P.7, Q.10, TP.HCM"
@@ -285,7 +325,7 @@ export const StaffDashboardScreen: React.FC = () => {
             onPressOpenFullMap={handleOpenFullMap}
           />
 
-          {/* 5. Recent Missions List */}
+          {/* 6. Recent Missions List */}
           <RecentMissionsList
             missions={MOCK_MISSIONS}
             onPressMission={(mission) => setSelectedMission(mission)}
@@ -293,7 +333,7 @@ export const StaffDashboardScreen: React.FC = () => {
           />
         </ScrollView>
 
-        {/* 6. Sticky Bottom Quick Action Dock */}
+        {/* 7. Sticky Bottom Quick Action Dock */}
         <QuickActionDock
           onPressCheckSupplies={() => setIsEquipmentModalVisible(true)}
           onPressSosCall={handleSosCall}
@@ -301,6 +341,15 @@ export const StaffDashboardScreen: React.FC = () => {
         />
 
         {/* Interactive Modals */}
+        {/* Chặng 1: Full-screen Emergency Alert Modal */}
+        <EmergencyAlertModal
+          visible={isEmergencyAlertVisible}
+          incident={MOCK_EMERGENCY_INCIDENT}
+          onAccept={handleAcceptEmergency}
+          onDecline={() => setIsEmergencyAlertVisible(false)}
+          onTimeout={() => setIsEmergencyAlertVisible(false)}
+        />
+
         {/* Medical Supplies & Gear Checklist Modal */}
         <MedicalEquipmentModal
           visible={isEquipmentModalVisible}
@@ -339,4 +388,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(14),
     paddingTop: verticalScale(10),
   },
+  emergencyAlertBanner: {
+    backgroundColor: 'rgba(220, 38, 38, 0.22)',
+    borderRadius: moderateScale(16),
+    padding: moderateScale(12),
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+    marginBottom: verticalScale(12),
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  emergencyBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(6),
+  },
+  emergencyTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: verticalScale(2.5),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(6),
+    gap: scale(4),
+  },
+  emergencyTagText: {
+    fontSize: moderateScale(10),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  liveTimerPill: {
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  liveTimerText: {
+    fontSize: moderateScale(10),
+    fontWeight: '800',
+    color: '#FBBF24',
+  },
+  emergencyBannerTitle: {
+    fontSize: moderateScale(13.5),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  emergencyBannerSub: {
+    fontSize: moderateScale(11),
+    color: '#FCA5A5',
+    fontWeight: '600',
+    marginTop: verticalScale(3),
+  },
 });
+

@@ -4,4 +4,6 @@ export * from './reports/MyReportsScreen';
 export * from './auth/LoginScreen';
 export * from './profile/ProfileScreen';
 export * from './staff/StaffDashboardScreen';
+export * from './staff/IncidentOverviewScreen';
+
 

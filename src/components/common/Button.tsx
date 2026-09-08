@@ -64,7 +64,13 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator color={isOutline ? Colors.light.primary : '#FFFFFF'} size="small" />
       ) : (
-        <Text style={textStyles}>{title}</Text>
+        <Text
+          style={textStyles}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );

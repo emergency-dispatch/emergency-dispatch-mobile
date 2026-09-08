@@ -8,6 +8,7 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { RotateCw } from 'lucide-react-native';
 
 interface OtpInputProps {
@@ -130,6 +131,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({
                 selectTextOnFocus
                 textAlign="center"
                 autoFocus={index === 0}
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1.2}
               />
             </View>
           );
@@ -144,11 +147,21 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             onPress={handleResend}
             activeOpacity={0.7}
           >
-            <RotateCw size={14} color="#3B82F6" />
-            <Text style={styles.resendTextActive}>Gửi lại mã xác thực</Text>
+            <RotateCw size={moderateScale(13)} color="#3B82F6" />
+            <Text
+              style={styles.resendTextActive}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1.2}
+            >
+              Gửi lại mã xác thực
+            </Text>
           </TouchableOpacity>
         ) : (
-          <Text style={styles.countdownText}>
+          <Text
+            style={styles.countdownText}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
             Gửi lại mã OTP sau{' '}
             <Text style={styles.countdownHighlight}>{countdown}s</Text>
           </Text>
@@ -160,19 +173,24 @@ export const OtpInput: React.FC<OtpInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    marginVertical: verticalScale(12),
     alignItems: 'center',
+    width: '100%',
   },
   boxesContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: moderateScale(320),
+    gap: moderateScale(6),
+    marginBottom: verticalScale(14),
   },
   box: {
-    width: 48,
-    height: 56,
-    borderRadius: 12,
+    flex: 1,
+    height: verticalScale(48),
+    minWidth: moderateScale(38),
+    maxWidth: moderateScale(46),
+    borderRadius: moderateScale(10),
     backgroundColor: '#0F172A',
     borderWidth: 1.5,
     borderColor: '#334155',
@@ -193,7 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
   },
   boxInput: {
-    fontSize: 22,
+    fontSize: moderateScale(19),
     fontWeight: '700',
     color: '#F8FAFC',
     width: '100%',
@@ -206,23 +224,24 @@ const styles = StyleSheet.create({
   resendBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    gap: moderateScale(6),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(8),
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   resendTextActive: {
     color: '#60A5FA',
-    fontSize: 13,
+    fontSize: moderateScale(12),
     fontWeight: '600',
   },
   countdownText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: moderateScale(12),
   },
   countdownHighlight: {
     color: '#F59E0B',
     fontWeight: '700',
   },
 });
+

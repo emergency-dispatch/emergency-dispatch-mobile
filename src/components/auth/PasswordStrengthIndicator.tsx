@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { Check, X } from 'lucide-react-native';
 
 interface PasswordStrengthIndicatorProps {
@@ -45,8 +46,18 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
     <View style={styles.container}>
       {/* Strength Bar and Label Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Độ mạnh mật khẩu:</Text>
-        <Text style={[styles.strengthLabel, { color: strengthColor }]}>
+        <Text
+          style={styles.headerTitle}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
+        >
+          Độ mạnh mật khẩu:
+        </Text>
+        <Text
+          style={[styles.strengthLabel, { color: strengthColor }]}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
+        >
           {strengthLabel}
         </Text>
       </View>
@@ -84,9 +95,9 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
               ]}
             >
               {item.met ? (
-                <Check size={11} color="#10B981" strokeWidth={3} />
+                <Check size={moderateScale(10)} color="#10B981" strokeWidth={3} />
               ) : (
-                <X size={11} color="#EF4444" strokeWidth={3} />
+                <X size={moderateScale(10)} color="#EF4444" strokeWidth={3} />
               )}
             </View>
             <Text
@@ -94,6 +105,8 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
                 styles.checkText,
                 { color: item.met ? '#E2E8F0' : '#64748B' },
               ]}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1.2}
             >
               {item.label}
             </Text>
@@ -107,55 +120,57 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#0F172A',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(10),
     borderWidth: 1,
     borderColor: '#1E293B',
-    marginTop: 4,
-    marginBottom: 12,
+    marginTop: verticalScale(4),
+    marginBottom: verticalScale(10),
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: verticalScale(6),
   },
   headerTitle: {
-    fontSize: 12,
+    fontSize: moderateScale(11.5),
     color: '#94A3B8',
     fontWeight: '500',
   },
   strengthLabel: {
-    fontSize: 12,
+    fontSize: moderateScale(11.5),
     fontWeight: '700',
   },
   barContainer: {
     flexDirection: 'row',
-    height: 4,
-    gap: 6,
-    marginBottom: 10,
+    height: verticalScale(4),
+    gap: moderateScale(5),
+    marginBottom: verticalScale(8),
   },
   barSegment: {
     flex: 1,
-    borderRadius: 2,
+    borderRadius: moderateScale(2),
   },
   checklist: {
-    gap: 6,
+    gap: verticalScale(4),
   },
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: moderateScale(6),
   },
   iconContainer: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: moderateScale(15),
+    height: moderateScale(15),
+    borderRadius: moderateScale(8),
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkText: {
-    fontSize: 11.5,
+    fontSize: moderateScale(11),
     fontWeight: '500',
   },
 });
+

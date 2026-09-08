@@ -50,6 +50,8 @@ export const Input: React.FC<InputProps> = ({
             isDark && styles.labelDark,
             labelStyle,
           ]}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
         >
           {label}
         </Text>
@@ -79,11 +81,21 @@ export const Input: React.FC<InputProps> = ({
             setIsFocused(false);
             onBlur?.(e);
           }}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
           {...props}
         />
         {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && (
+        <Text
+          style={styles.errorText}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 };

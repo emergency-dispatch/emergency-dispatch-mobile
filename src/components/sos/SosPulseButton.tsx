@@ -9,6 +9,7 @@ import {
   Vibration,
 } from 'react-native';
 import { ShieldAlert, Radio } from 'lucide-react-native';
+import { useResponsive } from '../../utils/responsive';
 
 interface SosPulseButtonProps {
   onSosTriggered: () => void;
@@ -19,6 +20,15 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   onSosTriggered,
   holdDuration = 2000,
 }) => {
+  const { width, isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
+
+  // Dynamic responsive sizing
+  const buttonSize = isSmallDevice || isShortScreen
+    ? Math.min(Math.round(width * 0.48), 180)
+    : Math.min(Math.round(width * 0.54), 220);
+  const outerSize = buttonSize + (isSmallDevice ? 36 : 50);
+  const iconSize = isSmallDevice || isShortScreen ? 40 : 50;
+
   const [isPressing, setIsPressing] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
 
@@ -39,7 +49,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
     const pulse1 = Animated.loop(
       Animated.parallel([
         Animated.timing(pulseAnim1, {
-          toValue: 1.4,
+          toValue: 1.35,
           duration: 2000,
           easing: Easing.out(Easing.ease),
           useNativeDriver: true,
@@ -57,7 +67,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
         Animated.delay(600),
         Animated.parallel([
           Animated.timing(pulseAnim2, {
-            toValue: 1.6,
+            toValue: 1.55,
             duration: 2000,
             easing: Easing.out(Easing.ease),
             useNativeDriver: true,
@@ -99,41 +109,42 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
       useNativeDriver: false,
     }).start();
 
+    // Visual percentage counter
     const startTime = Date.now();
     intervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const progress = Math.min(Math.round((elapsed / holdDuration) * 100), 100);
-      setProgressPercent(progress);
+      const currentPct = Math.min(Math.round((elapsed / holdDuration) * 100), 100);
+      setProgressPercent(currentPct);
     }, 30);
 
+    // Success trigger timer
     holdTimerRef.current = setTimeout(() => {
-      Vibration.vibrate([0, 200, 100, 300]);
-      setIsPressing(false);
-      setProgressPercent(0);
-      Animated.spring(buttonScaleAnim, { toValue: 1, useNativeDriver: true }).start();
-      Animated.timing(holdProgressAnim, { toValue: 0, duration: 100, useNativeDriver: false }).start();
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      Vibration.vibrate([0, 300, 100, 300]);
       onSosTriggered();
+      handlePressOut();
     }, holdDuration);
   };
 
   const handlePressOut = () => {
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
     setIsPressing(false);
     setProgressPercent(0);
 
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    holdProgressAnim.setValue(0);
+
     Animated.spring(buttonScaleAnim, {
       toValue: 1,
-      friction: 4,
+      friction: 3,
+      tension: 40,
       useNativeDriver: true,
-    }).start();
-
-    Animated.timing(holdProgressAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: false,
     }).start();
   };
 
@@ -143,12 +154,15 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   });
 
   return (
-    <View style={styles.outerContainer}>
-      {/* Background Ambient Glowing Rings */}
+    <View style={[styles.outerContainer, { width: outerSize, height: outerSize }]}>
+      {/* Ambient Pulsing Background Waves */}
       <Animated.View
         style={[
           styles.glowRing,
           {
+            width: buttonSize,
+            height: buttonSize,
+            borderRadius: buttonSize / 2,
             transform: [{ scale: pulseAnim2 }],
             opacity: pulseOpacity2,
           },
@@ -158,6 +172,9 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
         style={[
           styles.glowRing,
           {
+            width: buttonSize,
+            height: buttonSize,
+            borderRadius: buttonSize / 2,
             transform: [{ scale: pulseAnim1 }],
             opacity: pulseOpacity1,
           },
@@ -170,6 +187,9 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
           style={[
             styles.activeRing,
             {
+              width: buttonSize,
+              height: buttonSize,
+              borderRadius: buttonSize / 2,
               transform: [{ scale: ringScale }],
             },
           ]}
@@ -184,34 +204,86 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
           android_disableSound={true}
           style={({ pressed }) => [
             styles.button,
+            {
+              width: buttonSize,
+              height: buttonSize,
+              borderRadius: buttonSize / 2,
+            },
             pressed && styles.buttonPressed,
           ]}
           accessible={true}
           accessibilityLabel="Nút báo động khẩn cấp SOS. Nhấn và giữ 2 giây để gửi tín hiệu cứu nạn"
           accessibilityRole="button"
         >
-          <View style={styles.innerGlow}>
+          <View
+            style={[
+              styles.innerGlow,
+              {
+                width: buttonSize - 16,
+                height: buttonSize - 16,
+                borderRadius: (buttonSize - 16) / 2,
+              },
+            ]}
+          >
             {/* Top Indicator */}
             <View style={styles.topBadge}>
-              <Radio size={14} color="#FCA5A5" />
-              <Text style={styles.topBadgeText}>EMERGENCY</Text>
+              <Radio size={isSmallDevice ? 12 : 14} color="#FCA5A5" />
+              <Text
+                style={[
+                  styles.topBadgeText,
+                  { fontSize: fontScale(isSmallDevice ? 9 : 10) },
+                ]}
+              >
+                EMERGENCY
+              </Text>
             </View>
 
             {/* Central SOS Icon & Text */}
-            <ShieldAlert size={52} color="#FFFFFF" strokeWidth={2.4} />
-            <Text style={styles.sosTitle}>SOS</Text>
+            <ShieldAlert size={iconSize} color="#FFFFFF" strokeWidth={2.4} />
+            <Text
+              style={[
+                styles.sosTitle,
+                {
+                  fontSize: fontScale(isSmallDevice || isShortScreen ? 26 : 32),
+                  lineHeight: fontScale(isSmallDevice || isShortScreen ? 28 : 34),
+                },
+              ]}
+            >
+              SOS
+            </Text>
 
             {/* Hold instruction or Progress */}
             <View style={styles.statusContainer}>
               {isPressing ? (
-                <Text style={styles.holdingText}>GIỮ... {progressPercent}%</Text>
+                <Text
+                  style={[
+                    styles.holdingText,
+                    { fontSize: fontScale(isSmallDevice ? 10.5 : 12) },
+                  ]}
+                >
+                  GIỮ... {progressPercent}%
+                </Text>
               ) : (
-                <Text style={styles.holdText}>GIỮ 2 GIÂY ĐỂ PHÁT SOS</Text>
+                <Text
+                  style={[
+                    styles.holdText,
+                    { fontSize: fontScale(isSmallDevice ? 9.5 : 11) },
+                  ]}
+                >
+                  GIỮ 2 GIÂY ĐỂ PHÁT SOS
+                </Text>
               )}
             </View>
 
             {/* Subtext */}
-            <Text style={styles.subtext}>Tự động gửi GPS + Camera</Text>
+            <Text
+              style={[
+                styles.subtext,
+                { fontSize: fontScale(isSmallDevice ? 8.5 : 9.5) },
+              ]}
+            >
+              Tự động gửi GPS + Camera
+            </Text>
           </View>
         </Pressable>
       </Animated.View>
@@ -219,38 +291,25 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   );
 };
 
-const BUTTON_SIZE = 216;
-
 const styles = StyleSheet.create({
   outerContainer: {
-    width: BUTTON_SIZE + 60,
-    height: BUTTON_SIZE + 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 12,
+    marginVertical: 8,
   },
   glowRing: {
     position: 'absolute',
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
     backgroundColor: '#DC2626',
     zIndex: 1,
   },
   activeRing: {
     position: 'absolute',
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
     borderWidth: 4,
     borderColor: '#FEF08A',
     backgroundColor: 'rgba(239, 68, 68, 0.4)',
     zIndex: 2,
   },
   button: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
     backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
@@ -258,9 +317,9 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
     zIndex: 3,
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.7,
-    shadowRadius: 20,
+    shadowRadius: 18,
     elevation: 16,
   },
   buttonPressed: {
@@ -268,15 +327,12 @@ const styles = StyleSheet.create({
     borderColor: '#F87171',
   },
   innerGlow: {
-    width: BUTTON_SIZE - 16,
-    height: BUTTON_SIZE - 16,
-    borderRadius: (BUTTON_SIZE - 16) / 2,
     backgroundColor: '#B91C1C',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   topBadge: {
     flexDirection: 'row',
@@ -285,47 +341,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    marginBottom: 4,
+    marginBottom: 2,
     gap: 4,
   },
   topBadgeText: {
-    fontSize: 10,
     fontWeight: '800',
     color: '#FEE2E2',
     letterSpacing: 1.2,
   },
   sosTitle: {
-    fontSize: 32,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 3,
-    lineHeight: 36,
   },
   statusContainer: {
-    marginVertical: 4,
+    marginVertical: 3,
     paddingHorizontal: 8,
     paddingVertical: 2,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 6,
   },
   holdText: {
-    fontSize: 11,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.8,
     textAlign: 'center',
   },
   holdingText: {
-    fontSize: 12,
     fontWeight: '900',
     color: '#FEF08A',
     letterSpacing: 0.8,
   },
   subtext: {
-    fontSize: 9.5,
     color: '#FCA5A5',
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 1,
     textAlign: 'center',
   },
 });

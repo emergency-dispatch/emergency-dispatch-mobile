@@ -59,7 +59,11 @@ export const MyReportsScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#0F172A"
+      edges={['top', 'left', 'right']}
+      style={styles.container}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Lịch Sử Báo Cáo Cứu Hộ</Text>
         <Text style={styles.subtitle}>Danh sách các sự cố bạn đã gửi tín hiệu</Text>

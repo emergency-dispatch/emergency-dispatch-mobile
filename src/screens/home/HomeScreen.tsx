@@ -27,11 +27,14 @@ import { QuickHazardGrid, HazardItem } from '../../components/sos/QuickHazardGri
 import { MediaReportModal } from '../../components/sos/MediaReportModal';
 import { SosSuccessModal } from '../../components/sos/SosSuccessModal';
 import { MainTabParamList } from '../../navigation/types';
+import { useResponsive } from '../../utils/responsive';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
+  const headerIconSize = isSmallDevice ? 18 : 20;
 
   // GPS Address state
   const [address, setAddress] = useState('123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM');
@@ -100,14 +103,21 @@ export const HomeScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#0F172A"
+      edges={['top', 'left', 'right']}
+      style={[
+        styles.container,
+        { paddingHorizontal: moderateScale(isSmallDevice ? 12 : 16) },
+      ]}
+    >
       {/* 1. Header: GPS Address Pill & History Button */}
       <View style={styles.header}>
         {/* GPS Pill */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={handleRefreshGps}
-          style={styles.gpsPill}
+          style={[styles.gpsPill, { paddingVertical: moderateScale(7) }]}
           accessible={true}
           accessibilityLabel={`Vị trí hiện tại: ${address}. Chạm để cập nhật GPS`}
           accessibilityRole="button"
@@ -124,16 +134,21 @@ export const HomeScreen: React.FC = () => {
 
           <View style={styles.addressInfo}>
             <View style={styles.addressTitleRow}>
-              <MapPin size={13} color="#38BDF8" />
-              <Text style={styles.accuracyTag}>Chính xác ±3m</Text>
+              <MapPin size={12} color="#38BDF8" />
+              <Text style={[styles.accuracyTag, { fontSize: fontScale(9) }]}>
+                Chính xác ±3m
+              </Text>
             </View>
-            <Text style={styles.addressText} numberOfLines={1}>
+            <Text
+              style={[styles.addressText, { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) }]}
+              numberOfLines={1}
+            >
               {address}
             </Text>
           </View>
 
           <RefreshCw
-            size={14}
+            size={13}
             color="#94A3B8"
             style={isRefreshingGps ? styles.rotating : undefined}
           />
@@ -143,36 +158,54 @@ export const HomeScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation.navigate('ReportsTab')}
-          style={styles.historyButton}
+          style={[
+            styles.historyButton,
+            {
+              width: moderateScale(isSmallDevice ? 38 : 42),
+              height: moderateScale(isSmallDevice ? 38 : 42),
+              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
+            },
+          ]}
           accessible={true}
           accessibilityLabel="Xem lịch sử sự cố đã gửi"
           accessibilityRole="button"
         >
-          <Clock size={20} color="#38BDF8" />
+          <Clock size={headerIconSize} color="#38BDF8" />
         </TouchableOpacity>
 
         {/* Medical ID / Profile Quick Button */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation.navigate('ProfileTab')}
-          style={[styles.historyButton, styles.profileButton]}
+          style={[
+            styles.historyButton,
+            styles.profileButton,
+            {
+              width: moderateScale(isSmallDevice ? 38 : 42),
+              height: moderateScale(isSmallDevice ? 38 : 42),
+              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
+            },
+          ]}
           accessible={true}
           accessibilityLabel="Xem hồ sơ y tế cứu hộ"
           accessibilityRole="button"
         >
-          <HeartPulse size={20} color="#EF4444" />
+          <HeartPulse size={headerIconSize} color="#EF4444" />
         </TouchableOpacity>
       </View>
 
       {/* Main Content Area */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: isShortScreen ? 16 : 24 },
+        ]}
       >
         {/* Top Banner Notice */}
         <View style={styles.systemBanner}>
-          <Sparkles size={14} color="#38BDF8" />
-          <Text style={styles.systemBannerText}>
+          <Sparkles size={13} color="#38BDF8" />
+          <Text style={[styles.systemBannerText, { fontSize: fontScale(9.5) }]}>
             HỆ THỐNG CỨU HỘ ĐANG TRỰC TUYẾN (24/7)
           </Text>
         </View>
@@ -187,7 +220,9 @@ export const HomeScreen: React.FC = () => {
 
         {/* 4. Camera / Media Quick Bar Trigger */}
         <View style={styles.mediaQuickBar}>
-          <Text style={styles.quickBarTitle}>ĐÍNH KÈM HIỆN TRƯỜNG NHANH</Text>
+          <Text style={[styles.quickBarTitle, { fontSize: fontScale(10.5) }]}>
+            ĐÍNH KÈM HIỆN TRƯỜNG NHANH
+          </Text>
           <View style={styles.quickBarButtonsRow}>
             {/* Quick Photo */}
             <TouchableOpacity
@@ -197,8 +232,15 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Chụp ảnh hiện trường nhanh"
             >
-              <Camera size={18} color="#38BDF8" />
-              <Text style={styles.quickBarBtnText}>Chụp ảnh</Text>
+              <Camera size={isSmallDevice ? 16 : 18} color="#38BDF8" />
+              <Text
+                style={[
+                  styles.quickBarBtnText,
+                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
+                ]}
+              >
+                Chụp ảnh
+              </Text>
             </TouchableOpacity>
 
             {/* Quick 5s Video */}
@@ -209,8 +251,15 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Quay clip 5 giây hiện trường"
             >
-              <Video size={18} color="#EF4444" />
-              <Text style={styles.quickBarBtnText}>Video 5s</Text>
+              <Video size={isSmallDevice ? 16 : 18} color="#EF4444" />
+              <Text
+                style={[
+                  styles.quickBarBtnText,
+                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
+                ]}
+              >
+                Video 5s
+              </Text>
             </TouchableOpacity>
 
             {/* Quick Note */}
@@ -221,8 +270,15 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Ghi chú mô tả hiện trường"
             >
-              <FileEdit size={18} color="#A855F7" />
-              <Text style={styles.quickBarBtnText}>Ghi chú</Text>
+              <FileEdit size={isSmallDevice ? 16 : 18} color="#A855F7" />
+              <Text
+                style={[
+                  styles.quickBarBtnText,
+                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
+                ]}
+              >
+                Ghi chú
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

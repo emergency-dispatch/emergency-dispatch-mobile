@@ -31,12 +31,14 @@ import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
+import { useResponsive } from '../../utils/responsive';
 
 type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginNavProp>();
   const { setAuth } = useAppStore();
+  const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -105,7 +107,13 @@ export const LoginScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: moderateScale(isSmallDevice ? 14 : 20),
+              paddingBottom: isShortScreen ? 20 : 36,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -120,8 +128,12 @@ export const LoginScreen: React.FC = () => {
                 <ShieldAlert color="#EF4444" size={18} strokeWidth={2.6} />
               </View>
               <View style={styles.guestSosTextGroup}>
-                <Text style={styles.guestSosTitle}>Cần trợ giúp khẩn cấp ngay?</Text>
-                <Text style={styles.guestSosSub}>Bỏ qua đăng nhập và kích hoạt SOS Khách</Text>
+                <Text style={[styles.guestSosTitle, { fontSize: fontScale(12) }]}>
+                  Cần trợ giúp khẩn cấp ngay?
+                </Text>
+                <Text style={[styles.guestSosSub, { fontSize: fontScale(10.5) }]}>
+                  Bỏ qua đăng nhập và kích hoạt SOS Khách
+                </Text>
               </View>
             </View>
             <ArrowRight color="#F87171" size={18} />
@@ -135,7 +147,7 @@ export const LoginScreen: React.FC = () => {
           />
 
           {/* Login Form Card */}
-          <View style={styles.card}>
+          <View style={[styles.card, { padding: moderateScale(isSmallDevice ? 16 : 20) }]}>
             {/* Account (Email/Phone) Input */}
             <Input
               label="Email hoặc Số điện thoại"

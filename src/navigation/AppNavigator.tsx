@@ -1,15 +1,29 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainTabParamList } from './types';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { MyReportsScreen } from '../screens/reports/MyReportsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ShieldAlert, Map, FileText, UserCheck } from 'lucide-react-native';
+import { useResponsive } from '../utils/responsive';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const AppNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const { isSmallDevice, isTablet, fontScale, moderateScale } = useResponsive();
+  const bottomInset = insets.bottom;
+
+  // On Android with 3 navigation buttons, bottomInset is ~48.
+  // On iOS with home indicator, bottomInset is ~34.
+  const paddingBottom = bottomInset > 0 ? bottomInset + (Platform.OS === 'android' ? 4 : 2) : 10;
+  const baseHeight = isSmallDevice ? 52 : (Platform.OS === 'ios' ? 56 : 60);
+  const tabHeight = baseHeight + bottomInset;
+  const iconSize = moderateScale(isSmallDevice ? 19 : 22);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -18,15 +32,18 @@ export const AppNavigator: React.FC = () => {
           backgroundColor: '#0F172A',
           borderTopColor: '#1E293B',
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 10,
+          height: tabHeight,
+          paddingBottom: paddingBottom,
           paddingTop: 8,
         },
         tabBarActiveTintColor: '#EF4444',
         tabBarInactiveTintColor: '#64748B',
         tabBarLabelStyle: {
-          fontSize: 10.5,
+          fontSize: fontScale(isSmallDevice ? 9.5 : 10.5),
           fontWeight: '700',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
       }}
     >
@@ -35,8 +52,8 @@ export const AppNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'SOS Home',
-          tabBarIcon: ({ color, size }) => (
-            <ShieldAlert color={color} size={size || 22} strokeWidth={2.4} />
+          tabBarIcon: ({ color }) => (
+            <ShieldAlert color={color} size={iconSize} strokeWidth={2.4} />
           ),
         }}
       />
@@ -45,8 +62,8 @@ export const AppNavigator: React.FC = () => {
         component={SafetyMapScreen}
         options={{
           tabBarLabel: 'Bản Đồ An Toàn',
-          tabBarIcon: ({ color, size }) => (
-            <Map color={color} size={size || 22} />
+          tabBarIcon: ({ color }) => (
+            <Map color={color} size={iconSize} />
           ),
         }}
       />
@@ -55,8 +72,8 @@ export const AppNavigator: React.FC = () => {
         component={MyReportsScreen}
         options={{
           tabBarLabel: 'Báo Cáo Sự Cố',
-          tabBarIcon: ({ color, size }) => (
-            <FileText color={color} size={size || 22} />
+          tabBarIcon: ({ color }) => (
+            <FileText color={color} size={iconSize} />
           ),
         }}
       />
@@ -65,11 +82,12 @@ export const AppNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Hồ Sơ Cứu Hộ',
-          tabBarIcon: ({ color, size }) => (
-            <UserCheck color={color} size={size || 22} />
+          tabBarIcon: ({ color }) => (
+            <UserCheck color={color} size={iconSize} />
           ),
         }}
       />
     </Tab.Navigator>
   );
 };
+

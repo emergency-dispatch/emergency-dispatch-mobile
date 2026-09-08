@@ -9,7 +9,8 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
-import { ArrowLeft, ShieldAlert, Sparkles } from 'lucide-react-native';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { ArrowLeft, ShieldAlert } from 'lucide-react-native';
 
 interface AuthHeaderProps {
   title: string;
@@ -65,7 +66,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             activeOpacity={0.7}
             accessibilityLabel="Quay lại"
           >
-            <ArrowLeft color="#F8FAFC" size={20} strokeWidth={2.4} />
+            <ArrowLeft color="#F8FAFC" size={moderateScale(20)} strokeWidth={2.4} />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholderBack} />
@@ -81,7 +82,13 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               },
             ]}
           />
-          <Text style={styles.badgeText}>{badgeText}</Text>
+          <Text
+            style={styles.badgeText}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
+            {badgeText}
+          </Text>
         </View>
       </View>
 
@@ -90,7 +97,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
         <View style={styles.logoContainer}>
           <View style={styles.iconRing}>
             <View style={styles.iconCenter}>
-              <ShieldAlert color="#EF4444" size={32} strokeWidth={2.4} />
+              <ShieldAlert color="#EF4444" size={moderateScale(30)} strokeWidth={2.4} />
             </View>
           </View>
         </View>
@@ -98,8 +105,22 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 
       {/* Title & Subtitle */}
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Text
+          style={styles.title}
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1.2}
+        >
+          {title}
+        </Text>
+        {subtitle && (
+          <Text
+            style={styles.subtitle}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
+            {subtitle}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -107,18 +128,18 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: verticalScale(16),
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: verticalScale(12),
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(19),
     backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
@@ -126,41 +147,41 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   placeholderBack: {
-    width: 40,
-    height: 40,
+    width: moderateScale(38),
+    height: moderateScale(38),
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(16),
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   pulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
     backgroundColor: '#EF4444',
-    marginRight: 6,
+    marginRight: moderateScale(6),
   },
   badgeText: {
     color: '#FCA5A5',
-    fontSize: 10.5,
+    fontSize: moderateScale(10),
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   logoContainer: {
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: verticalScale(8),
   },
   iconRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: moderateScale(64),
+    height: moderateScale(64),
+    borderRadius: moderateScale(32),
     backgroundColor: 'rgba(239, 68, 68, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,9 +189,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239, 68, 68, 0.35)',
   },
   iconCenter: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(24),
     backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
@@ -184,21 +205,22 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: verticalScale(4),
   },
   title: {
-    fontSize: 26,
+    fontSize: moderateScale(24),
     fontWeight: '800',
     color: '#F8FAFC',
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 13.5,
+    fontSize: moderateScale(12.5),
     color: '#94A3B8',
     textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 20,
-    paddingHorizontal: 16,
+    marginTop: verticalScale(4),
+    lineHeight: verticalScale(18),
+    paddingHorizontal: moderateScale(12),
   },
 });
+

@@ -48,6 +48,7 @@ import {
 } from '../../components/profile/ProfileEditModal';
 import { AccordionSection, SummaryBadgeItem } from '../../components/profile/AccordionSection';
 import { UserEmergencyProfile } from '../../types/profile';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -161,12 +162,29 @@ export const ProfileScreen: React.FC = () => {
   ];
 
   return (
-    <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#0F172A"
+      edges={['top', 'left', 'right']}
+      style={styles.container}
+    >
       {/* 1. Header Bar */}
       <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerTitle}>Hồ Sơ Cứu Hộ</Text>
-          <Text style={styles.headerSubtitle}>Medical ID & Thông Tin Định Danh</Text>
+        <View style={styles.headerTextGroup}>
+          <Text
+            style={styles.headerTitle}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
+            Hồ Sơ Cứu Hộ
+          </Text>
+          <Text
+            style={styles.headerSubtitle}
+            numberOfLines={1}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
+            Medical ID & Thông Tin Định Danh
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -176,8 +194,14 @@ export const ProfileScreen: React.FC = () => {
           accessible={true}
           accessibilityLabel="Chỉnh sửa hồ sơ"
         >
-          <Edit3 size={16} color="#38BDF8" />
-          <Text style={styles.editHeaderBtnText}>Chỉnh sửa</Text>
+          <Edit3 size={moderateScale(15)} color="#38BDF8" />
+          <Text
+            style={styles.editHeaderBtnText}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1.2}
+          >
+            Chỉnh sửa
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -620,37 +644,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(10),
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
     backgroundColor: '#0F172A',
+    width: '100%',
+  },
+  headerTextGroup: {
+    flex: 1,
+    marginRight: moderateScale(10),
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: moderateScale(19),
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: moderateScale(11.5),
     color: '#94A3B8',
-    marginTop: 2,
+    marginTop: verticalScale(2),
   },
   editHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    gap: 6,
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(10),
+    gap: moderateScale(5),
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.3)',
+    flexShrink: 0,
   },
   editHeaderBtnText: {
-    fontSize: 13,
+    fontSize: moderateScale(12.5),
     fontWeight: '700',
     color: '#38BDF8',
   },

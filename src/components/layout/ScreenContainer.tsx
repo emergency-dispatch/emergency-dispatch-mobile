@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 
 interface ScreenContainerProps {
@@ -8,6 +8,8 @@ interface ScreenContainerProps {
   style?: StyleProp<ViewStyle>;
   safeArea?: boolean;
   backgroundColor?: string;
+  edges?: readonly Edge[];
+  statusBarStyle?: 'light-content' | 'dark-content' | 'auto';
 }
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
@@ -15,14 +17,39 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   style,
   safeArea = true,
   backgroundColor = Colors.light.background,
+  edges,
+  statusBarStyle,
 }) => {
-  const Container = safeArea ? SafeAreaView : View;
+  const isDark =
+    backgroundColor === '#0F172A' ||
+    backgroundColor === '#0B0F19' ||
+    backgroundColor === '#1E293B' ||
+    backgroundColor === '#000000';
+
+  const finalBarStyle =
+    statusBarStyle === 'auto' || !statusBarStyle
+      ? isDark
+        ? 'light-content'
+        : 'dark-content'
+      : statusBarStyle;
+
+  if (safeArea) {
+    return (
+      <SafeAreaView
+        edges={edges ?? ['top', 'left', 'right', 'bottom']}
+        style={[styles.container, { backgroundColor }, style]}
+      >
+        <StatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+        {children}
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <Container style={[styles.container, { backgroundColor }, style]}>
-      <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
+    <View style={[styles.container, { backgroundColor }, style]}>
+      <StatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
       {children}
-    </Container>
+    </View>
   );
 };
 
@@ -31,3 +58,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+

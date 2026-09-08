@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   X,
   Save,
@@ -82,6 +83,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onSave,
   initialTab = 'identity',
 }) => {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
   React.useEffect(() => {
@@ -840,7 +842,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             </ScrollView>
 
             {/* Footer Action Buttons */}
-            <View style={styles.footer}>
+            <View
+              style={[
+                styles.footer,
+                { paddingBottom: Math.max(insets.bottom + 12, 16) },
+              ]}
+            >
               <TouchableOpacity
                 style={styles.cancelBtn}
                 onPress={onClose}

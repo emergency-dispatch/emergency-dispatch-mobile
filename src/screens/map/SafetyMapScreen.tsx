@@ -5,7 +5,11 @@ import { MapPin, Navigation, Shield, AlertTriangle } from 'lucide-react-native';
 
 export const SafetyMapScreen: React.FC = () => {
   return (
-    <ScreenContainer backgroundColor="#0F172A" style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#0F172A"
+      edges={['top', 'left', 'right']}
+      style={styles.container}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Bản Đồ An Toàn</Text>

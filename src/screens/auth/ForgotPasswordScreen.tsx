@@ -9,6 +9,8 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -37,6 +39,7 @@ type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
 type Step = 'REQUEST' | 'VERIFY_OTP' | 'RESET_PASSWORD' | 'SUCCESS';
 
 export const ForgotPasswordScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<ForgotPasswordNavProp>();
   const route = useRoute<ForgotPasswordRouteProp>();
 
@@ -143,262 +146,305 @@ export const ForgotPasswordScreen: React.FC = () => {
       : 4;
 
   return (
-    <ScreenContainer backgroundColor="#0B0F19" safeArea style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#0B0F19"
+      safeArea={true}
+      edges={['top', 'left', 'right', 'bottom']}
+      style={styles.container}
+    >
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingBottom: Math.max(insets.bottom + verticalScale(16), verticalScale(28)),
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <AuthHeader
-            title={
-              currentStep === 'REQUEST'
-                ? 'Quên Mật Khẩu'
-                : currentStep === 'VERIFY_OTP'
-                ? 'Xác Thực OTP'
-                : currentStep === 'RESET_PASSWORD'
-                ? 'Mật Khẩu Mới'
-                : 'Thành Công'
-            }
-            subtitle={
-              currentStep === 'REQUEST'
-                ? 'Nhập Email hoặc Số điện thoại để nhận mã OTP khôi phục quyền truy cập'
-                : currentStep === 'VERIFY_OTP'
-                ? `Mã xác thực 6 số đã được gửi đến ${account}`
-                : currentStep === 'RESET_PASSWORD'
-                ? 'Tạo mật khẩu an toàn mới cho tài khoản cứu hộ của bạn'
-                : 'Mật khẩu của bạn đã được cập nhật thành công!'
-            }
-            showBack={currentStep !== 'SUCCESS'}
-            onBack={() => {
-              if (currentStep === 'VERIFY_OTP') setCurrentStep('REQUEST');
-              else if (currentStep === 'RESET_PASSWORD') setCurrentStep('VERIFY_OTP');
-              else navigation.goBack();
-            }}
-            badgeText="BẢO MẬT & KHÔI PHỤC TÀI KHOẢN"
-          />
+          <View style={styles.topSection}>
+            {/* Header */}
+            <AuthHeader
+              title={
+                currentStep === 'REQUEST'
+                  ? 'Quên Mật Khẩu'
+                  : currentStep === 'VERIFY_OTP'
+                  ? 'Xác Thực OTP'
+                  : currentStep === 'RESET_PASSWORD'
+                  ? 'Mật Khẩu Mới'
+                  : 'Thành Công'
+              }
+              subtitle={
+                currentStep === 'REQUEST'
+                  ? 'Nhập Email hoặc Số điện thoại để nhận mã OTP khôi phục quyền truy cập'
+                  : currentStep === 'VERIFY_OTP'
+                  ? `Mã xác thực 6 số đã được gửi đến ${account}`
+                  : currentStep === 'RESET_PASSWORD'
+                  ? 'Tạo mật khẩu an toàn mới cho tài khoản cứu hộ của bạn'
+                  : 'Mật khẩu của bạn đã được cập nhật thành công!'
+              }
+              showBack={currentStep !== 'SUCCESS'}
+              onBack={() => {
+                if (currentStep === 'VERIFY_OTP') setCurrentStep('REQUEST');
+                else if (currentStep === 'RESET_PASSWORD') setCurrentStep('VERIFY_OTP');
+                else navigation.goBack();
+              }}
+              badgeText="BẢO MẬT & KHÔI PHỤC TÀI KHOẢN"
+            />
 
-          {/* Wizard Step Progress Bar */}
-          {currentStep !== 'SUCCESS' && (
-            <View style={styles.stepsBar}>
-              {[1, 2, 3].map((stepNum) => (
-                <React.Fragment key={stepNum}>
-                  <View
-                    style={[
-                      styles.stepDot,
-                      stepIndex >= stepNum && styles.stepDotActive,
-                      stepIndex === stepNum && styles.stepDotCurrent,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.stepDotText,
-                        stepIndex >= stepNum && styles.stepDotTextActive,
-                      ]}
-                    >
-                      {stepNum}
-                    </Text>
-                  </View>
-                  {stepNum < 3 && (
+            {/* Wizard Step Progress Bar */}
+            {currentStep !== 'SUCCESS' && (
+              <View style={styles.stepsBar}>
+                {[1, 2, 3].map((stepNum) => (
+                  <React.Fragment key={stepNum}>
                     <View
                       style={[
-                        styles.stepLine,
-                        stepIndex > stepNum && styles.stepLineActive,
+                        styles.stepDot,
+                        stepIndex >= stepNum && styles.stepDotActive,
+                        stepIndex === stepNum && styles.stepDotCurrent,
                       ]}
-                    />
+                    >
+                      <Text
+                        style={[
+                          styles.stepDotText,
+                          stepIndex >= stepNum && styles.stepDotTextActive,
+                        ]}
+                        allowFontScaling={false}
+                        maxFontSizeMultiplier={1.2}
+                      >
+                        {stepNum}
+                      </Text>
+                    </View>
+                    {stepNum < 3 && (
+                      <View
+                        style={[
+                          styles.stepLine,
+                          stepIndex > stepNum && styles.stepLineActive,
+                        ]}
+                      />
+                    )}
+                  </React.Fragment>
+                ))}
+              </View>
+            )}
+
+            {/* Wizard Content Card */}
+            <View style={styles.card}>
+              {/* STEP 1: REQUEST OTP */}
+              {currentStep === 'REQUEST' && (
+                <View style={styles.cardBody}>
+                  <View style={styles.iconCenterWrap}>
+                    <View style={styles.stepIconBox}>
+                      <KeyRound size={moderateScale(26)} color="#38BDF8" />
+                    </View>
+                  </View>
+
+                  <Input
+                    label="Email hoặc Số điện thoại đã đăng ký"
+                    placeholder="VD: 0912345678 hoặc name@gmail.com"
+                    value={account}
+                    onChangeText={(val) => {
+                      setAccount(val);
+                      if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
+                    }}
+                    variant="dark"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={errors.account}
+                    leftIcon={
+                      account.includes('@') ? (
+                        <Mail size={moderateScale(18)} color="#94A3B8" />
+                      ) : (
+                        <Phone size={moderateScale(18)} color="#94A3B8" />
+                      )
+                    }
+                  />
+
+                  <Button
+                    title="Gửi Mã Xác Thực OTP"
+                    onPress={handleRequestOtp}
+                    loading={isLoading}
+                    style={styles.primaryBtn}
+                    textStyle={styles.btnText}
+                  />
+                </View>
+              )}
+
+              {/* STEP 2: VERIFY OTP */}
+              {currentStep === 'VERIFY_OTP' && (
+                <View style={styles.cardBody}>
+                  <View style={styles.iconCenterWrap}>
+                    <View style={styles.stepIconBox}>
+                      <ShieldCheck size={moderateScale(26)} color="#10B981" />
+                    </View>
+                  </View>
+
+                  <Text
+                    style={styles.instructionText}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1.2}
+                  >
+                    Vui lòng nhập mã số gồm 6 chữ số được gửi đến{' '}
+                    <Text style={styles.highlightText}>{account}</Text>
+                  </Text>
+
+                  <OtpInput
+                    value={otpValue}
+                    onChange={(val) => {
+                      setOtpValue(val);
+                      if (errors.otp) setErrors((prev) => ({ ...prev, otp: undefined }));
+                    }}
+                    onComplete={() => {
+                      // Auto submit when 6 digits are complete
+                    }}
+                    onResend={() => {
+                      Alert.alert('Đã gửi lại OTP', 'Mã xác thực mới đã được gửi lại.');
+                    }}
+                  />
+                  {errors.otp && (
+                    <Text
+                      style={styles.errorTextCenter}
+                      allowFontScaling={false}
+                      maxFontSizeMultiplier={1.2}
+                    >
+                      {errors.otp}
+                    </Text>
                   )}
-                </React.Fragment>
-              ))}
+
+                  <Button
+                    title="Xác Thực Mã OTP"
+                    onPress={handleVerifyOtp}
+                    loading={isLoading}
+                    style={styles.primaryBtn}
+                    textStyle={styles.btnText}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.changeAccountBtn}
+                    onPress={() => setCurrentStep('REQUEST')}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={styles.changeAccountText}
+                      allowFontScaling={false}
+                      maxFontSizeMultiplier={1.2}
+                    >
+                      Đổi Email / Số điện thoại khác
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* STEP 3: RESET PASSWORD */}
+              {currentStep === 'RESET_PASSWORD' && (
+                <View style={styles.cardBody}>
+                  <View style={styles.iconCenterWrap}>
+                    <View style={styles.stepIconBox}>
+                      <Lock size={moderateScale(26)} color="#F59E0B" />
+                    </View>
+                  </View>
+
+                  <Input
+                    label="Mật khẩu mới *"
+                    placeholder="Tối thiểu 8 ký tự"
+                    value={newPassword}
+                    onChangeText={(val) => {
+                      setNewPassword(val);
+                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
+                    variant="dark"
+                    secureTextEntry={!showPassword}
+                    error={errors.password}
+                    leftIcon={<Lock size={moderateScale(18)} color="#94A3B8" />}
+                    rightIcon={
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={moderateScale(18)} color="#94A3B8" />
+                        ) : (
+                          <Eye size={moderateScale(18)} color="#94A3B8" />
+                        )}
+                      </TouchableOpacity>
+                    }
+                  />
+
+                  <PasswordStrengthIndicator password={newPassword} />
+
+                  <Input
+                    label="Xác nhận mật khẩu mới *"
+                    placeholder="Nhập lại mật khẩu mới"
+                    value={confirmPassword}
+                    onChangeText={(val) => {
+                      setConfirmPassword(val);
+                      if (errors.confirmPassword)
+                        setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                    }}
+                    variant="dark"
+                    secureTextEntry={!showConfirmPassword}
+                    error={errors.confirmPassword}
+                    leftIcon={<Lock size={moderateScale(18)} color="#94A3B8" />}
+                    rightIcon={
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={moderateScale(18)} color="#94A3B8" />
+                        ) : (
+                          <Eye size={moderateScale(18)} color="#94A3B8" />
+                        )}
+                      </TouchableOpacity>
+                    }
+                  />
+
+                  <Button
+                    title="Cập Nhật Mật Khẩu"
+                    onPress={handleResetPassword}
+                    loading={isLoading}
+                    style={styles.primaryBtn}
+                    textStyle={styles.btnText}
+                  />
+                </View>
+              )}
+
+              {/* STEP 4: SUCCESS STATE */}
+              {currentStep === 'SUCCESS' && (
+                <View style={styles.successContainer}>
+                  <View style={styles.successIconCircle}>
+                    <CheckCircle2 size={moderateScale(44)} color="#10B981" strokeWidth={2.4} />
+                  </View>
+
+                  <Text
+                    style={styles.successTitle}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1.2}
+                  >
+                    Đổi Mật Khẩu Thành Công!
+                  </Text>
+                  <Text
+                    style={styles.successSubtitle}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1.2}
+                  >
+                    Mật khẩu tài khoản cứu hộ của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập ngay
+                    bây giờ.
+                  </Text>
+
+                  <Button
+                    title="Đăng Nhập Ngay"
+                    onPress={() => navigation.navigate('Login')}
+                    style={styles.successBtn}
+                    textStyle={styles.btnText}
+                  />
+                </View>
+              )}
             </View>
-          )}
-
-          {/* Wizard Content Card */}
-          <View style={styles.card}>
-            {/* STEP 1: REQUEST OTP */}
-            {currentStep === 'REQUEST' && (
-              <View>
-                <View style={styles.iconCenterWrap}>
-                  <View style={styles.stepIconBox}>
-                    <KeyRound size={28} color="#38BDF8" />
-                  </View>
-                </View>
-
-                <Input
-                  label="Email hoặc Số điện thoại đã đăng ký"
-                  placeholder="VD: 0912345678 hoặc name@gmail.com"
-                  value={account}
-                  onChangeText={(val) => {
-                    setAccount(val);
-                    if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
-                  }}
-                  variant="dark"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  error={errors.account}
-                  leftIcon={
-                    account.includes('@') ? (
-                      <Mail size={18} color="#94A3B8" />
-                    ) : (
-                      <Phone size={18} color="#94A3B8" />
-                    )
-                  }
-                />
-
-                <Button
-                  title="Gửi Mã Xác Thực OTP"
-                  onPress={handleRequestOtp}
-                  loading={isLoading}
-                  style={styles.primaryBtn}
-                  textStyle={styles.btnText}
-                />
-              </View>
-            )}
-
-            {/* STEP 2: VERIFY OTP */}
-            {currentStep === 'VERIFY_OTP' && (
-              <View>
-                <View style={styles.iconCenterWrap}>
-                  <View style={styles.stepIconBox}>
-                    <ShieldCheck size={28} color="#10B981" />
-                  </View>
-                </View>
-
-                <Text style={styles.instructionText}>
-                  Vui lòng nhập mã số gồm 6 chữ số được gửi đến{' '}
-                  <Text style={styles.highlightText}>{account}</Text>
-                </Text>
-
-                <OtpInput
-                  value={otpValue}
-                  onChange={(val) => {
-                    setOtpValue(val);
-                    if (errors.otp) setErrors((prev) => ({ ...prev, otp: undefined }));
-                  }}
-                  onComplete={() => {
-                    // Auto submit when 6 digits are complete
-                  }}
-                  onResend={() => {
-                    Alert.alert('Đã gửi lại OTP', 'Mã xác thực mới đã được gửi lại.');
-                  }}
-                />
-                {errors.otp && <Text style={styles.errorTextCenter}>{errors.otp}</Text>}
-
-                <Button
-                  title="Xác Thực Mã OTP"
-                  onPress={handleVerifyOtp}
-                  loading={isLoading}
-                  style={styles.primaryBtn}
-                  textStyle={styles.btnText}
-                />
-
-                <TouchableOpacity
-                  style={styles.changeAccountBtn}
-                  onPress={() => setCurrentStep('REQUEST')}
-                >
-                  <Text style={styles.changeAccountText}>Đổi Email / Số điện thoại khác</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* STEP 3: RESET PASSWORD */}
-            {currentStep === 'RESET_PASSWORD' && (
-              <View>
-                <View style={styles.iconCenterWrap}>
-                  <View style={styles.stepIconBox}>
-                    <Lock size={28} color="#F59E0B" />
-                  </View>
-                </View>
-
-                <Input
-                  label="Mật khẩu mới *"
-                  placeholder="Tối thiểu 8 ký tự"
-                  value={newPassword}
-                  onChangeText={(val) => {
-                    setNewPassword(val);
-                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                  }}
-                  variant="dark"
-                  secureTextEntry={!showPassword}
-                  error={errors.password}
-                  leftIcon={<Lock size={18} color="#94A3B8" />}
-                  rightIcon={
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      {showPassword ? (
-                        <EyeOff size={18} color="#94A3B8" />
-                      ) : (
-                        <Eye size={18} color="#94A3B8" />
-                      )}
-                    </TouchableOpacity>
-                  }
-                />
-
-                <PasswordStrengthIndicator password={newPassword} />
-
-                <Input
-                  label="Xác nhận mật khẩu mới *"
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={confirmPassword}
-                  onChangeText={(val) => {
-                    setConfirmPassword(val);
-                    if (errors.confirmPassword)
-                      setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                  }}
-                  variant="dark"
-                  secureTextEntry={!showConfirmPassword}
-                  error={errors.confirmPassword}
-                  leftIcon={<Lock size={18} color="#94A3B8" />}
-                  rightIcon={
-                    <TouchableOpacity
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={18} color="#94A3B8" />
-                      ) : (
-                        <Eye size={18} color="#94A3B8" />
-                      )}
-                    </TouchableOpacity>
-                  }
-                />
-
-                <Button
-                  title="Cập Nhật Mật Khẩu"
-                  onPress={handleResetPassword}
-                  loading={isLoading}
-                  style={styles.primaryBtn}
-                  textStyle={styles.btnText}
-                />
-              </View>
-            )}
-
-            {/* STEP 4: SUCCESS STATE */}
-            {currentStep === 'SUCCESS' && (
-              <View style={styles.successContainer}>
-                <View style={styles.successIconCircle}>
-                  <CheckCircle2 size={48} color="#10B981" strokeWidth={2.4} />
-                </View>
-
-                <Text style={styles.successTitle}>Đổi Mật Khẩu Thành Công!</Text>
-                <Text style={styles.successSubtitle}>
-                  Mật khẩu tài khoản cứu hộ của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập ngay
-                  bây giờ.
-                </Text>
-
-                <Button
-                  title="Đăng Nhập Ngay"
-                  onPress={() => navigation.navigate('Login')}
-                  style={styles.successBtn}
-                  textStyle={styles.btnText}
-                />
-              </View>
-            )}
           </View>
 
           {/* Footer Back to Login */}
@@ -409,8 +455,14 @@ export const ForgotPasswordScreen: React.FC = () => {
                 style={styles.backLoginBtn}
                 activeOpacity={0.7}
               >
-                <ArrowLeft size={16} color="#94A3B8" />
-                <Text style={styles.backLoginText}>Quay lại màn hình Đăng nhập</Text>
+                <ArrowLeft size={moderateScale(16)} color="#94A3B8" />
+                <Text
+                  style={styles.backLoginText}
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1.2}
+                >
+                  Quay lại màn hình Đăng nhập
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -428,21 +480,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 36,
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(8),
+  },
+  topSection: {
+    width: '100%',
   },
   stepsBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    marginBottom: verticalScale(16),
+    paddingHorizontal: moderateScale(16),
+    width: '100%',
   },
   stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: moderateScale(26),
+    height: moderateScale(26),
+    borderRadius: moderateScale(13),
     backgroundColor: '#1E293B',
     borderWidth: 1.5,
     borderColor: '#334155',
@@ -463,7 +520,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   stepDotText: {
-    fontSize: 12,
+    fontSize: moderateScale(11.5),
     fontWeight: '700',
     color: '#64748B',
   },
@@ -474,15 +531,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 2,
     backgroundColor: '#1E293B',
-    marginHorizontal: 8,
+    marginHorizontal: moderateScale(6),
   },
   stepLineActive: {
     backgroundColor: '#3B82F6',
   },
   card: {
+    width: '100%',
     backgroundColor: '#0F172A',
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(16),
     borderWidth: 1,
     borderColor: '#1E293B',
     elevation: 3,
@@ -491,14 +549,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
   },
+  cardBody: {
+    width: '100%',
+  },
   iconCenterWrap: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: verticalScale(12),
   },
   stepIconBox: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: moderateScale(52),
+    height: moderateScale(52),
+    borderRadius: moderateScale(26),
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
@@ -506,11 +567,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   instructionText: {
-    fontSize: 13.5,
+    fontSize: moderateScale(12.5),
     color: '#94A3B8',
     textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: verticalScale(6),
+    lineHeight: verticalScale(18),
   },
   highlightText: {
     color: '#38BDF8',
@@ -518,15 +579,15 @@ const styles = StyleSheet.create({
   },
   errorTextCenter: {
     color: '#EF4444',
-    fontSize: 12,
+    fontSize: moderateScale(11.5),
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: verticalScale(6),
   },
   primaryBtn: {
     backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 14,
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(12),
+    marginTop: verticalScale(12),
     elevation: 4,
     shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
@@ -535,53 +596,54 @@ const styles = StyleSheet.create({
   },
   btnText: {
     color: '#FFFFFF',
-    fontSize: 15.5,
+    fontSize: moderateScale(14.5),
     fontWeight: '700',
   },
   changeAccountBtn: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 6,
+    marginTop: verticalScale(14),
+    paddingVertical: verticalScale(4),
   },
   changeAccountText: {
     color: '#64748B',
-    fontSize: 12.5,
+    fontSize: moderateScale(12),
     fontWeight: '500',
   },
   successContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: verticalScale(12),
+    width: '100%',
   },
   successIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: moderateScale(72),
+    height: moderateScale(72),
+    borderRadius: moderateScale(36),
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 2,
     borderColor: 'rgba(16, 185, 129, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: verticalScale(14),
   },
   successTitle: {
-    fontSize: 20,
+    fontSize: moderateScale(18),
     fontWeight: '800',
     color: '#F8FAFC',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: verticalScale(6),
   },
   successSubtitle: {
-    fontSize: 13.5,
+    fontSize: moderateScale(12.5),
     color: '#94A3B8',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 12,
+    lineHeight: verticalScale(18),
+    marginBottom: verticalScale(20),
+    paddingHorizontal: moderateScale(8),
   },
   successBtn: {
     backgroundColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(12),
     width: '100%',
     elevation: 4,
     shadowColor: '#10B981',
@@ -591,16 +653,17 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: verticalScale(20),
+    paddingVertical: verticalScale(8),
   },
   backLoginBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: moderateScale(6),
   },
   backLoginText: {
     color: '#94A3B8',
-    fontSize: 13.5,
+    fontSize: moderateScale(12.5),
     fontWeight: '600',
   },
 });

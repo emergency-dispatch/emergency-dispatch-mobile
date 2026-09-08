@@ -10,6 +10,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, Video, X, Send, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { HazardItem } from './QuickHazardGrid';
 
@@ -32,6 +33,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
   currentAddress,
   onSubmitReport,
 }) => {
+  const insets = useSafeAreaInsets();
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'video' | 'none'>('none');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +68,12 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheetContainer}>
+            <View
+              style={[
+                styles.sheetContainer,
+                { paddingBottom: Math.max(insets.bottom + 16, 28) },
+              ]}
+            >
               {/* Drag Handle Indicator */}
               <View style={styles.dragHandle} />
 

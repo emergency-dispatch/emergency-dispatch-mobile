@@ -49,9 +49,10 @@ export const OtpVerificationScreen: React.FC = () => {
           id: 'user-' + Date.now(),
           email: emailOrPhone.includes('@') ? emailOrPhone : `${emailOrPhone}@emergency.vn`,
           name: `Công dân ${emailOrPhone.slice(-4)}`,
-          role: 'citizen',
+          role: 'citizen' as const,
           createdAt: new Date().toISOString(),
         };
+
         setAuth(mockUser, 'mock-jwt-token-' + Date.now());
 
         Alert.alert('Đăng nhập thành công', 'Chào mừng bạn đến với Hệ thống Điều phối Cứu hộ!', [

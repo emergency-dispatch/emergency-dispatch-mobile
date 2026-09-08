@@ -22,6 +22,10 @@ import {
   ArrowRight,
   Sparkles,
   Phone,
+  User,
+  Truck,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AuthHeader } from '../../components/auth/AuthHeader';
@@ -30,6 +34,7 @@ import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
+import { UserRole, DEMO_CITIZEN_USER, DEMO_STAFF_USER } from '../../types/models';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useResponsive } from '../../utils/responsive';
 
@@ -37,8 +42,11 @@ type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginNavProp>();
-  const { setAuth } = useAppStore();
+  const { setAuth, switchDemoRole } = useAppStore();
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
+
+  // Selected Login Role
+  const [selectedRole, setSelectedRole] = useState<UserRole>('citizen');
 
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -47,13 +55,33 @@ export const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({});
 
+  // Role change handler
+  const handleRoleChange = (role: UserRole) => {
+    setSelectedRole(role);
+    setErrors({});
+    if (role === 'staff' && !account) {
+      setAccount('nhanvien115@emergency.vn');
+      setPassword('123456');
+    } else if (role === 'citizen' && account === 'nhanvien115@emergency.vn') {
+      setAccount('');
+      setPassword('');
+    }
+  };
+
   // Validation
   const validateForm = () => {
     const newErrors: { account?: string; password?: string } = {};
 
     if (!account.trim()) {
-      newErrors.account = 'Vui lòng nhập Email hoặc Số điện thoại';
-    } else if (!isValidEmail(account.trim()) && !isValidPhoneNumber(account.trim())) {
+      newErrors.account =
+        selectedRole === 'staff'
+          ? 'Vui lòng nhập Mã nhân viên / Email trực ban'
+          : 'Vui lòng nhập Email hoặc Số điện thoại';
+    } else if (
+      selectedRole === 'citizen' &&
+      !isValidEmail(account.trim()) &&
+      !isValidPhoneNumber(account.trim())
+    ) {
       newErrors.account = 'Email hoặc Số điện thoại không hợp lệ (VD: 0912345678 hoặc user@gmail.com)';
     }
 
@@ -74,20 +102,24 @@ export const LoginScreen: React.FC = () => {
     setIsLoading(true);
     try {
       // Simulate API call authentication
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await new Promise((resolve) => setTimeout(resolve, 900));
 
-      const mockUser = {
-        id: 'user-' + Date.now(),
-        email: account.includes('@') ? account : `${account}@emergency.vn`,
-        name: account.includes('@') ? account.split('@')[0] : `User ${account.slice(-4)}`,
-        role: 'citizen',
-        createdAt: new Date().toISOString(),
-      };
+      const loggedUser =
+        selectedRole === 'staff'
+          ? {
+              ...DEMO_STAFF_USER,
+              email: account.includes('@') ? account : `${account}@emergency.vn`,
+            }
+          : {
+              ...DEMO_CITIZEN_USER,
+              email: account.includes('@') ? account : `${account}@gmail.com`,
+              name: account.includes('@') ? account.split('@')[0] : `Người Dân ${account.slice(-4)}`,
+            };
 
-      setAuth(mockUser, 'mock-jwt-token-' + Date.now());
+      setAuth(loggedUser, 'jwt-token-' + selectedRole + '-' + Date.now());
 
-      // Navigate to Main Tab flow
-      (navigation as any).navigate('Main', { screen: 'HomeTab' });
+      // Navigate to Main flow (AppNavigator will automatically pick Citizen or Staff Tab Navigator)
+      (navigation as any).navigate('Main');
     } catch (error) {
       Alert.alert('Lỗi đăng nhập', 'Không thể kết nối đến máy chủ điều phối. Vui lòng thử lại.');
     } finally {
@@ -95,9 +127,16 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  // Quick Fast-Login helper for testing
+  const handleFastLogin = (role: UserRole) => {
+    switchDemoRole(role);
+    (navigation as any).navigate('Main');
+  };
+
   // Guest SOS Emergency Bypass (no login required for life-threatening events)
   const handleGuestSosBypass = () => {
-    (navigation as any).navigate('Main', { screen: 'HomeTab' });
+    switchDemoRole('citizen');
+    (navigation as any).navigate('Main');
   };
 
   return (
@@ -141,28 +180,93 @@ export const LoginScreen: React.FC = () => {
 
           {/* Header Branding */}
           <AuthHeader
-            title="Đăng Nhập Cứu Hộ"
-            subtitle="Đăng nhập để liên kết hồ sơ y tế, tọa độ GPS thời gian thực và nhận điều phối 24/7"
-            badgeText="HỆ THỐNG CỨU HỘ KHẨN CẤP"
+            title={selectedRole === 'staff' ? 'Cổng Điều Phối 115' : 'Đăng Nhập Cứu Hộ'}
+            subtitle={
+              selectedRole === 'staff'
+                ? 'Đăng nhập ca trực 115 để nhận lệnh điều động xe cứu thương, GPS tác chiến & quản lý thiết bị y tế'
+                : 'Đăng nhập để liên kết hồ sơ y tế, tọa độ GPS thời gian thực và nhận điều phối 24/7'
+            }
+            badgeText={
+              selectedRole === 'staff'
+                ? 'HỆ THỐNG ĐIỀU PHỐI CỨU HỘ 115'
+                : 'HỆ THỐNG CỨU HỘ KHẨN CẤP'
+            }
           />
 
           {/* Login Form Card */}
           <View style={[styles.card, { padding: moderateScale(isSmallDevice ? 16 : 20) }]}>
-            {/* Account (Email/Phone) Input */}
+            {/* 1. Role Selection Switcher (Citizen vs Staff) */}
+            <View style={styles.roleSwitcherContainer}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[
+                  styles.roleTab,
+                  selectedRole === 'citizen' && styles.roleTabActiveCitizen,
+                ]}
+                onPress={() => handleRoleChange('citizen')}
+              >
+                <User
+                  size={moderateScale(16)}
+                  color={selectedRole === 'citizen' ? '#FFFFFF' : '#94A3B8'}
+                />
+                <Text
+                  style={[
+                    styles.roleTabText,
+                    selectedRole === 'citizen' && styles.roleTabTextActive,
+                  ]}
+                >
+                  Người Dân
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[
+                  styles.roleTab,
+                  selectedRole === 'staff' && styles.roleTabActiveStaff,
+                ]}
+                onPress={() => handleRoleChange('staff')}
+              >
+                <Truck
+                  size={moderateScale(16)}
+                  color={selectedRole === 'staff' ? '#FFFFFF' : '#94A3B8'}
+                />
+                <Text
+                  style={[
+                    styles.roleTabText,
+                    selectedRole === 'staff' && styles.roleTabTextActive,
+                  ]}
+                >
+                  Đội Cứu Hộ 115
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Account (Email/Phone/Staff ID) Input */}
             <Input
-              label="Email hoặc Số điện thoại"
-              placeholder="VD: 0987654321 hoặc name@gmail.com"
+              label={
+                selectedRole === 'staff'
+                  ? 'Mã nhân viên / Email trực ban 115'
+                  : 'Email hoặc Số điện thoại'
+              }
+              placeholder={
+                selectedRole === 'staff'
+                  ? 'VD: ST-8821 hoặc nhanvien115@emergency.vn'
+                  : 'VD: 0987654321 hoặc name@gmail.com'
+              }
               value={account}
               onChangeText={(val) => {
                 setAccount(val);
                 if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
               }}
               variant="dark"
-              keyboardType="email-address"
+              keyboardType={selectedRole === 'staff' ? 'default' : 'email-address'}
               autoCapitalize="none"
               error={errors.account}
               leftIcon={
-                account.includes('@') ? (
+                selectedRole === 'staff' ? (
+                  <ShieldCheck size={18} color="#38BDF8" />
+                ) : account.includes('@') ? (
                   <Mail size={18} color="#94A3B8" />
                 ) : (
                   <Phone size={18} color="#94A3B8" />
@@ -207,8 +311,14 @@ export const LoginScreen: React.FC = () => {
                 <Switch
                   value={rememberMe}
                   onValueChange={setRememberMe}
-                  thumbColor={rememberMe ? '#3B82F6' : '#64748B'}
-                  trackColor={{ false: '#334155', true: 'rgba(59, 130, 246, 0.4)' }}
+                  thumbColor={
+                    rememberMe
+                      ? selectedRole === 'staff'
+                        ? '#38BDF8'
+                        : '#3B82F6'
+                      : '#64748B'
+                  }
+                  trackColor={{ false: '#334155', true: 'rgba(56, 189, 248, 0.4)' }}
                   style={Platform.OS === 'ios' ? { transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] } : {}}
                 />
                 <Text style={styles.rememberMeText}>Ghi nhớ tôi</Text>
@@ -224,29 +334,66 @@ export const LoginScreen: React.FC = () => {
 
             {/* Submit Button */}
             <Button
-              title="Đăng Nhập Cứu Hộ"
+              title={
+                selectedRole === 'staff'
+                  ? 'Đăng Nhập Kíp Trực 115'
+                  : 'Đăng Nhập Cứu Hộ'
+              }
               onPress={handleLogin}
               loading={isLoading}
-              style={styles.loginBtn}
+              style={[
+                styles.loginBtn,
+                selectedRole === 'staff' && styles.loginBtnStaff,
+              ]}
               textStyle={styles.loginBtnText}
             />
 
+            {/* 2. Fast Demo Role Switcher Quick Access (For direct reviewer & developer testing) */}
+            <View style={styles.demoBox}>
+              <View style={styles.demoHeader}>
+                <Zap size={moderateScale(13)} color="#F59E0B" />
+                <Text style={styles.demoHeaderText}>ĐĂNG NHẬP NHANH BẰNG TÀI KHOẢN MẪU</Text>
+              </View>
+
+              <View style={styles.demoButtonsRow}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.demoBtnCitizen}
+                  onPress={() => handleFastLogin('citizen')}
+                >
+                  <User size={moderateScale(14)} color="#EF4444" />
+                  <Text style={styles.demoBtnCitizenText}>Vào vai Người Dân</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.demoBtnStaff}
+                  onPress={() => handleFastLogin('staff')}
+                >
+                  <Truck size={moderateScale(14)} color="#38BDF8" />
+                  <Text style={styles.demoBtnStaffText}>Vào vai Đội Cứu Hộ</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Social Logins */}
-            <SocialAuthButtons
-              dividerText="HOẶC ĐĂNG NHẬP VỚI"
-              onGooglePress={() => {
-                Alert.alert('Đăng nhập Google', 'Tính năng kết nối tài khoản Google đang được kích hoạt.');
-              }}
-              onApplePress={() => {
-                Alert.alert('Đăng nhập Apple', 'Tính năng kết nối tài khoản Apple ID đang được kích hoạt.');
-              }}
-              onPhoneOtpPress={() => {
-                navigation.navigate('OtpVerification', {
-                  emailOrPhone: account || '0987654321',
-                  flow: 'phone_auth',
-                });
-              }}
-            />
+            {selectedRole === 'citizen' && (
+              <SocialAuthButtons
+                dividerText="HOẶC ĐĂNG NHẬP VỚI"
+                onGooglePress={() => {
+                  Alert.alert('Đăng nhập Google', 'Tính năng kết nối tài khoản Google đang được kích hoạt.');
+                }}
+                onApplePress={() => {
+                  Alert.alert('Đăng nhập Apple', 'Tính năng kết nối tài khoản Apple ID đang được kích hoạt.');
+                }}
+                onPhoneOtpPress={() => {
+                  navigation.navigate('OtpVerification', {
+                    emailOrPhone: account || '0987654321',
+                    flow: 'phone_auth',
+                  });
+                }}
+              />
+            )}
           </View>
 
           {/* Register Link Footer */}
@@ -328,6 +475,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
   },
+  roleSwitcherContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    gap: 6,
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 9,
+    gap: 6,
+  },
+  roleTabActiveCitizen: {
+    backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  roleTabActiveStaff: {
+    backgroundColor: '#0284C7',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  roleTabText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  roleTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
   optionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,11 +548,72 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  loginBtnStaff: {
+    backgroundColor: '#0284C7',
+    shadowColor: '#0284C7',
+  },
   loginBtnText: {
     color: '#FFFFFF',
     fontSize: 15.5,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  demoBox: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+  },
+  demoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  demoHeaderText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.4,
+  },
+  demoButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  demoBtnCitizen: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 6,
+  },
+  demoBtnCitizenText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FCA5A5',
+  },
+  demoBtnStaff: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 6,
+  },
+  demoBtnStaffText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#38BDF8',
   },
   footer: {
     flexDirection: 'row',

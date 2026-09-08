@@ -121,9 +121,10 @@ export const RegisterScreen: React.FC = () => {
         id: 'user-' + Date.now(),
         email: email.trim(),
         name: fullName.trim(),
-        role: 'citizen',
+        role: 'citizen' as const,
         createdAt: new Date().toISOString(),
       };
+
 
       // Save initial profile if emergency info provided
       updateProfile({

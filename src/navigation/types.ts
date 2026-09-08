@@ -12,18 +12,32 @@ export type AuthStackParamList = {
   };
 };
 
-export type MainTabParamList = {
+// Citizen (Người dân / Nạn nhân) Bottom Tabs
+export type CitizenTabParamList = {
   HomeTab: undefined;
   SafetyMapTab: undefined;
   ReportsTab: undefined;
-  StaffTab: undefined;
   ProfileTab: undefined;
+};
+
+// Staff (Đội cứu hộ / Nhân viên điều phối 115) Bottom Tabs
+export type StaffTabParamList = {
+  StaffDashboardTab: undefined;
+  TacticalMapTab: undefined;
+  ActiveMissionTab: { incident?: EmergencyIncident } | undefined;
+  StaffProfileTab: undefined;
+};
+
+// Unified / Legacy alias for compatibility
+export type MainTabParamList = CitizenTabParamList & {
+  StaffTab?: undefined;
 };
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Main: NavigatorScreenParams<any>;
+  CitizenMain?: NavigatorScreenParams<CitizenTabParamList>;
+  StaffMain?: NavigatorScreenParams<StaffTabParamList>;
   IncidentOverview?: { incident?: EmergencyIncident };
   NotFound?: undefined;
 };
-

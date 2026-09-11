@@ -81,7 +81,12 @@ export const OtpVerificationScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0B0F19" safeArea style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#F8FAFC"
+      safeArea
+      statusBarStyle="dark-content"
+      style={styles.container}
+    >
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -104,7 +109,7 @@ export const OtpVerificationScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.iconWrap}>
               <View style={styles.iconCircle}>
-                <Smartphone size={32} color="#38BDF8" />
+                <Smartphone size={32} color="#DC2626" />
               </View>
             </View>
 
@@ -155,16 +160,16 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
   },
   card: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     elevation: 3,
-    shadowColor: '#000000',
+    shadowColor: '#64748B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   iconWrap: {
     alignItems: 'center',
@@ -174,34 +179,39 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: '#FECACA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   promptText: {
     fontSize: 13.5,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 20,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: 12.5,
     textAlign: 'center',
     marginBottom: 10,
   },
   submitBtn: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#DC2626',
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 10,
+    elevation: 4,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 15.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

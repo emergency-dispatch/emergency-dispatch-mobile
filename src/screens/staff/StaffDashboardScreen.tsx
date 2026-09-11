@@ -18,7 +18,6 @@ import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal } from '../../components/common';
 import {
   StaffProfileHeader,
-  DutyStatusSelector,
   DutyStatus,
   ShiftMetricsGrid,
   StationMiniMapCard,
@@ -252,15 +251,6 @@ export const StaffDashboardScreen: React.FC = () => {
               📍 120 Võ Văn Tần, P.6, Q.3 • Cách 2.4 km (ETA: 6 phút)
             </Text>
           </TouchableOpacity>
-
-          {/* 3. Duty Status Selector */}
-          <DutyStatusSelector
-            currentStatus={dutyStatus}
-            onStatusChange={setDutyStatus}
-            gpsStatusText="GPS: Tốt (±3m)"
-            serverStatusText="Máy chủ: Đã kết nối"
-            radioChannelText="Kênh 04 (115 TT)"
-          />
 
           {/* 4. Shift Summary Metrics Grid */}
           <ShiftMetricsGrid

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Platform,
   Alert,
   Switch,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -55,6 +57,49 @@ export const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({});
 
+  // SOS Logo & SOS Badge Gentle Pulse / Blink (nhấp nháy êm dịu, không phóng to/thu nhỏ)
+  const logoOpacity = useRef(new Animated.Value(1)).current;
+  const strobeOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Nhấp nháy nhẹ nhàng, êm dịu đồng bộ cho Logo và chữ SOS (chu kỳ 1800ms)
+    const blinkAnim = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(logoOpacity, {
+            toValue: 0.4,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(strobeOpacity, {
+            toValue: 0.35,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(logoOpacity, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(strobeOpacity, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    blinkAnim.start();
+    return () => blinkAnim.stop();
+  }, [logoOpacity, strobeOpacity]);
+
   // Role change handler
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
@@ -82,7 +127,7 @@ export const LoginScreen: React.FC = () => {
       !isValidEmail(account.trim()) &&
       !isValidPhoneNumber(account.trim())
     ) {
-      newErrors.account = 'Email hoặc Số điện thoại không hợp lệ (VD: 0912345678 hoặc user@gmail.com)';
+      newErrors.account = 'Vui lòng nhập đúng định dạng Email hoặc Số điện thoại';
     }
 
     if (!password) {
@@ -140,7 +185,12 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0B0F19" safeArea style={styles.container}>
+    <ScreenContainer
+      backgroundColor="#F8FAFC"
+      safeArea
+      statusBarStyle="dark-content"
+      style={styles.container}
+    >
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -156,27 +206,48 @@ export const LoginScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Guest Emergency SOS Quick Banner with Live Beacon, Heartbeat & Strobe */}
           {/* Guest Emergency SOS Quick Banner */}
-          <TouchableOpacity
-            style={styles.guestSosBanner}
-            activeOpacity={0.85}
-            onPress={handleGuestSosBypass}
-          >
-            <View style={styles.guestSosLeft}>
-              <View style={styles.sosIconCircle}>
-                <ShieldAlert color="#EF4444" size={18} strokeWidth={2.6} />
+          <View style={styles.sosBannerContainer}>
+            <TouchableOpacity
+              style={styles.guestSosBanner}
+              activeOpacity={0.88}
+              onPress={handleGuestSosBypass}
+            >
+              <View style={styles.guestSosLeft}>
+                {/* Gently Blinking Logo */}
+                <Animated.View style={[styles.sosIconCircle, { opacity: logoOpacity }]}>
+                  <ShieldAlert color="#DC2626" size={19} strokeWidth={2.6} />
+                </Animated.View>
+
+                <View style={styles.guestSosTextGroup}>
+                  <View style={styles.guestSosTitleRow}>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.guestSosTitle, { fontSize: fontScale(12) }]}
+                    >
+                      CẦN CỨU HỘ KHẨN CẤP?
+                    </Text>
+                    {/* Gently Blinking SOS 24/7 Tag */}
+                    <Animated.View style={[styles.sosUrgentTag, { opacity: strobeOpacity }]}>
+                      <View style={styles.livePulseDot} />
+                      <Text style={styles.sosUrgentTagText}>SOS 24/7</Text>
+                    </Animated.View>
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.guestSosSub, { fontSize: fontScale(10.5) }]}
+                  >
+                    Bỏ qua đăng nhập • Báo nạn ngay tức thì
+                  </Text>
+                </View>
               </View>
-              <View style={styles.guestSosTextGroup}>
-                <Text style={[styles.guestSosTitle, { fontSize: fontScale(12) }]}>
-                  Cần trợ giúp khẩn cấp ngay?
-                </Text>
-                <Text style={[styles.guestSosSub, { fontSize: fontScale(10.5) }]}>
-                  Bỏ qua đăng nhập và kích hoạt SOS Khách
-                </Text>
+
+              <View style={styles.sosArrowCircle}>
+                <ArrowRight color="#DC2626" size={15} strokeWidth={2.8} />
               </View>
-            </View>
-            <ArrowRight color="#F87171" size={18} />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
           {/* Header Branding */}
           <AuthHeader
@@ -202,7 +273,7 @@ export const LoginScreen: React.FC = () => {
               >
                 <User
                   size={moderateScale(16)}
-                  color={selectedRole === 'citizen' ? '#FFFFFF' : '#94A3B8'}
+                  color={selectedRole === 'citizen' ? '#FFFFFF' : '#64748B'}
                 />
                 <Text
                   style={[
@@ -224,7 +295,7 @@ export const LoginScreen: React.FC = () => {
               >
                 <Truck
                   size={moderateScale(16)}
-                  color={selectedRole === 'staff' ? '#FFFFFF' : '#94A3B8'}
+                  color={selectedRole === 'staff' ? '#FFFFFF' : '#64748B'}
                 />
                 <Text
                   style={[
@@ -246,25 +317,25 @@ export const LoginScreen: React.FC = () => {
               }
               placeholder={
                 selectedRole === 'staff'
-                  ? 'VD: ST-8821 hoặc nhanvien115@emergency.vn'
-                  : 'VD: 0987654321 hoặc name@gmail.com'
+                  ? 'Nhập mã nhân viên hoặc email 115'
+                  : 'Nhập email hoặc số điện thoại'
               }
               value={account}
               onChangeText={(val) => {
                 setAccount(val);
                 if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
               }}
-              variant="dark"
+              variant="light"
               keyboardType={selectedRole === 'staff' ? 'default' : 'email-address'}
               autoCapitalize="none"
               error={errors.account}
               leftIcon={
                 selectedRole === 'staff' ? (
-                  <ShieldCheck size={18} color="#38BDF8" />
+                  <ShieldCheck size={18} color="#DC2626" />
                 ) : account.includes('@') ? (
-                  <Mail size={18} color="#94A3B8" />
+                  <Mail size={18} color="#64748B" />
                 ) : (
-                  <Phone size={18} color="#94A3B8" />
+                  <Phone size={18} color="#64748B" />
                 )
               }
             />
@@ -278,19 +349,19 @@ export const LoginScreen: React.FC = () => {
                 setPassword(val);
                 if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
-              variant="dark"
+              variant="light"
               secureTextEntry={!showPassword}
               error={errors.password}
-              leftIcon={<Lock size={18} color="#94A3B8" />}
+              leftIcon={<Lock size={18} color="#64748B" />}
               rightIcon={
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color="#94A3B8" />
+                    <EyeOff size={18} color="#64748B" />
                   ) : (
-                    <Eye size={18} color="#94A3B8" />
+                    <Eye size={18} color="#64748B" />
                   )}
                 </TouchableOpacity>
               }
@@ -306,14 +377,8 @@ export const LoginScreen: React.FC = () => {
                 <Switch
                   value={rememberMe}
                   onValueChange={setRememberMe}
-                  thumbColor={
-                    rememberMe
-                      ? selectedRole === 'staff'
-                        ? '#38BDF8'
-                        : '#3B82F6'
-                      : '#64748B'
-                  }
-                  trackColor={{ false: '#334155', true: 'rgba(56, 189, 248, 0.4)' }}
+                  thumbColor={rememberMe ? '#DC2626' : '#94A3B8'}
+                  trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
                   style={Platform.OS === 'ios' ? { transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] } : {}}
                 />
                 <Text style={styles.rememberMeText}>Ghi nhớ tôi</Text>
@@ -356,7 +421,7 @@ export const LoginScreen: React.FC = () => {
                   style={styles.demoBtnCitizen}
                   onPress={() => handleFastLogin('citizen')}
                 >
-                  <User size={moderateScale(14)} color="#EF4444" />
+                  <User size={moderateScale(14)} color="#DC2626" />
                   <Text style={styles.demoBtnCitizenText}>Vào vai Người Dân</Text>
                 </TouchableOpacity>
 
@@ -365,7 +430,7 @@ export const LoginScreen: React.FC = () => {
                   style={styles.demoBtnStaff}
                   onPress={() => handleFastLogin('staff')}
                 >
-                  <Truck size={moderateScale(14)} color="#38BDF8" />
+                  <Truck size={moderateScale(14)} color="#DC2626" />
                   <Text style={styles.demoBtnStaffText}>Vào vai Đội Cứu Hộ</Text>
                 </TouchableOpacity>
               </View>
@@ -419,64 +484,127 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 36,
   },
+  sosBannerContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
   guestSosBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 16,
+    backgroundColor: '#DC2626',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   guestSosLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     flex: 1,
+    minWidth: 0,
+    marginRight: 6,
   },
   sosIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 2,
   },
   guestSosTextGroup: {
     flex: 1,
+    minWidth: 0,
+  },
+  guestSosTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   guestSosTitle: {
-    color: '#F87171',
-    fontSize: 12.5,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    flexShrink: 1,
+  },
+  sosUrgentTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 1.5,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  livePulseDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#FFFFFF',
+  },
+  sosUrgentTagText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   guestSosSub: {
-    color: '#FCA5A5',
-    fontSize: 11,
-    marginTop: 1,
+    color: '#FEE2E2',
+    fontSize: 10.5,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  sosArrowCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 3,
   },
   card: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     elevation: 3,
-    shadowColor: '#000000',
+    shadowColor: '#64748B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   roleSwitcherContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   roleTab: {
     flex: 1,
@@ -488,25 +616,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   roleTabActiveCitizen: {
-    backgroundColor: '#EF4444',
-    shadowColor: '#EF4444',
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   roleTabActiveStaff: {
-    backgroundColor: '#0284C7',
-    shadowColor: '#0284C7',
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   roleTabText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   roleTabTextActive: {
     color: '#FFFFFF',
@@ -524,40 +652,41 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   rememberMeText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12.5,
-  },
-  forgotPasswordText: {
-    color: '#38BDF8',
-    fontSize: 13,
     fontWeight: '600',
   },
+  forgotPasswordText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   loginBtn: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 6,
     elevation: 4,
-    shadowColor: '#EF4444',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   loginBtnStaff: {
-    backgroundColor: '#0284C7',
-    shadowColor: '#0284C7',
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
   },
   loginBtnText: {
     color: '#FFFFFF',
     fontSize: 15.5,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.3,
   },
   demoBox: {
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#E2E8F0',
   },
   demoHeader: {
     flexDirection: 'row',
@@ -569,7 +698,7 @@ const styles = StyleSheet.create({
   demoHeaderText: {
     fontSize: 10.5,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: '#B45309',
     letterSpacing: 0.4,
   },
   demoButtonsRow: {
@@ -581,9 +710,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: '#FECACA',
     paddingVertical: 9,
     borderRadius: 10,
     gap: 6,
@@ -591,16 +720,16 @@ const styles = StyleSheet.create({
   demoBtnCitizenText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#FCA5A5',
+    color: '#DC2626',
   },
   demoBtnStaff: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: '#FECACA',
     paddingVertical: 9,
     borderRadius: 10,
     gap: 6,
@@ -608,7 +737,7 @@ const styles = StyleSheet.create({
   demoBtnStaffText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   footer: {
     flexDirection: 'row',
@@ -618,12 +747,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footerText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13.5,
+    fontWeight: '500',
   },
   registerLink: {
-    color: '#38BDF8',
+    color: '#DC2626',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

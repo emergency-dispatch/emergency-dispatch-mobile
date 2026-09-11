@@ -10,8 +10,13 @@ import {
 } from 'react-native';
 import { ChevronDown, ChevronUp, Edit3 } from 'lucide-react-native';
 
+// Only enable experimental layout animation on Old Architecture Android (no-op & warns on New Architecture)
+const isFabric =
+  Boolean((globalThis as any)?._IS_FABRIC) ||
+  Boolean((globalThis as any)?.nativeFabricUIManager);
 if (
   Platform.OS === 'android' &&
+  !isFabric &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);

@@ -72,7 +72,7 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
               style={[
                 styles.barSegment,
                 {
-                  backgroundColor: isFilled ? strengthColor : '#1E293B',
+                  backgroundColor: isFilled ? strengthColor : '#E2E8F0',
                 },
               ]}
             />
@@ -90,20 +90,20 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
                 {
                   backgroundColor: item.met
                     ? 'rgba(16, 185, 129, 0.15)'
-                    : 'rgba(239, 68, 68, 0.12)',
+                    : '#FEE2E2',
                 },
               ]}
             >
               {item.met ? (
                 <Check size={moderateScale(10)} color="#10B981" strokeWidth={3} />
               ) : (
-                <X size={moderateScale(10)} color="#EF4444" strokeWidth={3} />
+                <X size={moderateScale(10)} color="#DC2626" strokeWidth={3} />
               )}
             </View>
             <Text
               style={[
                 styles.checkText,
-                { color: item.met ? '#E2E8F0' : '#64748B' },
+                { color: item.met ? '#0F172A' : '#94A3B8' },
               ]}
               allowFontScaling={false}
               maxFontSizeMultiplier={1.2}
@@ -119,11 +119,11 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     padding: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     marginTop: verticalScale(4),
     marginBottom: verticalScale(10),
     width: '100%',
@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: moderateScale(11.5),
-    color: '#94A3B8',
-    fontWeight: '500',
+    color: '#64748B',
+    fontWeight: '600',
   },
   strengthLabel: {
     fontSize: moderateScale(11.5),

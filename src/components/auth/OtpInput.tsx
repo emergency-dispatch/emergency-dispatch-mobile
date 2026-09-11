@@ -147,7 +147,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             onPress={handleResend}
             activeOpacity={0.7}
           >
-            <RotateCw size={moderateScale(13)} color="#3B82F6" />
+            <RotateCw size={moderateScale(13)} color="#DC2626" />
             <Text
               style={styles.resendTextActive}
               allowFontScaling={false}
@@ -191,29 +191,29 @@ const styles = StyleSheet.create({
     minWidth: moderateScale(38),
     maxWidth: moderateScale(46),
     borderRadius: moderateScale(10),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   boxFocused: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#1E293B',
-    elevation: 4,
-    shadowColor: '#3B82F6',
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
   },
   boxFilled: {
-    borderColor: '#10B981',
-    backgroundColor: '#0F172A',
+    borderColor: '#DC2626',
+    backgroundColor: '#FFFFFF',
   },
   boxInput: {
     fontSize: moderateScale(19),
-    fontWeight: '700',
-    color: '#F8FAFC',
+    fontWeight: '800',
+    color: '#0F172A',
     width: '100%',
     height: '100%',
     textAlign: 'center',
@@ -228,20 +228,20 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(6),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(8),
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: '#FEF2F2',
   },
   resendTextActive: {
-    color: '#60A5FA',
+    color: '#DC2626',
     fontSize: moderateScale(12),
-    fontWeight: '600',
+    fontWeight: '700',
   },
   countdownText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: moderateScale(12),
   },
   countdownHighlight: {
-    color: '#F59E0B',
-    fontWeight: '700',
+    color: '#DC2626',
+    fontWeight: '800',
   },
 });
 

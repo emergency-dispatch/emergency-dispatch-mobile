@@ -9,10 +9,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
+  Image,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Video, X, Send, CheckCircle2, AlertCircle } from 'lucide-react-native';
+import { Camera, Video, X, Send, CheckCircle2, AlertCircle, Images, Trash2 } from 'lucide-react-native';
 import { HazardItem } from './QuickHazardGrid';
+import { mediaService } from '../../services/media.service';
 
 interface MediaReportModalProps {
   visible: boolean;
@@ -22,8 +25,9 @@ interface MediaReportModalProps {
   onSubmitReport: (data: {
     hazardId?: string;
     mediaType: 'photo' | 'video' | 'none';
+    mediaUrls?: string[];
     note: string;
-  }) => void;
+  }) => Promise<void> | void;
 }
 
 export const MediaReportModal: React.FC<MediaReportModalProps> = ({
@@ -35,27 +39,68 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'video' | 'none'>('none');
+  const [uploadedMediaUrls, setUploadedMediaUrls] = useState<string[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleMediaSelect = (type: 'photo' | 'video') => {
-    setSelectedMedia((prev) => (prev === type ? 'none' : type));
+  const handleCapturePhoto = async () => {
+    try {
+      const asset = await mediaService.pickFromCamera();
+      if (!asset) return;
+      setIsUploadingMedia(true);
+      const url = await mediaService.uploadMedia(asset);
+      setUploadedMediaUrls((prev) => [...prev, url]);
+      setSelectedMedia('photo');
+    } catch (err: any) {
+      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh hiện trường lên máy chủ.');
+    } finally {
+      setIsUploadingMedia(false);
+    }
   };
 
-  const handleSubmit = () => {
+  const handlePickLibrary = async () => {
+    try {
+      const asset = await mediaService.pickFromLibrary();
+      if (!asset) return;
+      setIsUploadingMedia(true);
+      const url = await mediaService.uploadMedia(asset);
+      setUploadedMediaUrls((prev) => [...prev, url]);
+      setSelectedMedia('photo');
+    } catch (err: any) {
+      Alert.alert('Lỗi chọn ảnh', err.message || 'Không thể tải ảnh hiện trường lên máy chủ.');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handleRemoveMedia = (index: number) => {
+    setUploadedMediaUrls((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) setSelectedMedia('none');
+      return updated;
+    });
+  };
+
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onSubmitReport({
+    try {
+      await onSubmitReport({
         hazardId: selectedHazard?.id,
-        mediaType: selectedMedia,
+        mediaType: uploadedMediaUrls.length > 0 ? 'photo' : selectedMedia,
+        mediaUrls: uploadedMediaUrls,
         note,
       });
       // Reset form
+      setUploadedMediaUrls([]);
       setSelectedMedia('none');
       setNote('');
       onClose();
-    }, 800);
+    } catch (err: any) {
+      Alert.alert('Lỗi gửi báo cáo', err.message || 'Gửi báo cáo sự cố thất bại.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -113,60 +158,67 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
               )}
 
               {/* Quick Media Action Row */}
-              <Text style={styles.label}>ĐÍNH KÈM HÌNH ẢNH / VIDEO 5S</Text>
+              <Text style={styles.label}>ĐÍNH KÈM HÌNH ẢNH HIỆN TRƯỜNG (AI PHÂN TÍCH)</Text>
               <View style={styles.mediaRow}>
                 {/* Take Photo */}
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  onPress={() => handleMediaSelect('photo')}
+                  onPress={handleCapturePhoto}
+                  disabled={isUploadingMedia}
                   style={[
                     styles.mediaButton,
-                    selectedMedia === 'photo' && styles.mediaButtonActive,
+                    styles.mediaButtonActive,
+                    { borderColor: '#38BDF8' },
                   ]}
                 >
-                  <Camera
-                    size={22}
-                    color={selectedMedia === 'photo' ? '#38BDF8' : '#94A3B8'}
-                  />
-                  <Text
-                    style={[
-                      styles.mediaButtonText,
-                      selectedMedia === 'photo' && styles.mediaButtonTextActive,
-                    ]}
-                  >
-                    Chụp ảnh hiện trường
+                  <Camera size={20} color="#0284C7" />
+                  <Text style={[styles.mediaButtonText, styles.mediaButtonTextActive]}>
+                    Chụp ảnh ngay
                   </Text>
-                  {selectedMedia === 'photo' && (
-                    <CheckCircle2 size={16} color="#38BDF8" />
-                  )}
                 </TouchableOpacity>
 
-                {/* Record 5s Video */}
+                {/* Pick From Library */}
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  onPress={() => handleMediaSelect('video')}
+                  onPress={handlePickLibrary}
+                  disabled={isUploadingMedia}
                   style={[
                     styles.mediaButton,
-                    selectedMedia === 'video' && styles.mediaButtonActive,
+                    styles.mediaButtonActive,
+                    { borderColor: '#10B981' },
                   ]}
                 >
-                  <Video
-                    size={22}
-                    color={selectedMedia === 'video' ? '#EF4444' : '#94A3B8'}
-                  />
-                  <Text
-                    style={[
-                      styles.mediaButtonText,
-                      selectedMedia === 'video' && styles.mediaButtonTextActive,
-                    ]}
-                  >
-                    Quay video 5s
+                  <Images size={20} color="#059669" />
+                  <Text style={[styles.mediaButtonText, { color: '#059669' }]}>
+                    Chọn từ thư viện
                   </Text>
-                  {selectedMedia === 'video' && (
-                    <CheckCircle2 size={16} color="#EF4444" />
-                  )}
                 </TouchableOpacity>
               </View>
+
+              {/* Uploading indicator */}
+              {isUploadingMedia && (
+                <View style={styles.uploadingBox}>
+                  <ActivityIndicator size="small" color="#0284C7" />
+                  <Text style={styles.uploadingText}>Đang tải ảnh lên Cloudinary...</Text>
+                </View>
+              )}
+
+              {/* Preview Uploaded Thumbnails */}
+              {uploadedMediaUrls.length > 0 && (
+                <View style={styles.thumbnailRow}>
+                  {uploadedMediaUrls.map((url, idx) => (
+                    <View key={idx} style={styles.thumbnailWrap}>
+                      <Image source={{ uri: url }} style={styles.thumbnailImg} />
+                      <TouchableOpacity
+                        style={styles.thumbnailRemoveBtn}
+                        onPress={() => handleRemoveMedia(idx)}
+                      >
+                        <X size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               {/* Short Note Input */}
               <Text style={styles.label}>GHI CHÚ BỔ SUNG (TÙY CHỌN)</Text>
@@ -304,6 +356,52 @@ const styles = StyleSheet.create({
   },
   mediaButtonTextActive: {
     color: '#F8FAFC',
+  },
+  uploadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0F172A',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#0284C7',
+  },
+  uploadingText: {
+    fontSize: 12,
+    color: '#38BDF8',
+    fontWeight: '600',
+  },
+  thumbnailRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  thumbnailWrap: {
+    position: 'relative',
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#38BDF8',
+  },
+  thumbnailImg: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailRemoveBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textInput: {
     backgroundColor: '#0F172A',

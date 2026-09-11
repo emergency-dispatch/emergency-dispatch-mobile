@@ -5,3 +5,4 @@ export * from './dispatch';
 export * from './auth';
 export * from './profile';
 export * from './user';
+export * from './incident';

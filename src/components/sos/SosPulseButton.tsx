@@ -14,11 +14,13 @@ import { useResponsive } from '../../utils/responsive';
 interface SosPulseButtonProps {
   onSosTriggered: () => void;
   holdDuration?: number; // default 2000ms
+  onPressStateChange?: (isPressing: boolean) => void;
 }
 
 export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   onSosTriggered,
   holdDuration = 2000,
+  onPressStateChange,
 }) => {
   const { width, isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
@@ -31,6 +33,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
 
   const [isPressing, setIsPressing] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
+  const hasTriggeredRef = useRef(false);
 
   // Pulse animation for idle state
   const pulseAnim1 = useRef(new Animated.Value(1)).current;
@@ -90,8 +93,18 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
     };
   }, []);
 
+  const triggerSos = () => {
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+    Vibration.vibrate([0, 300, 100, 300]);
+    onSosTriggered();
+    handlePressOut();
+  };
+
   const handlePressIn = () => {
+    hasTriggeredRef.current = false;
     setIsPressing(true);
+    onPressStateChange?.(true);
     Vibration.vibrate(50);
 
     // Button shrinks slightly on press
@@ -115,18 +128,17 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
       const elapsed = Date.now() - startTime;
       const currentPct = Math.min(Math.round((elapsed / holdDuration) * 100), 100);
       setProgressPercent(currentPct);
-    }, 30);
+    }, 40);
 
-    // Success trigger timer
+    // Success trigger timer fallback
     holdTimerRef.current = setTimeout(() => {
-      Vibration.vibrate([0, 300, 100, 300]);
-      onSosTriggered();
-      handlePressOut();
+      triggerSos();
     }, holdDuration);
   };
 
   const handlePressOut = () => {
     setIsPressing(false);
+    onPressStateChange?.(false);
     setProgressPercent(0);
 
     if (holdTimerRef.current) {
@@ -148,6 +160,13 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
     }).start();
   };
 
+  const handleTap = () => {
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+    Vibration.vibrate(80);
+    onSosTriggered();
+  };
+
   const ringScale = holdProgressAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.25],
@@ -155,8 +174,9 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
 
   return (
     <View style={[styles.outerContainer, { width: outerSize, height: outerSize }]}>
-      {/* Ambient Pulsing Background Waves */}
+      {/* Ambient Pulsing Background Waves (pointerEvents="none" to not steal touches) */}
       <Animated.View
+        pointerEvents="none"
         style={[
           styles.glowRing,
           {
@@ -169,6 +189,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
         ]}
       />
       <Animated.View
+        pointerEvents="none"
         style={[
           styles.glowRing,
           {
@@ -184,6 +205,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
       {/* Press Active Expanding Progress Ring */}
       {isPressing && (
         <Animated.View
+          pointerEvents="none"
           style={[
             styles.activeRing,
             {
@@ -201,6 +223,11 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
         <Pressable
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
+          onLongPress={triggerSos}
+          delayLongPress={holdDuration}
+          onPress={handleTap}
+          pressRetentionOffset={{ top: 80, bottom: 80, left: 80, right: 80 }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           android_disableSound={true}
           style={({ pressed }) => [
             styles.button,

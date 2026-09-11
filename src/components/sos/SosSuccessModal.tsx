@@ -7,18 +7,21 @@ import {
   TouchableOpacity,
   Vibration,
 } from 'react-native';
-import { ShieldAlert, CheckCircle2, PhoneCall, XCircle } from 'lucide-react-native';
+import { ShieldAlert, CheckCircle2, PhoneCall, XCircle, Sparkles } from 'lucide-react-native';
+import { IncidentResponseDto } from '../../types/incident';
 
 interface SosSuccessModalProps {
   visible: boolean;
   onClose: () => void;
   address: string;
+  incident?: IncidentResponseDto | null;
 }
 
 export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
   visible,
   onClose,
   address,
+  incident,
 }) => {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
@@ -36,6 +39,10 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
     };
   }, [visible]);
 
+  const incidentCode = incident
+    ? `#${incident.id.slice(0, 8).toUpperCase()}`
+    : `#SOS-${(Date.now() % 100000).toString()}`;
+
   return (
     <Modal
       visible={visible}
@@ -50,8 +57,8 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             <ShieldAlert size={48} color="#EF4444" strokeWidth={2.5} />
           </View>
 
-          <Text style={styles.alertHeader}>TÍN HIỆU SOS ĐÃ PHÁT</Text>
-          <Text style={styles.alertCode}>MÃ SỰ CỐ: #SOS-{(Date.now() % 100000).toString()}</Text>
+          <Text style={styles.alertHeader}>TÍN HIỆU SOS ĐÃ TIẾP NHẬN</Text>
+          <Text style={styles.alertCode}>MÃ SỰ CỐ: {incidentCode}</Text>
 
           <View style={styles.statusBox}>
             <View style={styles.statusRow}>
@@ -60,8 +67,16 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             </View>
             <View style={styles.statusRow}>
               <CheckCircle2 size={16} color="#10B981" />
-              <Text style={styles.statusText}>Đang kết nối trung tâm điều phối 114/115</Text>
+              <Text style={styles.statusText}>Đã kết nối trung tâm điều phối 114/115</Text>
             </View>
+            {incident?.aiClassification && (
+              <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
+                <Sparkles size={16} color="#38BDF8" style={{ marginTop: 2 }} />
+                <Text style={[styles.statusText, { color: '#38BDF8', flex: 1 }]}>
+                  AI Phân Loại ({incident.severity}): {incident.aiClassification.summary}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.locationBox}>

@@ -16,6 +16,11 @@ import {
   ShieldAlert,
   CheckCircle2,
   Sparkles,
+  Minimize2,
+  ChevronUp,
+  Flame,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -23,6 +28,7 @@ import { ConfirmationModal } from '../../components/common';
 import { MissionStepper } from '../../components/dispatch/MissionStepper';
 import { IncidentTacticalMap } from '../../components/dispatch/IncidentTacticalMap';
 import { IncidentDetailCard } from '../../components/dispatch/IncidentDetailCard';
+import { SwipeToAction } from '../../components/dispatch/SwipeToAction';
 import {
   EmergencyIncident,
   MOCK_EMERGENCY_INCIDENT,
@@ -47,6 +53,17 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Mission State Management (4 Stages)
   const [currentStage, setCurrentStage] = useState<MissionStage>('accepted');
+
+  // Interactive View Modes: 'split' (default), 'map_expanded' (full map), 'details_expanded' (full details)
+  const [viewMode, setViewMode] = useState<'split' | 'map_expanded' | 'details_expanded'>('split');
+
+  const handleToggleMapExpand = useCallback(() => {
+    setViewMode((prev) => (prev === 'map_expanded' ? 'split' : 'map_expanded'));
+  }, []);
+
+  const handleToggleExpandDetails = useCallback(() => {
+    setViewMode((prev) => (prev === 'details_expanded' ? 'split' : 'details_expanded'));
+  }, []);
 
   // Confirmation Modal states
   const [isCallDispatcherModalVisible, setIsCallDispatcherModalVisible] = useState(false);
@@ -98,74 +115,197 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
       statusBarStyle="dark-content"
     >
       <View style={styles.rootContainer}>
-        {/* 1. Header Bar */}
-        <View style={styles.header}>
-          {/* Back Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.backButton}
-            onPress={handleGoBack}
-          >
-            <ArrowLeft size={moderateScale(20)} color="#0F172A" />
-          </TouchableOpacity>
+        {/* If NOT in full-screen map mode, show standard Top Header & Mission Stepper */}
+        {viewMode !== 'map_expanded' && (
+          <>
+            {/* 1. Header Bar */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.backButton}
+                onPress={handleGoBack}
+              >
+                <ArrowLeft size={moderateScale(20)} color="#0F172A" />
+              </TouchableOpacity>
 
-          {/* Incident Code Badge */}
-          <View style={styles.incidentCodeBadge}>
-            <View style={styles.livePulseDot} />
-            <Text style={styles.incidentCodeText} numberOfLines={1}>
-              {incident.code}
-            </Text>
-          </View>
+              <View style={styles.incidentCodeBadge}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.incidentCodeText} numberOfLines={1}>
+                  {incident.code}
+                </Text>
+              </View>
 
-          {/* Call Dispatcher Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.callDispatcherBtn}
-            onPress={() => setIsCallDispatcherModalVisible(true)}
-          >
-            <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
-            <Text
-              style={styles.callDispatcherText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.15}
-            >
-              Gọi Điều Phối
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.callDispatcherBtn}
+                onPress={() => setIsCallDispatcherModalVisible(true)}
+              >
+                <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
+                <Text
+                  style={styles.callDispatcherText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={1.15}
+                >
+                  Gọi Điều Phối
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* 2. Mission Stepper (4 Stages) */}
-        <MissionStepper
-          currentStage={currentStage}
-          onSelectStage={setCurrentStage}
-          interactive={true}
-        />
+            {/* 2. Mission Stepper (4 Stages) */}
+            <MissionStepper
+              currentStage={currentStage}
+              onSelectStage={setCurrentStage}
+              interactive={true}
+            />
+          </>
+        )}
 
-        {/* 3. Main Workspace: Map Area (55%) + Detail Bottom Card (45%) */}
-        <View style={styles.contentSplitLayout}>
-          {/* Map Area (~55% Height) */}
-          <View style={styles.mapAreaContainer}>
+        {/* 3. Main Workspace */}
+        {viewMode === 'map_expanded' ? (
+          /* TRUE 100% FULLSCREEN MAP */
+          <View style={styles.fullscreenMapWrapper}>
             <IncidentTacticalMap
               currentStage={currentStage}
               incidentAddress={incident.address}
               distanceKm={incident.distanceKm}
               etaMinutes={incident.etaMinutes}
               onRecenter={() => {}}
+              isMapExpanded={true}
+              onToggleMapExpand={handleToggleMapExpand}
             />
-          </View>
 
-          {/* Detail Bottom Card (~45% Height) */}
-          <View style={styles.bottomCardContainer}>
-            <IncidentDetailCard
-              incident={incident}
-              currentStage={currentStage}
-              onSwipeEnRoute={handleSwipeEnRoute}
-              onAdvanceStage={handleAdvanceStage}
-              onCompleteMission={handleCompleteMission}
-            />
+            {/* Floating Top Nav Overlay on Fullscreen Map */}
+            <View style={styles.fullscreenTopOverlay}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.floatingOverlayCircleBtn}
+                onPress={handleGoBack}
+              >
+                <ArrowLeft size={moderateScale(18)} color="#0F172A" />
+              </TouchableOpacity>
+
+              <View style={styles.floatingCodePill}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.floatingCodeText}>{incident.code}</Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.floatingExitMapBtn}
+                onPress={handleToggleMapExpand}
+              >
+                <Minimize2 size={moderateScale(14)} color="#DC2626" />
+                <Text style={styles.floatingExitMapText}>Thu Nhỏ</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Ultra-compact Floating Action Dock on Fullscreen Map */}
+            <View style={styles.fullscreenCompactDock}>
+              {/* Compact Details Chip */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.compactDetailsChip}
+                onPress={handleToggleExpandDetails}
+                accessible={true}
+                accessibilityLabel="Xem chi tiết ca trực"
+              >
+                <ChevronUp size={moderateScale(14)} color="#DC2626" />
+                <Text style={styles.compactDetailsChipText}>Chi Tiết</Text>
+              </TouchableOpacity>
+
+              {/* Action Area */}
+              <View style={styles.compactActionWrap}>
+                {currentStage === 'accepted' && (
+                  <SwipeToAction
+                    onSwipeSuccess={handleSwipeEnRoute}
+                    title="VUỐT XUẤT PHÁT"
+                    successTitle="ĐÃ XÁC NHẬN XUẤT PHÁT!"
+                    sliderColor="#10B981"
+                    activeTrackColor="rgba(16, 185, 129, 0.3)"
+                  />
+                )}
+
+                {currentStage === 'en_route' && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.compactAdvanceBtnRed}
+                    onPress={() => handleAdvanceStage('on_scene')}
+                  >
+                    <Flame size={moderateScale(15)} color="#FFFFFF" />
+                    <Text style={styles.compactAdvanceBtnText}>
+                      ĐÃ ĐẾN HIỆN TRƯỜNG
+                    </Text>
+                    <ArrowRight size={moderateScale(15)} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+
+                {currentStage === 'on_scene' && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.compactAdvanceBtnGreen}
+                    onPress={handleCompleteMission}
+                  >
+                    <ShieldCheck size={moderateScale(15)} color="#FFFFFF" />
+                    <Text style={styles.compactAdvanceBtnText}>
+                      HOÀN THÀNH CA
+                    </Text>
+                    <CheckCircle2 size={moderateScale(14)} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+
+                {currentStage === 'completed' && (
+                  <View style={styles.compactCompletedBox}>
+                    <CheckCircle2 size={moderateScale(14)} color="#10B981" />
+                    <Text style={styles.compactCompletedText}>
+                      ĐÃ HOÀN TẤT
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
-        </View>
+        ) : (
+          /* SPLIT OR FULL DETAILS MODE */
+          <View style={styles.contentSplitLayout}>
+            {/* Map Area */}
+            <View
+              style={[
+                styles.mapAreaContainer,
+                viewMode === 'details_expanded' && styles.mapAreaMinimized,
+              ]}
+            >
+              <IncidentTacticalMap
+                currentStage={currentStage}
+                incidentAddress={incident.address}
+                distanceKm={incident.distanceKm}
+                etaMinutes={incident.etaMinutes}
+                onRecenter={() => {}}
+                isMapExpanded={false}
+                onToggleMapExpand={handleToggleMapExpand}
+              />
+            </View>
+
+            {/* Detail Bottom Card */}
+            <View
+              style={[
+                styles.bottomCardContainer,
+                viewMode === 'details_expanded' && styles.bottomCardExpanded,
+              ]}
+            >
+              <IncidentDetailCard
+                incident={incident}
+                currentStage={currentStage}
+                onSwipeEnRoute={handleSwipeEnRoute}
+                onAdvanceStage={handleAdvanceStage}
+                onCompleteMission={handleCompleteMission}
+                viewMode={viewMode}
+                onToggleExpandDetails={handleToggleExpandDetails}
+                onToggleExpandMap={handleToggleMapExpand}
+              />
+            </View>
+          </View>
+        )}
 
         {/* 1. Modal: Call Dispatcher Hotline */}
         <ConfirmationModal
@@ -305,9 +445,173 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   mapAreaContainer: {
-    flex: 55, // 55% Height
+    flex: 68,
+  },
+  mapAreaMinimized: {
+    flex: 16,
   },
   bottomCardContainer: {
-    flex: 45, // 45% Height
+    flex: 32,
+  },
+  bottomCardExpanded: {
+    flex: 84,
+  },
+  fullscreenMapWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  fullscreenTopOverlay: {
+    position: 'absolute',
+    top: verticalScale(8),
+    left: scale(10),
+    right: scale(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 40,
+  },
+  floatingOverlayCircleBtn: {
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(19),
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  floatingCodePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(20),
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+    gap: scale(6),
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  floatingCodeText: {
+    fontSize: moderateScale(12),
+    fontWeight: '900',
+    color: '#DC2626',
+    fontFamily: 'monospace',
+  },
+  floatingExitMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#FFFFFF',
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(20),
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  floatingExitMapText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  fullscreenCompactDock: {
+    position: 'absolute',
+    bottom: verticalScale(50),
+    left: scale(10),
+    right: scale(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    zIndex: 40,
+  },
+  compactDetailsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    height: verticalScale(38),
+    paddingHorizontal: scale(10),
+    borderRadius: moderateScale(19),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  compactDetailsChipText: {
+    fontSize: moderateScale(10.5),
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  compactActionWrap: {
+    flex: 1,
+  },
+  compactAdvanceBtnRed: {
+    height: verticalScale(38),
+    borderRadius: moderateScale(19),
+    backgroundColor: '#DC2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: scale(14),
+    gap: scale(6),
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  compactAdvanceBtnGreen: {
+    height: verticalScale(38),
+    borderRadius: moderateScale(19),
+    backgroundColor: '#059669',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: scale(14),
+    gap: scale(6),
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  compactAdvanceBtnText: {
+    fontSize: moderateScale(11),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  compactCompletedBox: {
+    height: verticalScale(38),
+    borderRadius: moderateScale(19),
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(5),
+  },
+  compactCompletedText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#059669',
   },
 });

@@ -22,6 +22,8 @@ import {
   Truck,
   Phone,
   CheckCircle2,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -88,6 +90,7 @@ type FilterType = 'all' | 'incident' | 'hospital';
 export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [activeItem, setActiveItem] = useState<MapMarkerItem>(MOCK_MAP_ITEMS[0]);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Pulse animations
   const radarWave = useRef(new Animated.Value(0)).current;
@@ -150,86 +153,88 @@ export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       statusBarStyle="dark-content"
     >
       <View style={styles.rootContainer}>
-        {/* 1. Header Bar */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <View>
-              <Text style={styles.title}>Bản Đồ Tác Chiến 115</Text>
-              <Text style={styles.subtitle}>
-                Giám sát thực địa & điều phối khẩn cấp thời gian thực
-              </Text>
+        {/* 1. Header Bar (Hidden in Fullscreen mode) */}
+        {!isFullscreen && (
+          <View style={styles.header}>
+            <View style={styles.headerTitleRow}>
+              <View>
+                <Text style={styles.title}>Bản Đồ Tác Chiến 115</Text>
+                <Text style={styles.subtitle}>
+                  Giám sát thực địa & điều phối khẩn cấp thời gian thực
+                </Text>
+              </View>
+              <View style={styles.telemetryBadge}>
+                <View style={styles.liveGreenDot} />
+                <Text style={styles.telemetryText}>GPS ±3m • 5G</Text>
+              </View>
             </View>
-            <View style={styles.telemetryBadge}>
-              <View style={styles.liveGreenDot} />
-              <Text style={styles.telemetryText}>GPS ±3m • 5G</Text>
+
+            {/* Filter Pills */}
+            <View style={styles.filterRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === 'all' && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedFilter('all')}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    selectedFilter === 'all' && styles.filterTextActive,
+                  ]}
+                >
+                  Tất cả (4)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === 'incident' && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedFilter('incident')}
+              >
+                <Flame
+                  size={moderateScale(12)}
+                  color={selectedFilter === 'incident' ? '#FFFFFF' : '#DC2626'}
+                />
+                <Text
+                  style={[
+                    styles.filterText,
+                    selectedFilter === 'incident' && styles.filterTextActive,
+                  ]}
+                >
+                  Sự cố khẩn (2)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === 'hospital' && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedFilter('hospital')}
+              >
+                <Building2
+                  size={moderateScale(12)}
+                  color={selectedFilter === 'hospital' ? '#FFFFFF' : '#059669'}
+                />
+                <Text
+                  style={[
+                    styles.filterText,
+                    selectedFilter === 'hospital' && styles.filterTextActive,
+                  ]}
+                >
+                  Bệnh viện (2)
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Filter Pills */}
-          <View style={styles.filterRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.filterChip,
-                selectedFilter === 'all' && styles.filterChipActive,
-              ]}
-              onPress={() => setSelectedFilter('all')}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === 'all' && styles.filterTextActive,
-                ]}
-              >
-                Tất cả (4)
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.filterChip,
-                selectedFilter === 'incident' && styles.filterChipActive,
-              ]}
-              onPress={() => setSelectedFilter('incident')}
-            >
-              <Flame
-                size={moderateScale(12)}
-                color={selectedFilter === 'incident' ? '#FFFFFF' : '#DC2626'}
-              />
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === 'incident' && styles.filterTextActive,
-                ]}
-              >
-                Sự cố khẩn (2)
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.filterChip,
-                selectedFilter === 'hospital' && styles.filterChipActive,
-              ]}
-              onPress={() => setSelectedFilter('hospital')}
-            >
-              <Building2
-                size={moderateScale(12)}
-                color={selectedFilter === 'hospital' ? '#FFFFFF' : '#059669'}
-              />
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === 'hospital' && styles.filterTextActive,
-                ]}
-              >
-                Bệnh viện (2)
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
 
         {/* 2. Tactical Vector Map Canvas */}
         <View style={styles.mapCanvas}>
@@ -348,8 +353,47 @@ export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
             );
           })}
 
+          {/* Floating Top Banner when in Fullscreen */}
+          {isFullscreen && (
+            <View style={styles.fullscreenTopBanner}>
+              <View style={styles.fullscreenTitlePill}>
+                <View style={styles.liveGreenDot} />
+                <Text style={styles.fullscreenTitleText}>
+                  Bản Đồ Tác Chiến 115 • Toàn Màn Hình
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.fullscreenExitBtn}
+                onPress={() => setIsFullscreen(false)}
+              >
+                <Minimize2 size={moderateScale(14)} color="#DC2626" />
+                <Text style={styles.fullscreenExitBtnText}>Thu Nhỏ</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Floating Map Controls */}
           <View style={styles.floatingControls}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.floatingBtn,
+                isFullscreen && styles.floatingBtnActiveRed,
+              ]}
+              onPress={() => setIsFullscreen(!isFullscreen)}
+              accessible={true}
+              accessibilityLabel={
+                isFullscreen ? 'Thu nhỏ bản đồ' : 'Phóng to toàn màn hình bản đồ'
+              }
+            >
+              {isFullscreen ? (
+                <Minimize2 size={moderateScale(16)} color="#DC2626" />
+              ) : (
+                <Maximize2 size={moderateScale(16)} color="#334155" />
+              )}
+            </TouchableOpacity>
+
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.floatingBtn}
@@ -363,76 +407,78 @@ export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
           </View>
         </View>
 
-        {/* 3. Bottom Detail Panel: Selected Item Info & Quick Mission Action */}
-        <View style={styles.bottomCard}>
-          <View style={styles.bottomCardHeader}>
-            <View style={styles.cardTypeBadgeRow}>
-              <View
-                style={[
-                  styles.typePill,
-                  activeItem.type === 'incident'
-                    ? styles.typePillIncident
-                    : styles.typePillHospital,
-                ]}
-              >
-                {activeItem.type === 'incident' ? (
-                  <Flame size={moderateScale(12)} color="#DC2626" />
-                ) : (
-                  <Building2 size={moderateScale(12)} color="#059669" />
-                )}
-                <Text
+        {/* 3. Bottom Detail Panel (Hidden in Fullscreen mode) */}
+        {!isFullscreen && (
+          <View style={styles.bottomCard}>
+            <View style={styles.bottomCardHeader}>
+              <View style={styles.cardTypeBadgeRow}>
+                <View
                   style={[
-                    styles.typePillText,
+                    styles.typePill,
                     activeItem.type === 'incident'
-                      ? styles.typePillTextIncident
-                      : styles.typePillTextHospital,
+                      ? styles.typePillIncident
+                      : styles.typePillHospital,
                   ]}
                 >
-                  {activeItem.type === 'incident'
-                    ? 'SỰ CỐ KHẨN CẤP'
-                    : 'BỆNH VIỆN TIẾP NHẬN'}
-                </Text>
+                  {activeItem.type === 'incident' ? (
+                    <Flame size={moderateScale(12)} color="#DC2626" />
+                  ) : (
+                    <Building2 size={moderateScale(12)} color="#059669" />
+                  )}
+                  <Text
+                    style={[
+                      styles.typePillText,
+                      activeItem.type === 'incident'
+                        ? styles.typePillTextIncident
+                        : styles.typePillTextHospital,
+                    ]}
+                  >
+                    {activeItem.type === 'incident'
+                      ? 'SỰ CỐ KHẨN CẤP'
+                      : 'BỆNH VIỆN TIẾP NHẬN'}
+                  </Text>
+                </View>
+                <Text style={styles.cardCodeText}>{activeItem.code}</Text>
               </View>
-              <Text style={styles.cardCodeText}>{activeItem.code}</Text>
+              <Text style={styles.cardDistanceText}>{activeItem.distance}</Text>
             </View>
-            <Text style={styles.cardDistanceText}>{activeItem.distance}</Text>
-          </View>
 
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {activeItem.title}
-          </Text>
-
-          <View style={styles.addressRow}>
-            <MapPin size={moderateScale(14)} color="#64748B" />
-            <Text style={styles.addressText} numberOfLines={1}>
-              {activeItem.address}
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {activeItem.title}
             </Text>
-          </View>
 
-          {/* Quick Action Button */}
-          {activeItem.type === 'incident' ? (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.actionMissionBtn}
-              onPress={handleNavigateToActiveMission}
-            >
-              <Text style={styles.actionMissionBtnText}>
-                Vào Ca Cứu Hộ Này
+            <View style={styles.addressRow}>
+              <MapPin size={moderateScale(14)} color="#64748B" />
+              <Text style={styles.addressText} numberOfLines={1}>
+                {activeItem.address}
               </Text>
-              <ArrowRight size={moderateScale(16)} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.actionHospitalBtn}
-            >
-              <Shield size={moderateScale(16)} color="#059669" />
-              <Text style={styles.actionHospitalBtnText}>
-                Xem Tuyến Đường Đến Bệnh Viện
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            </View>
+
+            {/* Quick Action Button */}
+            {activeItem.type === 'incident' ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.actionMissionBtn}
+                onPress={handleNavigateToActiveMission}
+              >
+                <Text style={styles.actionMissionBtnText}>
+                  Vào Ca Cứu Hộ Này
+                </Text>
+                <ArrowRight size={moderateScale(16)} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.actionHospitalBtn}
+              >
+                <Shield size={moderateScale(16)} color="#059669" />
+                <Text style={styles.actionHospitalBtnText}>
+                  Xem Tuyến Đường Đến Bệnh Viện
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </ScreenContainer>
   );
@@ -897,5 +943,61 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     fontWeight: '800',
     color: '#059669',
+  },
+  floatingBtnActiveRed: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  fullscreenTopBanner: {
+    position: 'absolute',
+    top: verticalScale(10),
+    left: scale(10),
+    right: scale(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 40,
+  },
+  fullscreenTitlePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(20),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: scale(6),
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  fullscreenTitleText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  fullscreenExitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#FFFFFF',
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(20),
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  fullscreenExitBtnText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });

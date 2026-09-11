@@ -30,7 +30,7 @@ interface SwipeToActionProps {
   icon?: React.ReactNode;
 }
 
-const THUMB_SIZE_FACTOR = 48; // Base thumb width/height
+const THUMB_SIZE_FACTOR = 32; // Compact thumb width/height
 
 export const SwipeToAction: React.FC<SwipeToActionProps> = ({
   onSwipeSuccess,
@@ -283,14 +283,14 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
         {isCompleted ? (
-          <Check size={moderateScale(22)} color="#FFFFFF" strokeWidth={3} />
+          <Check size={moderateScale(18)} color="#FFFFFF" strokeWidth={2.6} />
         ) : icon ? (
           icon
         ) : (
           <View style={styles.thumbInner}>
-            <Truck size={moderateScale(20)} color="#FFFFFF" />
+            <Truck size={moderateScale(15)} color="#FFFFFF" />
             <ArrowRight
-              size={moderateScale(12)}
+              size={moderateScale(10)}
               color="#FFFFFF"
               style={styles.thumbArrow}
             />
@@ -303,17 +303,17 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: verticalScale(56),
-    borderRadius: moderateScale(28),
-    borderWidth: 1.5,
+    height: verticalScale(40),
+    borderRadius: moderateScale(20),
+    borderWidth: 1.2,
     overflow: 'hidden',
     position: 'relative',
     justifyContent: 'center',
-    paddingHorizontal: moderateScale(4),
+    paddingHorizontal: moderateScale(3),
     shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   trackFill: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: moderateScale(28),
+    borderRadius: moderateScale(20),
   },
   textContainer: {
     position: 'absolute',
@@ -332,18 +332,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(48),
-    gap: scale(6),
+    paddingHorizontal: scale(36),
+    gap: scale(5),
   },
   chevronGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   titleText: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(10.5),
     fontWeight: '800',
     color: '#334155',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   completedContainer: {
@@ -355,14 +355,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(8),
+    gap: scale(6),
   },
 
   completedText: {
-    fontSize: moderateScale(13),
+    fontSize: moderateScale(11),
     fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   thumb: {
     alignItems: 'center',

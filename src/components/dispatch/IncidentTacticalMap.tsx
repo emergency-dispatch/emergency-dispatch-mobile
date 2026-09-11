@@ -20,6 +20,8 @@ import {
   ShieldAlert,
   Zap,
   Radio,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { MissionStage } from '../../types/dispatch';
@@ -30,6 +32,8 @@ interface IncidentTacticalMapProps {
   distanceKm?: number;
   etaMinutes?: number;
   onRecenter?: () => void;
+  isMapExpanded?: boolean;
+  onToggleMapExpand?: () => void;
 }
 
 export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
@@ -38,6 +42,8 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
   distanceKm = 2.4,
   etaMinutes = 6,
   onRecenter,
+  isMapExpanded = false,
+  onToggleMapExpand,
 }) => {
   const [sirenActive, setSirenActive] = useState<boolean>(true);
   const [trafficActive, setTrafficActive] = useState<boolean>(true);
@@ -254,7 +260,12 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
       </View>
 
       {/* Top Map HUD: Navigation Turn-by-Turn Instruction Banner */}
-      <View style={styles.topNavHudBanner}>
+      <View
+        style={[
+          styles.topNavHudBanner,
+          isMapExpanded && { top: verticalScale(54) },
+        ]}
+      >
         <View style={styles.navTurnIconWrap}>
           <CornerUpRight size={moderateScale(20)} color="#FFFFFF" strokeWidth={2.5} />
         </View>
@@ -271,7 +282,34 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
       </View>
 
       {/* Floating Tactical Controls (Right Side) */}
-      <View style={styles.floatingControlsGroup}>
+      <View
+        style={[
+          styles.floatingControlsGroup,
+          isMapExpanded && { top: verticalScale(118) },
+        ]}
+      >
+        {/* Toggle Full Map View (Phóng to / Thu nhỏ bản đồ) */}
+        {onToggleMapExpand && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              styles.controlButton,
+              isMapExpanded && styles.controlButtonActiveRed,
+            ]}
+            onPress={onToggleMapExpand}
+            accessible={true}
+            accessibilityLabel={
+              isMapExpanded ? 'Thu nhỏ bản đồ' : 'Phóng to chỉ xem bản đồ'
+            }
+          >
+            {isMapExpanded ? (
+              <Minimize2 size={moderateScale(16)} color="#DC2626" />
+            ) : (
+              <Maximize2 size={moderateScale(16)} color="#334155" />
+            )}
+          </TouchableOpacity>
+        )}
+
         {/* Siren / Audio Toggle */}
         <TouchableOpacity
           activeOpacity={0.8}

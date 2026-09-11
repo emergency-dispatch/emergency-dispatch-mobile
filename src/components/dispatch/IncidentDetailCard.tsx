@@ -22,10 +22,16 @@ import {
   ShieldCheck,
   ArrowRight,
   ShieldAlert,
+  ChevronUp,
+  ChevronDown,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { EmergencyIncident, MissionStage } from '../../types/dispatch';
 import { SwipeToAction } from './SwipeToAction';
+
+export type IncidentViewMode = 'split' | 'map_expanded' | 'details_expanded';
 
 interface IncidentDetailCardProps {
   incident: EmergencyIncident;
@@ -33,6 +39,9 @@ interface IncidentDetailCardProps {
   onSwipeEnRoute: () => void;
   onAdvanceStage: (nextStage: MissionStage) => void;
   onCompleteMission: () => void;
+  viewMode?: IncidentViewMode;
+  onToggleExpandDetails?: () => void;
+  onToggleExpandMap?: () => void;
 }
 
 export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
@@ -41,6 +50,9 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
   onSwipeEnRoute,
   onAdvanceStage,
   onCompleteMission,
+  viewMode = 'split',
+  onToggleExpandDetails,
+  onToggleExpandMap,
 }) => {
   // Call caller handler
   const handleCallCaller = () => {
@@ -82,112 +94,208 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
 
   return (
     <View style={styles.cardWrapper}>
-      {/* Top Drag Indicator Handle */}
-      <View style={styles.sheetHandleContainer}>
-        <View style={styles.sheetHandle} />
-      </View>
-
-      <ScrollView
-        style={styles.cardScroll}
-        contentContainerStyle={styles.cardScrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Top Drag Indicator Handle with Interactive Toggle */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.sheetHandleContainer}
+        onPress={onToggleExpandDetails}
+        accessible={true}
+        accessibilityLabel={
+          viewMode === 'details_expanded'
+            ? 'Thu nhỏ về chế độ bản đồ'
+            : 'Mở rộng chi tiết ca trực'
+        }
       >
-        {/* 1. Caller & On-Scene Contact Card */}
-        <View style={styles.callerCard}>
-          <View style={styles.callerAvatarWrap}>
-            <Users size={moderateScale(18)} color="#DC2626" />
+        <View style={styles.sheetHandle} />
+
+        <View style={styles.handleInfoBar}>
+          <View style={styles.handleBadgeRow}>
+            {viewMode === 'details_expanded' ? (
+              <>
+                <ChevronDown size={moderateScale(15)} color="#64748B" />
+                <Text style={styles.handleBadgeText}>Chạm để thu nhỏ</Text>
+              </>
+            ) : viewMode === 'map_expanded' ? (
+              <>
+                <ChevronUp size={moderateScale(15)} color="#DC2626" />
+                <Text style={[styles.handleBadgeText, { color: '#DC2626' }]}>
+                  Chạm để mở rộng chi tiết ca trực
+                </Text>
+              </>
+            ) : (
+              <>
+                <ChevronUp size={moderateScale(15)} color="#64748B" />
+                <Text style={styles.handleBadgeText}>
+                  Chạm để phóng to xem đầy đủ chi tiết
+                </Text>
+              </>
+            )}
           </View>
 
-          <View style={styles.callerInfoGroup}>
-            <View style={styles.callerNameRow}>
-              <Text style={styles.callerName}>{incident.callerName}</Text>
-              <View style={styles.callerRoleBadge}>
-                <Text style={styles.callerRoleText}>Nhân chứng</Text>
-              </View>
-            </View>
-            <Text style={styles.callerPhoneText}>{incident.callerPhone}</Text>
+          {onToggleExpandMap && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.quickMapToggleChip,
+                viewMode === 'map_expanded' && styles.quickMapToggleChipActive,
+              ]}
+              onPress={onToggleExpandMap}
+            >
+              {viewMode === 'map_expanded' ? (
+                <>
+                  <Minimize2 size={moderateScale(12)} color="#DC2626" />
+                  <Text style={styles.quickMapToggleTextRed}>Chia Đôi</Text>
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={moderateScale(12)} color="#475569" />
+                  <Text style={styles.quickMapToggleText}>Phóng To Map</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Main Body */}
+      {viewMode === 'map_expanded' ? (
+        <View style={styles.compactMapBar}>
+          <View style={styles.callerAvatarWrapSmall}>
+            <Users size={moderateScale(16)} color="#DC2626" />
+          </View>
+          <View style={styles.compactCallerInfo}>
+            <Text style={styles.compactCallerName} numberOfLines={1}>
+              {incident.callerName}
+            </Text>
+            <Text style={styles.compactCallerSub} numberOfLines={1}>
+              {incident.callerPhone} • Nhân chứng
+            </Text>
           </View>
 
-          {/* Quick Call & SMS Actions */}
           <View style={styles.contactActionButtons}>
             <TouchableOpacity
               activeOpacity={0.8}
-              style={styles.smsButton}
+              style={styles.smsButtonSmall}
               onPress={handleSmsCaller}
             >
-              <MessageSquare size={moderateScale(16)} color="#DC2626" />
+              <MessageSquare size={moderateScale(14)} color="#DC2626" />
             </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.8}
-              style={styles.callNowButton}
+              style={styles.callNowButtonSmall}
               onPress={handleCallCaller}
             >
-              <Phone size={moderateScale(16)} color="#FFFFFF" />
-              <Text
-                style={styles.callNowText}
-                numberOfLines={1}
-                maxFontSizeMultiplier={1.15}
-              >
-                Gọi Ngay
-              </Text>
+              <Phone size={moderateScale(13)} color="#FFFFFF" />
+              <Text style={styles.callNowTextSmall}>Gọi</Text>
             </TouchableOpacity>
           </View>
         </View>
+      ) : (
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardScrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          {/* 1. Caller & On-Scene Contact Card */}
+          <View style={styles.callerCard}>
+            <View style={styles.callerAvatarWrap}>
+              <Users size={moderateScale(18)} color="#DC2626" />
+            </View>
 
-        {/* 2. Critical Scene Warning Box (Ghi chú hiện trường khẩn cấp) */}
-        <View style={styles.emergencyWarningBox}>
-          <View style={styles.warningHeaderRow}>
-            <AlertTriangle size={moderateScale(18)} color="#F59E0B" />
-            <Text
-              style={styles.warningHeaderTitle}
-              numberOfLines={1}
-              maxFontSizeMultiplier={1.15}
-            >
-              CẢNH BÁO HIỆN TRƯỜNG KHẨN CẤP
-            </Text>
-          </View>
-
-          <Text style={styles.warningNotesText} maxFontSizeMultiplier={1.2}>
-            "{incident.emergencyNotes}"
-          </Text>
-
-          {/* Required Gear Badges */}
-          <View style={styles.gearTagsContainer}>
-            <Text style={styles.gearTitle} numberOfLines={1}>
-              Thiết bị cần mang:
-            </Text>
-            <View style={styles.gearTagsRow}>
-              {incident.requiredEquipment.map((item, idx) => (
-                <View key={idx} style={styles.gearTag}>
-                  <PackageCheck size={moderateScale(11)} color="#FBBF24" />
-                  <Text style={styles.gearTagText} numberOfLines={1}>
-                    {item}
-                  </Text>
+            <View style={styles.callerInfoGroup}>
+              <Text style={styles.callerName} numberOfLines={1}>
+                {incident.callerName}
+              </Text>
+              <View style={styles.callerSubRow}>
+                <Text style={styles.callerPhoneText}>{incident.callerPhone}</Text>
+                <View style={styles.callerRoleBadge}>
+                  <Text style={styles.callerRoleText}>Nhân chứng</Text>
                 </View>
-              ))}
+              </View>
+            </View>
+
+            {/* Quick Call & SMS Actions */}
+            <View style={styles.contactActionButtons}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.smsButton}
+                onPress={handleSmsCaller}
+              >
+                <MessageSquare size={moderateScale(16)} color="#DC2626" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.callNowButton}
+                onPress={handleCallCaller}
+              >
+                <Phone size={moderateScale(15)} color="#FFFFFF" />
+                <Text
+                  style={styles.callNowText}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.15}
+                >
+                  Gọi Ngay
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
 
-        {/* 3. Patients & Hospital Destination */}
-        <View style={styles.hospitalCard}>
-          <View style={styles.hospitalIconWrap}>
-            <Building2 size={moderateScale(18)} color="#DC2626" />
+          {/* 2. Critical Scene Warning Box (Ghi chú hiện trường khẩn cấp) */}
+          <View style={styles.emergencyWarningBox}>
+            <View style={styles.warningHeaderRow}>
+              <AlertTriangle size={moderateScale(18)} color="#F59E0B" />
+              <Text
+                style={styles.warningHeaderTitle}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.15}
+              >
+                CẢNH BÁO HIỆN TRƯỜNG KHẨN CẤP
+              </Text>
+            </View>
+
+            <Text style={styles.warningNotesText} maxFontSizeMultiplier={1.2}>
+              "{incident.emergencyNotes}"
+            </Text>
+
+            {/* Required Gear Badges */}
+            <View style={styles.gearTagsContainer}>
+              <Text style={styles.gearTitle} numberOfLines={1}>
+                Thiết bị cần mang:
+              </Text>
+              <View style={styles.gearTagsRow}>
+                {incident.requiredEquipment.map((item, idx) => (
+                  <View key={idx} style={styles.gearTag}>
+                    <PackageCheck size={moderateScale(11)} color="#FBBF24" />
+                    <Text style={styles.gearTagText} numberOfLines={1}>
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
-          <View style={styles.hospitalTextGroup}>
-            <Text style={styles.hospitalLabel} numberOfLines={1}>
-              BỆNH VIỆN TIẾP NHẬN ĐỀ XUẤT
-            </Text>
-            <Text style={styles.hospitalName} numberOfLines={1}>
-              {incident.recommendedHospital}
-            </Text>
-            <Text style={styles.hospitalDistanceText} numberOfLines={1}>
-              {incident.hospitalDistance}
-            </Text>
+
+          {/* 3. Patients & Hospital Destination */}
+          <View style={styles.hospitalCard}>
+            <View style={styles.hospitalIconWrap}>
+              <Building2 size={moderateScale(18)} color="#DC2626" />
+            </View>
+            <View style={styles.hospitalTextGroup}>
+              <Text style={styles.hospitalLabel} numberOfLines={1}>
+                BỆNH VIỆN TIẾP NHẬN ĐỀ XUẤT
+              </Text>
+              <Text style={styles.hospitalName} numberOfLines={1}>
+                {incident.recommendedHospital}
+              </Text>
+              <Text style={styles.hospitalDistanceText} numberOfLines={1}>
+                {incident.hospitalDistance}
+              </Text>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* 4. Action Area: Swipe to Action or Next Stage Advance */}
       <View style={styles.actionFooter}>
@@ -208,26 +316,16 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
             onPress={() => onAdvanceStage('on_scene')}
           >
             <View style={styles.advanceButtonInner}>
-              <Flame size={moderateScale(20)} color="#FFFFFF" />
-              <View style={styles.advanceTextGroup}>
-                <Text
-                  style={styles.advanceButtonText}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1.15}
-                >
-                  ĐÃ ĐẾN HIỆN TRƯỜNG (ON SCENE)
-                </Text>
-                <Text
-                  style={styles.advanceButtonSubtext}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1.15}
-                >
-                  Tiếp cận nạn nhân & Bắt đầu sơ cứu
-                </Text>
-              </View>
-              <ArrowRight size={moderateScale(20)} color="#FFFFFF" />
+              <Flame size={moderateScale(16)} color="#FFFFFF" />
+              <Text
+                style={styles.advanceButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.15}
+              >
+                ĐÃ ĐẾN HIỆN TRƯỜNG (ON SCENE)
+              </Text>
+              <ArrowRight size={moderateScale(16)} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
         )}
@@ -239,26 +337,16 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
             onPress={onCompleteMission}
           >
             <View style={styles.advanceButtonInner}>
-              <ShieldCheck size={moderateScale(22)} color="#FFFFFF" strokeWidth={2.5} />
-              <View style={styles.advanceTextGroup}>
-                <Text
-                  style={styles.advanceButtonText}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1.15}
-                >
-                  HOÀN THÀNH NHIỆM VỤ (COMPLETED)
-                </Text>
-                <Text
-                  style={styles.advanceButtonSubtext}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1.15}
-                >
-                  Bàn giao viện & Hoàn tất hồ sơ
-                </Text>
-              </View>
-              <CheckCircle2 size={moderateScale(20)} color="#FFFFFF" />
+              <ShieldCheck size={moderateScale(17)} color="#FFFFFF" strokeWidth={2.4} />
+              <Text
+                style={styles.advanceButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.15}
+              >
+                HOÀN THÀNH NHIỆM VỤ (COMPLETED)
+              </Text>
+              <CheckCircle2 size={moderateScale(16)} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
         )}
@@ -298,37 +386,141 @@ const styles = StyleSheet.create({
   },
   sheetHandleContainer: {
     alignItems: 'center',
-    paddingVertical: verticalScale(4),
+    paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(6),
+    paddingHorizontal: scale(14),
   },
   sheetHandle: {
     width: scale(36),
     height: verticalScale(4),
     borderRadius: moderateScale(2),
     backgroundColor: '#CBD5E1',
+    marginBottom: verticalScale(4),
+  },
+  handleInfoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingTop: verticalScale(2),
+  },
+  handleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+  },
+  handleBadgeText: {
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  quickMapToggleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#F1F5F9',
+    paddingVertical: verticalScale(3),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickMapToggleChipActive: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  quickMapToggleText: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#475569',
+  },
+  quickMapToggleTextRed: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  compactMapBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    marginHorizontal: scale(14),
+    marginBottom: verticalScale(6),
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(10),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: scale(8),
+  },
+  callerAvatarWrapSmall: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactCallerInfo: {
+    flex: 1,
+  },
+  compactCallerName: {
+    fontSize: moderateScale(12),
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  compactCallerSub: {
+    fontSize: moderateScale(9.5),
+    color: '#64748B',
+    marginTop: verticalScale(1),
+  },
+  smsButtonSmall: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callNowButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(8),
+    gap: scale(4),
+  },
+  callNowTextSmall: {
+    fontSize: moderateScale(10),
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   cardScroll: {
     flex: 1,
   },
   cardScrollContent: {
-    paddingHorizontal: scale(14),
-    paddingTop: verticalScale(6),
-    paddingBottom: verticalScale(12),
-    gap: verticalScale(10),
+    paddingHorizontal: scale(12),
+    paddingTop: verticalScale(3),
+    paddingBottom: verticalScale(8),
+    gap: verticalScale(6),
   },
   callerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: moderateScale(14),
-    padding: moderateScale(10),
+    borderRadius: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(8),
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: scale(10),
+    gap: scale(8),
   },
   callerAvatarWrap: {
-    width: moderateScale(38),
-    height: moderateScale(38),
-    borderRadius: moderateScale(19),
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -336,43 +528,45 @@ const styles = StyleSheet.create({
   callerInfoGroup: {
     flex: 1,
   },
-  callerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-  },
   callerName: {
-    fontSize: moderateScale(13),
+    fontSize: moderateScale(12),
     fontWeight: '800',
     color: '#0F172A',
+  },
+  callerSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    marginTop: verticalScale(1),
   },
   callerRoleBadge: {
     backgroundColor: '#FEF2F2',
     paddingVertical: verticalScale(1),
-    paddingHorizontal: scale(6),
+    paddingHorizontal: scale(5),
     borderRadius: moderateScale(4),
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   callerRoleText: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(8.5),
     fontWeight: '700',
     color: '#DC2626',
   },
   callerPhoneText: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(10.5),
     color: '#64748B',
-    marginTop: verticalScale(2),
     fontFamily: 'monospace',
     fontWeight: '600',
   },
   contactActionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(6),
+    gap: scale(5),
   },
   smsButton: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(18),
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FCA5A5',
@@ -383,81 +577,81 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#DC2626',
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: scale(12),
-    borderRadius: moderateScale(10),
-    gap: scale(5),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(9),
+    borderRadius: moderateScale(8),
+    gap: scale(4),
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
   },
   callNowText: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(10.5),
     fontWeight: '800',
     color: '#FFFFFF',
   },
   emergencyWarningBox: {
     backgroundColor: '#FFFBEB',
-    borderRadius: moderateScale(14),
-    padding: moderateScale(12),
-    borderWidth: 1.5,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(8),
+    borderWidth: 1.2,
     borderColor: '#F59E0B',
     shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   warningHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(6),
-    marginBottom: verticalScale(6),
+    gap: scale(5),
+    marginBottom: verticalScale(4),
   },
   warningHeaderTitle: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10.5),
     fontWeight: '900',
     color: '#B45309',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   warningNotesText: {
-    fontSize: moderateScale(12),
-    lineHeight: moderateScale(17),
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(15),
     color: '#92400E',
     fontWeight: '600',
     fontStyle: 'italic',
   },
   gearTagsContainer: {
-    marginTop: verticalScale(8),
-    paddingTop: verticalScale(8),
+    marginTop: verticalScale(5),
+    paddingTop: verticalScale(5),
     borderTopWidth: 1,
     borderTopColor: '#FDE68A',
   },
   gearTitle: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(9.5),
     fontWeight: '700',
     color: '#B45309',
-    marginBottom: verticalScale(4),
+    marginBottom: verticalScale(3),
   },
   gearTagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: moderateScale(5),
+    gap: moderateScale(4),
   },
   gearTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    paddingVertical: verticalScale(3),
-    paddingHorizontal: scale(8),
-    borderRadius: moderateScale(6),
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: scale(6),
+    borderRadius: moderateScale(5),
     borderWidth: 1,
     borderColor: '#FDE68A',
-    gap: scale(4),
+    gap: scale(3),
   },
   gearTagText: {
-    fontSize: moderateScale(9.5),
+    fontSize: moderateScale(9),
     fontWeight: '700',
     color: '#92400E',
   },
@@ -465,16 +659,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: moderateScale(14),
-    padding: moderateScale(10),
+    borderRadius: moderateScale(10),
+    padding: moderateScale(8),
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: scale(10),
+    gap: scale(8),
   },
   hospitalIconWrap: {
-    width: moderateScale(38),
-    height: moderateScale(38),
-    borderRadius: moderateScale(19),
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(16),
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -483,65 +677,65 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hospitalLabel: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(8.5),
     fontWeight: '700',
     color: '#64748B',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   hospitalName: {
-    fontSize: moderateScale(12.5),
+    fontSize: moderateScale(11.5),
     fontWeight: '800',
     color: '#0F172A',
-    marginTop: verticalScale(2),
-  },
-  hospitalDistanceText: {
-    fontSize: moderateScale(10.5),
-    color: '#DC2626',
-    fontWeight: '700',
     marginTop: verticalScale(1),
   },
+  hospitalDistanceText: {
+    fontSize: moderateScale(10),
+    color: '#DC2626',
+    fontWeight: '700',
+  },
   actionFooter: {
-    paddingHorizontal: scale(14),
-    paddingTop: verticalScale(8),
-    paddingBottom: verticalScale(10),
+    paddingHorizontal: scale(12),
+    paddingTop: verticalScale(5),
+    paddingBottom: verticalScale(6),
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
   advanceStageButtonRed: {
-    height: verticalScale(56),
-    borderRadius: moderateScale(28),
+    height: verticalScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(14),
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
     borderColor: '#EF4444',
   },
   advanceStageButtonEmerald: {
-    height: verticalScale(56),
-    borderRadius: moderateScale(28),
+    height: verticalScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: '#059669',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(14),
     shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
     borderColor: '#10B981',
   },
   advanceButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: scale(8),
     width: '100%',
   },
   advanceTextGroup: {
@@ -549,29 +743,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   advanceButtonText: {
-    fontSize: moderateScale(12.5),
+    fontSize: moderateScale(11.5),
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   advanceButtonSubtext: {
-    fontSize: moderateScale(9.5),
-    color: '#F1F5F9',
+    fontSize: moderateScale(9),
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '600',
+    marginTop: verticalScale(1),
   },
   completedBadgeBox: {
-    height: verticalScale(56),
-    borderRadius: moderateScale(28),
+    height: verticalScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: '#ECFDF5',
     borderWidth: 1.5,
     borderColor: '#10B981',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(8),
+    gap: scale(6),
   },
   completedBadgeText: {
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(11.5),
     fontWeight: '800',
     color: '#059669',
     letterSpacing: 0.5,

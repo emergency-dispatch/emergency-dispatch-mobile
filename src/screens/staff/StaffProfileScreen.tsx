@@ -368,7 +368,7 @@ export const StaffProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <LogOut size={moderateScale(18)} color="#EF4444" />
-          <Text style={styles.logoutBtnText}>Đăng Xuất Ca Trực 115</Text>
+          <Text style={styles.logoutBtnText}>Đăng Xuất</Text>
         </TouchableOpacity>
 
         <View style={styles.footerSpace} />

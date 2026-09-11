@@ -409,7 +409,7 @@ export const ProfileScreen: React.FC = () => {
                 </Text>
               </View>
               {medicalId.chronicConditions &&
-              medicalId.chronicConditions.length > 0 ? (
+                medicalId.chronicConditions.length > 0 ? (
                 <View style={styles.badgeFlexWrap}>
                   {medicalId.chronicConditions.map((cond, index) => (
                     <EmergencyBadge
@@ -433,7 +433,7 @@ export const ProfileScreen: React.FC = () => {
                 </Text>
               </View>
               {medicalId.currentMedications &&
-              medicalId.currentMedications.length > 0 ? (
+                medicalId.currentMedications.length > 0 ? (
                 <View style={styles.badgeFlexWrap}>
                   {medicalId.currentMedications.map((med, index) => (
                     <EmergencyBadge
@@ -457,7 +457,7 @@ export const ProfileScreen: React.FC = () => {
                 </Text>
               </View>
               {medicalId.mobilityLimitations &&
-              medicalId.mobilityLimitations.length > 0 ? (
+                medicalId.mobilityLimitations.length > 0 ? (
                 <View style={styles.badgeFlexWrap}>
                   {medicalId.mobilityLimitations.map((mob, index) => (
                     <EmergencyBadge
@@ -604,7 +604,7 @@ export const ProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <LogOut size={18} color="#EF4444" />
-          <Text style={styles.logoutBtnText}>Đăng Xuất / Đổi Tài Khoản</Text>
+          <Text style={styles.logoutBtnText}>Đăng Xuất</Text>
         </TouchableOpacity>
 
         <View style={styles.footerSpace} />

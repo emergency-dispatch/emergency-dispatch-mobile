@@ -107,14 +107,14 @@ export const LoginScreen: React.FC = () => {
       const loggedUser =
         selectedRole === 'staff'
           ? {
-              ...DEMO_STAFF_USER,
-              email: account.includes('@') ? account : `${account}@emergency.vn`,
-            }
+            ...DEMO_STAFF_USER,
+            email: account.includes('@') ? account : `${account}@emergency.vn`,
+          }
           : {
-              ...DEMO_CITIZEN_USER,
-              email: account.includes('@') ? account : `${account}@gmail.com`,
-              name: account.includes('@') ? account.split('@')[0] : `Người Dân ${account.slice(-4)}`,
-            };
+            ...DEMO_CITIZEN_USER,
+            email: account.includes('@') ? account : `${account}@gmail.com`,
+            name: account.includes('@') ? account.split('@')[0] : `Người Dân ${account.slice(-4)}`,
+          };
 
       setAuth(loggedUser, 'jwt-token-' + selectedRole + '-' + Date.now());
 
@@ -185,11 +185,6 @@ export const LoginScreen: React.FC = () => {
               selectedRole === 'staff'
                 ? 'Đăng nhập ca trực 115 để nhận lệnh điều động xe cứu thương, GPS tác chiến & quản lý thiết bị y tế'
                 : 'Đăng nhập để liên kết hồ sơ y tế, tọa độ GPS thời gian thực và nhận điều phối 24/7'
-            }
-            badgeText={
-              selectedRole === 'staff'
-                ? 'HỆ THỐNG ĐIỀU PHỐI CỨU HỘ 115'
-                : 'HỆ THỐNG CỨU HỘ KHẨN CẤP'
             }
           />
 

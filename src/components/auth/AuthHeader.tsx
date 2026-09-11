@@ -27,7 +27,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   subtitle,
   showBack = false,
   onBack,
-  badgeText = 'HỆ THỐNG CỨU HỘ KHẨN CẤP 24/7',
+  badgeText,
   showLogo = true,
   style,
 }) => {
@@ -35,6 +35,8 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (!badgeText) return;
+
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -53,44 +55,48 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
     );
     animation.start();
     return () => animation.stop();
-  }, [pulseAnim]);
+  }, [pulseAnim, badgeText]);
 
   return (
     <View style={[styles.container, style]}>
       {/* Top Bar with Back Button and System Status Badge */}
-      <View style={styles.topRow}>
-        {showBack ? (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={onBack}
-            activeOpacity={0.7}
-            accessibilityLabel="Quay lại"
-          >
-            <ArrowLeft color="#F8FAFC" size={moderateScale(20)} strokeWidth={2.4} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.placeholderBack} />
-        )}
+      {(showBack || !!badgeText) && (
+        <View style={styles.topRow}>
+          {showBack ? (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+              activeOpacity={0.7}
+              accessibilityLabel="Quay lại"
+            >
+              <ArrowLeft color="#F8FAFC" size={moderateScale(20)} strokeWidth={2.4} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.placeholderBack} />
+          )}
 
-        {/* Emergency System Badge */}
-        <View style={styles.badge}>
-          <Animated.View
-            style={[
-              styles.pulseDot,
-              {
-                transform: [{ scale: pulseAnim }],
-              },
-            ]}
-          />
-          <Text
-            style={styles.badgeText}
-            allowFontScaling={false}
-            maxFontSizeMultiplier={1.2}
-          >
-            {badgeText}
-          </Text>
+          {/* Emergency System Badge */}
+          {!!badgeText && (
+            <View style={styles.badge}>
+              <Animated.View
+                style={[
+                  styles.pulseDot,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                  },
+                ]}
+              />
+              <Text
+                style={styles.badgeText}
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1.2}
+              >
+                {badgeText}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
+      )}
 
       {/* Main Logo & Branding */}
       {showLogo && (

@@ -15,8 +15,13 @@ export interface MapMarkerItem {
   description: string;
   latitude: number;
   longitude: number;
-  type: 'hospital' | 'incident' | 'shelter' | 'fire_station';
+  type: 'hospital' | 'incident' | 'shelter' | 'fire_station' | 'ambulance';
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+}
+
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
 }
 
 class MapboxService {
@@ -108,6 +113,33 @@ class MapboxService {
 
     const pin = `pin-s+${pinColor}(${longitude},${latitude})`;
     return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${pin}/${longitude},${latitude},${zoom},0/${width}x${height}@2x?access_token=${MAPBOX_ACCESS_TOKEN}`;
+  }
+
+  /**
+   * Get realistic driving route waypoints between two coordinates.
+   * Queries OSRM routing engine with seamless linear fallback.
+   */
+  async getRoute(
+    origin: { latitude: number; longitude: number },
+    destination: { latitude: number; longitude: number }
+  ): Promise<RoutePoint[]> {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates;
+          return coords.map(([lng, lat]: [number, number]) => ({
+            latitude: lat,
+            longitude: lng,
+          }));
+        }
+      }
+    } catch {
+      // Fallback below
+    }
+    return [origin, destination];
   }
 }
 

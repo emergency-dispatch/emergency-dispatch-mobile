@@ -6,12 +6,21 @@ import { MapMarkerItem } from '../../services/mapbox.service';
 export interface MapboxViewRef {
   flyTo: (latitude: number, longitude: number, zoom?: number) => void;
   recenter: () => void;
+  fitBounds: () => void;
+}
+
+export interface RouteCoordinate {
+  latitude: number;
+  longitude: number;
 }
 
 interface MapboxViewProps {
   userLatitude?: number;
   userLongitude?: number;
   markers?: MapMarkerItem[];
+  routeCoordinates?: RouteCoordinate[];
+  fitBounds?: boolean;
+  interactive?: boolean;
   onMarkerPress?: (marker: MapMarkerItem) => void;
   onMapPress?: (coords: { latitude: number; longitude: number }) => void;
   style?: any;
@@ -23,6 +32,9 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       userLatitude = 10.776889,
       userLongitude = 106.700806,
       markers = [],
+      routeCoordinates = [],
+      fitBounds = false,
+      interactive = true,
       onMarkerPress,
       onMapPress,
       style,
@@ -39,11 +51,26 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           if (window.setMarkers) {
             window.setMarkers(${JSON.stringify(markers)});
           }
+          ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
           true;
         `;
         webViewRef.current?.injectJavaScript(js);
       }
-    }, [markers]);
+    }, [markers, fitBounds, userLatitude, userLongitude, routeCoordinates]);
+
+    // Sync route polyline coordinates
+    useEffect(() => {
+      if (isMapReadyRef.current) {
+        const js = `
+          if (window.setRoute) {
+            window.setRoute(${JSON.stringify(routeCoordinates)});
+          }
+          ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+    }, [routeCoordinates, fitBounds, markers, userLatitude, userLongitude]);
 
     // Sync user location marker when user coordinates update
     useEffect(() => {
@@ -77,6 +104,15 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         `;
         webViewRef.current?.injectJavaScript(js);
       },
+      fitBounds: () => {
+        const js = `
+          if (window.fitAllBounds) {
+            window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
     }));
 
     const handleMessage = (event: WebViewMessageEvent) => {
@@ -84,10 +120,12 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         const payload = JSON.parse(event.nativeEvent.data);
         if (payload.type === 'MAP_READY') {
           isMapReadyRef.current = true;
-          // Initial push of markers and user location
+          // Initial push of markers, route, and user location
           const js = `
             if (window.setUserLocation) window.setUserLocation(${userLatitude}, ${userLongitude});
             if (window.setMarkers) window.setMarkers(${JSON.stringify(markers)});
+            if (window.setRoute) window.setRoute(${JSON.stringify(routeCoordinates)});
+            ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
             true;
           `;
           webViewRef.current?.injectJavaScript(js);
@@ -168,10 +206,19 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     .marker-incident-high { background: #EA580C; }
     .marker-shelter { background: #2563EB; }
     .marker-fire { background: #D97706; }
+    .marker-ambulance {
+      background: #0284C7;
+      animation: ambPulse 1.2s infinite alternate;
+    }
 
     @keyframes alertPulse {
       from { box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); }
       to { box-shadow: 0 0 20px rgba(220, 38, 38, 0.95); }
+    }
+
+    @keyframes ambPulse {
+      from { box-shadow: 0 0 8px rgba(2, 132, 199, 0.5); }
+      to { box-shadow: 0 0 20px rgba(2, 132, 199, 0.95); }
     }
 
     /* Custom popup styling */
@@ -207,7 +254,11 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       center: [${userLatitude}, ${userLongitude}],
       zoom: 15,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: false,
+      dragging: ${interactive ? 'true' : 'false'},
+      touchZoom: ${interactive ? 'true' : 'false'},
+      doubleClickZoom: ${interactive ? 'true' : 'false'},
+      scrollWheelZoom: ${interactive ? 'true' : 'false'}
     });
     window.map = map;
 
@@ -218,6 +269,9 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 
     // Layer group for dynamic POI markers
     window.markersLayer = L.layerGroup().addTo(map);
+
+    // Layer group for route polyline
+    window.routeLayer = L.layerGroup().addTo(map);
 
     // User location marker
     var userMarker = null;
@@ -263,6 +317,11 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           iconEmoji = '🚒';
           badgeText = 'TRẠM PCCC';
           badgeClass = 'badge-red';
+        } else if (m.type === 'ambulance') {
+          iconClass = 'marker-ambulance';
+          iconEmoji = '🚑';
+          badgeText = 'XE CỨU THƯƠNG';
+          badgeClass = 'badge-blue';
         }
 
         var customIcon = L.divIcon({
@@ -290,6 +349,57 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 
         window.markersLayer.addLayer(marker);
       });
+    };
+
+    // Update route polyline
+    window.setRoute = function(coords) {
+      window.routeLayer.clearLayers();
+      if (!coords || !Array.isArray(coords) || coords.length < 2) return;
+      var latLngs = coords.map(function(c) { return [c.latitude, c.longitude]; });
+
+      // Outer polyline glow
+      L.polyline(latLngs, {
+        color: '#38BDF8',
+        weight: 6,
+        opacity: 0.45,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(window.routeLayer);
+
+      // Core crisp polyline
+      L.polyline(latLngs, {
+        color: '#0284C7',
+        weight: 3.5,
+        opacity: 0.95,
+        dashArray: '8, 8',
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(window.routeLayer);
+    };
+
+    // Fit bounds including markers and route
+    window.fitAllBounds = function(userLat, userLng, markersData, routeCoords) {
+      var bounds = L.latLngBounds([]);
+      if (typeof userLat === 'number' && typeof userLng === 'number') {
+        bounds.extend([userLat, userLng]);
+      }
+      if (markersData && Array.isArray(markersData)) {
+        markersData.forEach(function(m) {
+          if (typeof m.latitude === 'number' && typeof m.longitude === 'number') {
+            bounds.extend([m.latitude, m.longitude]);
+          }
+        });
+      }
+      if (routeCoords && Array.isArray(routeCoords)) {
+        routeCoords.forEach(function(c) {
+          if (typeof c.latitude === 'number' && typeof c.longitude === 'number') {
+            bounds.extend([c.latitude, c.longitude]);
+          }
+        });
+      }
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [35, 35], maxZoom: 16 });
+      }
     };
 
     // Map tap listener

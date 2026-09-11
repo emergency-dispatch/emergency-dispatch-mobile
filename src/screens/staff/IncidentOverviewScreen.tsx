@@ -170,6 +170,10 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               incidentAddress={incident.address}
               distanceKm={incident.distanceKm}
               etaMinutes={incident.etaMinutes}
+              originCoords={incident.originCoords}
+              targetCoords={incident.targetCoords}
+              assignedUnit={incident.assignedUnit}
+              incidentTitle={incident.title}
               onRecenter={() => {}}
               isMapExpanded={true}
               onToggleMapExpand={handleToggleMapExpand}
@@ -280,6 +284,10 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 incidentAddress={incident.address}
                 distanceKm={incident.distanceKm}
                 etaMinutes={incident.etaMinutes}
+                originCoords={incident.originCoords}
+                targetCoords={incident.targetCoords}
+                assignedUnit={incident.assignedUnit}
+                incidentTitle={incident.title}
                 onRecenter={() => {}}
                 isMapExpanded={false}
                 onToggleMapExpand={handleToggleMapExpand}

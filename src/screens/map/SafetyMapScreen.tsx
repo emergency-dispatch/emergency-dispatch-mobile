@@ -5,145 +5,131 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Animated,
-  Easing,
+  Alert,
 } from 'react-native';
-import {
-  Navigation,
-  MapPin,
-  Shield,
-  AlertTriangle,
-  Flame,
-  Building2,
-  Crosshair,
-  Layers,
-  Radio,
-  ArrowRight,
-  Truck,
-  Phone,
-  CheckCircle2,
-  Maximize2,
-  Minimize2,
-} from 'lucide-react-native';
-import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import {
+  MapPin,
+  Navigation,
+  Shield,
+  Flame,
+  Hospital,
+  AlertTriangle,
+  RefreshCw,
+  Layers,
+  ChevronRight,
+  Crosshair,
+} from 'lucide-react-native';
+import { MapboxView, MapboxViewRef } from '../../components/map/MapboxView';
+import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
+import { incidentService } from '../../services/incident.service';
+import { locationService } from '../../services/location.service';
+import { useLocationStore } from '../../store/useLocationStore';
 
-interface MapMarkerItem {
-  id: string;
-  type: 'incident' | 'hospital' | 'station';
-  code: string;
-  title: string;
-  address: string;
-  distance: string;
-  severity?: 'critical' | 'moderate';
-  top: string;
-  left: string;
-}
-
-const MOCK_MAP_ITEMS: MapMarkerItem[] = [
-  {
-    id: 'inc-1',
-    type: 'incident',
-    code: 'CC-115-8902',
-    title: 'Tai Nạn Giao Thông Liên Hoàn (3 Nạn nhân)',
-    address: '120 Võ Văn Tần, P.6, Q.3',
-    distance: '2.4 km (6 phút)',
-    severity: 'critical',
-    top: '55%',
-    left: '64%',
-  },
-  {
-    id: 'inc-2',
-    type: 'incident',
-    code: 'CC-115-8905',
-    title: 'Khó Thở Cấp / Suy Hô Hấp Người Cao Tuổi',
-    address: '45 Cách Mạng Tháng 8, P.Bến Thành, Q.1',
-    distance: '3.8 km (11 phút)',
-    severity: 'moderate',
-    top: '32%',
-    left: '70%',
-  },
+const DEFAULT_POIS: MapMarkerItem[] = [
   {
     id: 'hosp-1',
+    title: 'Bệnh Viện Đa Khoa Sài Gòn',
+    description: '125 Lê Lợi, P. Bến Thành, Q.1 - Trực cấp cứu 24/7 (Hotline: 115)',
+    latitude: 10.7719,
+    longitude: 106.6993,
     type: 'hospital',
-    code: 'BV-TRUNG-VUONG',
-    title: 'Bệnh Viện Cấp Cứu Trưng Vương',
-    address: '266 Lý Thường Kiệt, P.14, Q.10',
-    distance: '1.8 km',
-    top: '68%',
-    left: '20%',
   },
   {
     id: 'hosp-2',
+    title: 'Trạm Cứu Hộ & Y Tế Bến Nghé',
+    description: '45 Nguyễn Du, P. Bến Nghé, Q.1 - Điểm sơ cấp cứu ban đầu',
+    latitude: 10.7795,
+    longitude: 106.7025,
     type: 'hospital',
-    code: 'BV-CHO-RAY',
-    title: 'Bệnh Viện Chợ Rẫy (Trung Tâm Chấn Thương)',
-    address: '201B Nguyễn Chí Thanh, P.12, Q.5',
-    distance: '4.2 km',
-    top: '20%',
-    left: '32%',
+  },
+  {
+    id: 'fire-1',
+    title: 'Đội Cảnh Sát PCCC & CNCH Quận 1',
+    description: '258 Trần Hưng Đạo, Q.1 - Đội ứng trực xe thang & bơm cao áp',
+    latitude: 10.7612,
+    longitude: 106.6924,
+    type: 'fire_station',
+  },
+  {
+    id: 'shelter-1',
+    title: 'Điểm Trú Ẩn Khẩn Cấp - Cung Văn Hóa Lao Động',
+    description: '55B Nguyễn Thị Minh Khai, Bến Thành, Q.1 - Sức chứa 1.500 người',
+    latitude: 10.7745,
+    longitude: 106.6938,
+    type: 'shelter',
   },
 ];
 
-type FilterType = 'all' | 'incident' | 'hospital';
+export const SafetyMapScreen: React.FC = () => {
+  const mapRef = useRef<MapboxViewRef>(null);
 
-export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
-  const [activeItem, setActiveItem] = useState<MapMarkerItem>(MOCK_MAP_ITEMS[0]);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const {
+    coords: userCoords,
+    address: currentAddress,
+    refreshLocation,
+  } = useLocationStore();
 
-  // Pulse animations
-  const radarWave = useRef(new Animated.Value(0)).current;
-  const beaconPulse = useRef(new Animated.Value(1)).current;
+  const [activeFilter, setActiveFilter] = useState<'all' | 'hospital' | 'incident' | 'shelter'>('all');
+  const [markers, setMarkers] = useState<MapMarkerItem[]>(DEFAULT_POIS);
+  const [selectedMarker, setSelectedMarker] = useState<MapMarkerItem | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Load real user GPS (cached from Home or freshly fetched) & incidents from backend
+  const loadMapData = async () => {
+    setIsRefreshing(true);
+    try {
+      // 1. Shared GPS location
+      await refreshLocation();
+
+      // 2. Load incidents from backend
+      const result = await incidentService.getIncidents();
+      const incidentList = result?.items || [];
+      const incidentMarkers: MapMarkerItem[] = incidentList
+        .filter((inc) => inc.latitude && inc.longitude)
+        .map((inc) => ({
+          id: inc.id,
+          title: inc.title || 'Sự Cố Khẩn Cấp',
+          description: `${inc.locationAddress || 'Hiện trường'} • Mức độ: ${inc.severity}`,
+          latitude: inc.latitude,
+          longitude: inc.longitude,
+          type: 'incident',
+          severity: inc.severity as any,
+        }));
+
+      setMarkers([...DEFAULT_POIS, ...incidentMarkers]);
+    } catch {
+      // Keep defaults
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const waveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(radarWave, {
-          toValue: 1,
-          duration: 2400,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(radarWave, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    );
+    loadMapData();
+  }, []);
 
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(beaconPulse, {
-          toValue: 1.25,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(beaconPulse, {
-          toValue: 0.95,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    waveLoop.start();
-    pulseLoop.start();
-
-    return () => {
-      waveLoop.stop();
-      pulseLoop.stop();
-    };
-  }, [radarWave, beaconPulse]);
-
-  const filteredItems = MOCK_MAP_ITEMS.filter((item) => {
-    if (selectedFilter === 'all') return true;
-    return item.type === selectedFilter;
+  const filteredMarkers = markers.filter((m) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'incident') return m.type === 'incident';
+    if (activeFilter === 'hospital') return m.type === 'hospital' || m.type === 'fire_station';
+    if (activeFilter === 'shelter') return m.type === 'shelter';
+    return true;
   });
 
-  const handleNavigateToActiveMission = () => {
-    navigation?.navigate('ActiveMissionTab');
+  const handleMarkerSelect = (marker: MapMarkerItem) => {
+    setSelectedMarker(marker);
+    mapRef.current?.flyTo(marker.latitude, marker.longitude, 16);
+  };
+
+  const handleRecenter = async () => {
+    setSelectedMarker(null);
+    try {
+      const loc = await refreshLocation(true);
+      mapRef.current?.flyTo(loc.latitude, loc.longitude, 16);
+    } catch {
+      mapRef.current?.recenter();
+    }
   };
 
   return (
@@ -152,518 +138,380 @@ export const SafetyMapScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
       edges={['top', 'left', 'right']}
       statusBarStyle="dark-content"
     >
-      <View style={styles.rootContainer}>
-        {/* 1. Header Bar (Hidden in Fullscreen mode) */}
-        {!isFullscreen && (
-          <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <View>
-                <Text style={styles.title}>Bản Đồ Tác Chiến 115</Text>
-                <Text style={styles.subtitle}>
-                  Giám sát thực địa & điều phối khẩn cấp thời gian thực
-                </Text>
-              </View>
-              <View style={styles.telemetryBadge}>
-                <View style={styles.liveGreenDot} />
-                <Text style={styles.telemetryText}>GPS ±3m • 5G</Text>
-              </View>
-            </View>
-
-            {/* Filter Pills */}
-            <View style={styles.filterRow}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === 'all' && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter('all')}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedFilter === 'all' && styles.filterTextActive,
-                  ]}
-                >
-                  Tất cả (4)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === 'incident' && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter('incident')}
-              >
-                <Flame
-                  size={moderateScale(12)}
-                  color={selectedFilter === 'incident' ? '#FFFFFF' : '#DC2626'}
-                />
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedFilter === 'incident' && styles.filterTextActive,
-                  ]}
-                >
-                  Sự cố khẩn (2)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === 'hospital' && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter('hospital')}
-              >
-                <Building2
-                  size={moderateScale(12)}
-                  color={selectedFilter === 'hospital' ? '#FFFFFF' : '#059669'}
-                />
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedFilter === 'hospital' && styles.filterTextActive,
-                  ]}
-                >
-                  Bệnh viện (2)
-                </Text>
-              </TouchableOpacity>
-            </View>
+      {/* 1. Header with Geocoded Location & Live Status */}
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Bản Đồ An Toàn</Text>
+            <Text style={styles.subtitle}>Mạng lưới cứu hộ, bệnh viện & cảnh báo sự cố 24/7</Text>
           </View>
-        )}
-
-        {/* 2. Tactical Vector Map Canvas */}
-        <View style={styles.mapCanvas}>
-          {/* Street Grid Simulation */}
-          <View style={styles.gridLayer}>
-            {/* Horizontal Roads */}
-            <View style={styles.roadMainH1}>
-              <Text style={styles.streetNameText}>Đường Cách Mạng Tháng 8</Text>
-            </View>
-            <View style={styles.roadMainH2}>
-              <Text style={styles.streetNameText}>Đường Võ Văn Tần</Text>
-            </View>
-            <View style={styles.roadSecondaryH1} />
-            <View style={styles.roadSecondaryH2} />
-
-            {/* Vertical Roads */}
-            <View style={styles.roadMainV1}>
-              <Text style={[styles.streetNameText, styles.verticalStreetText]}>
-                Lý Thường Kiệt
-              </Text>
-            </View>
-            <View style={styles.roadMainV2}>
-              <Text style={[styles.streetNameText, styles.verticalStreetText]}>
-                Nguyễn Thị Minh Khai
-              </Text>
-            </View>
-            <View style={styles.roadSecondaryV1} />
-            <View style={styles.roadSecondaryV2} />
-          </View>
-
-          {/* User's Ambulance Unit Marker (ICU-01) */}
-          <View style={styles.ambulanceWrapper}>
-            <Animated.View
-              style={[
-                styles.radarWave,
-                {
-                  transform: [
-                    {
-                      scale: radarWave.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.6, 2.8],
-                      }),
-                    },
-                  ],
-                  opacity: radarWave.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.8, 0.3, 0],
-                  }),
-                },
-              ]}
-            />
-            <View style={styles.ambulanceBadge}>
-              <Truck size={moderateScale(16)} color="#FFFFFF" strokeWidth={2.4} />
-            </View>
-            <View style={styles.ambulanceCallout}>
-              <Text style={styles.ambulanceCalloutText}>ICU-01 (Bạn)</Text>
-            </View>
-          </View>
-
-          {/* Markers */}
-          {filteredItems.map((item) => {
-            const isSelected = activeItem.id === item.id;
-            return (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.8}
-                style={[
-                  styles.markerTouchArea,
-                  { top: item.top as any, left: item.left as any },
-                ]}
-                onPress={() => setActiveItem(item)}
-              >
-                {item.type === 'incident' && (
-                  <View style={styles.markerIncidentGroup}>
-                    {isSelected && (
-                      <Animated.View
-                        style={[
-                          styles.beaconPulseRing,
-                          { transform: [{ scale: beaconPulse }] },
-                        ]}
-                      />
-                    )}
-                    <View
-                      style={[
-                        styles.incidentMarker,
-                        item.severity === 'critical'
-                          ? styles.incidentCritical
-                          : styles.incidentModerate,
-                        isSelected && styles.markerSelectedRing,
-                      ]}
-                    >
-                      <Flame size={moderateScale(16)} color="#FFFFFF" />
-                    </View>
-                    <View style={styles.markerLabelPill}>
-                      <Text style={styles.markerLabelText}>{item.code}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {item.type === 'hospital' && (
-                  <View style={styles.markerHospitalGroup}>
-                    <View
-                      style={[
-                        styles.hospitalMarker,
-                        isSelected && styles.markerSelectedRing,
-                      ]}
-                    >
-                      <Building2 size={moderateScale(16)} color="#FFFFFF" />
-                    </View>
-                    <View style={styles.markerLabelPill}>
-                      <Text style={styles.markerLabelTextHospital}>{item.code}</Text>
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Floating Top Banner when in Fullscreen */}
-          {isFullscreen && (
-            <View style={styles.fullscreenTopBanner}>
-              <View style={styles.fullscreenTitlePill}>
-                <View style={styles.liveGreenDot} />
-                <Text style={styles.fullscreenTitleText}>
-                  Bản Đồ Tác Chiến 115 • Toàn Màn Hình
-                </Text>
-              </View>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.fullscreenExitBtn}
-                onPress={() => setIsFullscreen(false)}
-              >
-                <Minimize2 size={moderateScale(14)} color="#DC2626" />
-                <Text style={styles.fullscreenExitBtnText}>Thu Nhỏ</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Floating Map Controls */}
-          <View style={styles.floatingControls}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.floatingBtn,
-                isFullscreen && styles.floatingBtnActiveRed,
-              ]}
-              onPress={() => setIsFullscreen(!isFullscreen)}
-              accessible={true}
-              accessibilityLabel={
-                isFullscreen ? 'Thu nhỏ bản đồ' : 'Phóng to toàn màn hình bản đồ'
-              }
-            >
-              {isFullscreen ? (
-                <Minimize2 size={moderateScale(16)} color="#DC2626" />
-              ) : (
-                <Maximize2 size={moderateScale(16)} color="#334155" />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.floatingBtn}
-              onPress={() => setActiveItem(MOCK_MAP_ITEMS[0])}
-            >
-              <Crosshair size={moderateScale(16)} color="#DC2626" />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.8} style={styles.floatingBtn}>
-              <Layers size={moderateScale(16)} color="#475569" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.refreshBtn}
+            onPress={loadMapData}
+            disabled={isRefreshing}
+            activeOpacity={0.7}
+          >
+            <RefreshCw size={18} color="#0F172A" />
+          </TouchableOpacity>
         </View>
 
-        {/* 3. Bottom Detail Panel (Hidden in Fullscreen mode) */}
-        {!isFullscreen && (
-          <View style={styles.bottomCard}>
-            <View style={styles.bottomCardHeader}>
-              <View style={styles.cardTypeBadgeRow}>
-                <View
-                  style={[
-                    styles.typePill,
-                    activeItem.type === 'incident'
-                      ? styles.typePillIncident
-                      : styles.typePillHospital,
-                  ]}
-                >
-                  {activeItem.type === 'incident' ? (
-                    <Flame size={moderateScale(12)} color="#DC2626" />
-                  ) : (
-                    <Building2 size={moderateScale(12)} color="#059669" />
-                  )}
-                  <Text
-                    style={[
-                      styles.typePillText,
-                      activeItem.type === 'incident'
-                        ? styles.typePillTextIncident
-                        : styles.typePillTextHospital,
-                    ]}
-                  >
-                    {activeItem.type === 'incident'
-                      ? 'SỰ CỐ KHẨN CẤP'
-                      : 'BỆNH VIỆN TIẾP NHẬN'}
-                  </Text>
-                </View>
-                <Text style={styles.cardCodeText}>{activeItem.code}</Text>
-              </View>
-              <Text style={styles.cardDistanceText}>{activeItem.distance}</Text>
-            </View>
+        {/* Real Geocoded GPS Location Badge */}
+        <View style={styles.addressPill}>
+          <MapPin size={14} color="#DC2626" />
+          <Text style={styles.addressText} numberOfLines={1}>
+            {currentAddress}
+          </Text>
+        </View>
 
-            <Text style={styles.cardTitle} numberOfLines={2}>
-              {activeItem.title}
+        {/* Filter Chips Row */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          <TouchableOpacity
+            style={[styles.filterChip, activeFilter === 'all' && styles.filterChipActive]}
+            onPress={() => setActiveFilter('all')}
+          >
+            <Layers size={13} color={activeFilter === 'all' ? '#FFFFFF' : '#64748B'} />
+            <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
+              Tất Cả ({markers.length})
             </Text>
+          </TouchableOpacity>
 
-            <View style={styles.addressRow}>
-              <MapPin size={moderateScale(14)} color="#64748B" />
-              <Text style={styles.addressText} numberOfLines={1}>
-                {activeItem.address}
-              </Text>
-            </View>
+          <TouchableOpacity
+            style={[styles.filterChip, activeFilter === 'hospital' && styles.filterChipActive]}
+            onPress={() => setActiveFilter('hospital')}
+          >
+            <Hospital size={13} color={activeFilter === 'hospital' ? '#FFFFFF' : '#10B981'} />
+            <Text style={[styles.filterChipText, activeFilter === 'hospital' && styles.filterChipTextActive]}>
+              Bệnh Viện & PCCC
+            </Text>
+          </TouchableOpacity>
 
-            {/* Quick Action Button */}
-            {activeItem.type === 'incident' ? (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.actionMissionBtn}
-                onPress={handleNavigateToActiveMission}
-              >
-                <Text style={styles.actionMissionBtnText}>
-                  Vào Ca Cứu Hộ Này
-                </Text>
-                <ArrowRight size={moderateScale(16)} color="#FFFFFF" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.actionHospitalBtn}
-              >
-                <Shield size={moderateScale(16)} color="#059669" />
-                <Text style={styles.actionHospitalBtnText}>
-                  Xem Tuyến Đường Đến Bệnh Viện
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          <TouchableOpacity
+            style={[styles.filterChip, activeFilter === 'incident' && styles.filterChipActive]}
+            onPress={() => setActiveFilter('incident')}
+          >
+            <Flame size={13} color={activeFilter === 'incident' ? '#FFFFFF' : '#DC2626'} />
+            <Text style={[styles.filterChipText, activeFilter === 'incident' && styles.filterChipTextActive]}>
+              Sự Cố Hiện Trường
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, activeFilter === 'shelter' && styles.filterChipActive]}
+            onPress={() => setActiveFilter('shelter')}
+          >
+            <Shield size={13} color={activeFilter === 'shelter' ? '#FFFFFF' : '#2563EB'} />
+            <Text style={[styles.filterChipText, activeFilter === 'shelter' && styles.filterChipTextActive]}>
+              Trú Ẩn An Toàn
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
+
+      {/* 2. Interactive Mapbox View */}
+      <View style={styles.mapContainer}>
+        <MapboxView
+          ref={mapRef}
+          userLatitude={userCoords.latitude}
+          userLongitude={userCoords.longitude}
+          markers={filteredMarkers}
+          onMarkerPress={handleMarkerSelect}
+          style={styles.mapboxView}
+        />
+
+        {/* Floating Recenter Button */}
+        <TouchableOpacity
+          style={styles.floatingRecenter}
+          onPress={handleRecenter}
+          activeOpacity={0.8}
+        >
+          <Crosshair size={20} color="#DC2626" />
+        </TouchableOpacity>
+      </View>
+
+      {/* 3. Selected Point of Interest Card or Bottom Legend */}
+      {selectedMarker ? (
+        <View style={styles.detailCard}>
+          <View style={styles.detailHeader}>
+            <View style={styles.detailBadgeRow}>
+              <View
+                style={[
+                  styles.typeBadge,
+                  selectedMarker.type === 'hospital'
+                    ? styles.badgeGreen
+                    : selectedMarker.type === 'incident'
+                      ? styles.badgeRed
+                      : styles.badgeBlue,
+                ]}
+              >
+                <Text style={styles.typeBadgeText}>
+                  {selectedMarker.type === 'hospital'
+                    ? 'Y TẾ KHẨN CẤP'
+                    : selectedMarker.type === 'incident'
+                      ? 'SỰ CỐ NGUY CƠ'
+                      : 'ĐIỂM TRÚ ẨN'}
+                </Text>
+              </View>
+              {selectedMarker.severity && (
+                <View style={styles.severityBadge}>
+                  <Text style={styles.severityText}>Mức {selectedMarker.severity}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => setSelectedMarker(null)}>
+              <Text style={styles.closeText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.detailTitle}>{selectedMarker.title}</Text>
+          <Text style={styles.detailDesc}>{selectedMarker.description}</Text>
+
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => {
+              Alert.alert(
+                'Chỉ Dẫn Cứu Hộ',
+                `Đã kích hoạt tuyến đường an toàn tới: ${selectedMarker.title}`,
+                [{ text: 'Đồng ý' }]
+              );
+            }}
+          >
+            <Navigation size={15} color="#FFFFFF" />
+            <Text style={styles.actionBtnText}>DẪN ĐƯỜNG AN TOÀN TỚI ĐÂY</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.recenterButton}
+          onPress={handleRecenter}
+        >
+          <Navigation size={18} color="#FFFFFF" />
+          <Text style={styles.recenterText}> VỊ TRÍ CỦA TÔI</Text>
+        </TouchableOpacity>
+      )}
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  rootContainer: {
+  container: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   header: {
-    paddingHorizontal: scale(14),
-    paddingTop: verticalScale(8),
-    paddingBottom: verticalScale(10),
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    marginBottom: 8,
   },
-  headerTitleRow: {
+  titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: verticalScale(8),
+    alignItems: 'center',
+    marginBottom: 4,
   },
   title: {
-    fontSize: moderateScale(18),
+    fontSize: 18,
     fontWeight: '900',
     color: '#0F172A',
-    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: moderateScale(11),
+    fontSize: 11,
     color: '#64748B',
     marginTop: verticalScale(2),
   },
-  telemetryBadge: {
+  refreshBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    paddingVertical: verticalScale(4),
-    paddingHorizontal: scale(8),
-    borderRadius: moderateScale(12),
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FECACA',
-    gap: scale(5),
+    borderColor: '#E2E8F0',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 8,
   },
-  liveGreenDot: {
-    width: moderateScale(6),
-    height: moderateScale(6),
-    borderRadius: moderateScale(3),
-    backgroundColor: '#16A34A',
-  },
-  telemetryText: {
-    fontSize: moderateScale(9.5),
-    fontWeight: '800',
-    color: '#DC2626',
+  addressText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#1E293B',
+    flex: 1,
   },
   filterRow: {
     flexDirection: 'row',
-    gap: scale(8),
+    gap: 8,
+    paddingVertical: 2,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(4),
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(10),
-    borderRadius: moderateScale(16),
-    backgroundColor: '#F1F5F9',
+    gap: 5,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  filterChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  mapContainer: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    position: 'relative',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  mapboxView: {
+    flex: 1,
+  },
+  floatingRecenter: {
+    position: 'absolute',
+    right: 14,
+    bottom: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  filterChipActive: {
-    backgroundColor: '#DC2626',
-    borderColor: '#DC2626',
-  },
-  filterText: {
-    fontSize: moderateScale(11),
-    fontWeight: '700',
-    color: '#475569',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-  },
-  mapCanvas: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  gridLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  roadMainH1: {
-    position: 'absolute',
-    top: '32%',
-    left: 0,
-    right: 0,
-    height: verticalScale(20),
+  detailCard: {
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 10,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    paddingLeft: scale(12),
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+    gap: 6,
   },
-  roadMainH2: {
-    position: 'absolute',
-    top: '64%',
-    left: 0,
-    right: 0,
-    height: verticalScale(22),
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    paddingLeft: scale(12),
-  },
-  roadSecondaryH1: {
-    position: 'absolute',
-    top: '16%',
-    left: 0,
-    right: 0,
-    height: verticalScale(8),
-    backgroundColor: '#E2E8F0',
-  },
-  roadSecondaryH2: {
-    position: 'absolute',
-    top: '84%',
-    left: 0,
-    right: 0,
-    height: verticalScale(8),
-    backgroundColor: '#E2E8F0',
-  },
-  roadMainV1: {
-    position: 'absolute',
-    left: '26%',
-    top: 0,
-    bottom: 0,
-    width: scale(22),
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  roadMainV2: {
-    position: 'absolute',
-    left: '72%',
-    top: 0,
-    bottom: 0,
-    width: scale(24),
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
+  detailBadgeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  roadSecondaryV1: {
-    position: 'absolute',
-    left: '10%',
-    top: 0,
-    bottom: 0,
-    width: scale(8),
-    backgroundColor: '#E2E8F0',
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  roadSecondaryV2: {
-    position: 'absolute',
-    left: '50%',
-    top: 0,
-    bottom: 0,
-    width: scale(10),
-    backgroundColor: '#E2E8F0',
+  badgeGreen: { backgroundColor: '#D1FAE5' },
+  badgeRed: { backgroundColor: '#FEE2E2' },
+  badgeBlue: { backgroundColor: '#DBEAFE' },
+  typeBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  streetNameText: {
-    fontSize: moderateScale(8.5),
+  severityBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  severityText: {
+    fontSize: 9.5,
     fontWeight: '700',
+    color: '#B45309',
+  },
+  closeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  detailTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  detailDesc: {
+    fontSize: 11.5,
     color: '#64748B',
+    lineHeight: 16,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    paddingVertical: 9,
+    gap: 6,
+    marginTop: 4,
+  },
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  recenterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  recenterText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   verticalStreetText: {

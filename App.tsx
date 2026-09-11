@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { RootNavigator } from './src/navigation';
 import { AppNotificationModal } from './src/components/common';
-import { notify } from './src/store';
+import { notify, useAppStore } from './src/store';
 
 // Global interceptor: automatically redirects React Native Alert.alert to our custom White & Red notification modal
 const originalAlert = Alert.alert;
@@ -80,6 +80,12 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  const initAuth = useAppStore((state) => state.initAuth);
+
+  React.useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>

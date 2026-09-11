@@ -97,15 +97,15 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               </View>
 
               <View style={styles.nameBlock}>
-                <Text style={styles.fullName}>{profile.fullName}</Text>
+                <Text style={styles.fullName}>{profile.fullName || 'Chưa cập nhật họ tên'}</Text>
                 <Text style={styles.subInfo}>
-                  {profile.gender || 'Nam'} • {profile.dateOfBirth || '1995'} (
-                  {profile.phoneNumber})
+                  {profile.gender || 'Chưa rõ'} • {profile.dateOfBirth || '--'}
+                  {profile.phoneNumber ? ` (${profile.phoneNumber})` : ''}
                 </Text>
                 <View style={styles.addressRow}>
                   <MapPin size={12} color="#94A3B8" />
                   <Text style={styles.addressText} numberOfLines={2}>
-                    {profile.address}
+                    {profile.address || 'Chưa cập nhật địa chỉ'}
                   </Text>
                 </View>
               </View>

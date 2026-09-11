@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -28,6 +29,15 @@ import { MediaReportModal } from '../../components/sos/MediaReportModal';
 import { SosSuccessModal } from '../../components/sos/SosSuccessModal';
 import { MainTabParamList } from '../../navigation/types';
 import { useResponsive } from '../../utils/responsive';
+import { incidentService } from '../../services/incident.service';
+import { mediaService } from '../../services/media.service';
+import { IncidentResponseDto } from '../../types/incident';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useLocationStore } from '../../store/useLocationStore';
+import { storage } from '../../services/storage';
+import { mapboxService } from '../../services/mapbox.service';
+import { locationService } from '../../services/location.service';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
@@ -36,14 +46,25 @@ export const HomeScreen: React.FC = () => {
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
   const headerIconSize = isSmallDevice ? 18 : 20;
 
-  // GPS Address state
-  const [address, setAddress] = useState('123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM');
-  const [isRefreshingGps, setIsRefreshingGps] = useState(false);
+  const { profile } = useProfileStore();
+  const { user } = useAppStore();
+
+  // Global Shared GPS Location State
+  const {
+    coords: userCoords,
+    address,
+    isFetchingLocation: isRefreshingGps,
+    refreshLocation,
+  } = useLocationStore();
 
   // Modals & triggers state
   const [selectedHazard, setSelectedHazard] = useState<HazardItem | null>(null);
   const [isMediaModalVisible, setIsMediaModalVisible] = useState(false);
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
+  const [activeIncident, setActiveIncident] = useState<IncidentResponseDto | null>(null);
+  const [isSendingSos, setIsSendingSos] = useState(false);
+  const [sosSendingLoadingText, setSosSendingLoadingText] = useState('');
+  const [isSosPressing, setIsSosPressing] = useState(false);
 
   // Green GPS accuracy pulsing dot animation
   const gpsPulseAnim = useRef(new Animated.Value(1)).current;
@@ -68,16 +89,137 @@ export const HomeScreen: React.FC = () => {
     return () => pulse.stop();
   }, []);
 
+  // Fetch real GPS on mount (shared with Map screen)
+  useEffect(() => {
+    refreshLocation();
+  }, []);
+
   const handleRefreshGps = () => {
-    setIsRefreshingGps(true);
-    setTimeout(() => {
-      setIsRefreshingGps(false);
-      setAddress('123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM (GPS Vệ tinh)');
-    }, 600);
+    refreshLocation(true);
   };
 
-  const handleSosTriggered = () => {
-    setIsSosSuccessModalVisible(true);
+  const recordIncidentId = async (id: string) => {
+    try {
+      const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
+      if (!existing.includes(id)) {
+        await storage.setItem('MY_REPORTED_INCIDENT_IDS', [id, ...existing]);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCancelIncident = async (incidentId: string) => {
+    try {
+      // Remove from local storage list
+      const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
+      await storage.setItem(
+        'MY_REPORTED_INCIDENT_IDS',
+        existing.filter((id) => id !== incidentId)
+      );
+
+      // Call backend cancel API if authenticated
+      try {
+        await incidentService.cancelIncident(incidentId, 'Người dân bấm nhầm nút SOS');
+      } catch {
+        // Ghi chú: BE yêu cầu quyền xác thực khi hủy sự cố, phía client đã dọn dẹp local state
+      }
+
+      setIsSosSuccessModalVisible(false);
+      setActiveIncident(null);
+      Alert.alert('Đã Hủy Báo Động', 'Tín hiệu SOS đã được hủy bỏ thành công.');
+    } catch {
+      setIsSosSuccessModalVisible(false);
+      setActiveIncident(null);
+    }
+  };
+
+  // When SOS pulse button is held for 2s: directly open camera to snap & report
+  const handleSosTriggered = async () => {
+    await handleSosTakePhoto();
+  };
+
+  const handleSosTakePhoto = async () => {
+    try {
+      const asset = await mediaService.pickFromCamera();
+      if (!asset) return;
+      setIsSendingSos(true);
+      setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
+      const url = await mediaService.uploadMedia(asset);
+      setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
+      const loc = await useLocationStore.getState().refreshLocation(false);
+      const created = await incidentService.createIncident({
+        title: 'Báo động SOS Khẩn cấp',
+        description: 'Người dân đè nút SOS 2s kích hoạt camera chụp hiện trường khẩn cấp.',
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        locationAddress: loc.address,
+        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        mediaUrls: [url],
+      });
+      setActiveIncident(created);
+      await recordIncidentId(created.id);
+      setIsSosSuccessModalVisible(true);
+    } catch (err: any) {
+      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+    } finally {
+      setIsSendingSos(false);
+    }
+  };
+
+  const handleSosPickLibrary = async () => {
+    try {
+      const asset = await mediaService.pickFromLibrary();
+      if (!asset) return;
+      setIsSendingSos(true);
+      setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
+      const url = await mediaService.uploadMedia(asset);
+      setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
+      const loc = await useLocationStore.getState().refreshLocation(false);
+      const created = await incidentService.createIncident({
+        title: 'Báo động SOS Khẩn cấp',
+        description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp kèm ảnh hiện trường.',
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        locationAddress: loc.address,
+        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        mediaUrls: [url],
+      });
+      setActiveIncident(created);
+      await recordIncidentId(created.id);
+      setIsSosSuccessModalVisible(true);
+    } catch (err: any) {
+      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+    } finally {
+      setIsSendingSos(false);
+    }
+  };
+
+  const handleSosSendWithoutMedia = async () => {
+    try {
+      setIsSendingSos(true);
+      setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm 114/115...');
+      const loc = await useLocationStore.getState().refreshLocation(false);
+      const created = await incidentService.createIncident({
+        title: 'Báo động SOS Khẩn cấp',
+        description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).',
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        locationAddress: loc.address,
+        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        mediaUrls: [],
+      });
+      setActiveIncident(created);
+      await recordIncidentId(created.id);
+      setIsSosSuccessModalVisible(true);
+    } catch (err: any) {
+      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+    } finally {
+      setIsSendingSos(false);
+    }
   };
 
   const handleSelectHazard = (hazard: HazardItem) => {
@@ -90,16 +232,45 @@ export const HomeScreen: React.FC = () => {
     setIsMediaModalVisible(true);
   };
 
-  const handleSubmitReport = (data: {
+  const handleSubmitReport = async (data: {
     hazardId?: string;
     mediaType: 'photo' | 'video' | 'none';
+    mediaUrls?: string[];
     note: string;
   }) => {
-    Alert.alert(
-      'Báo Cáo Đã Gửi!',
-      `Đã chuyển thông tin hiện trường tới trung tâm điều phối cứu hộ 114/115.`,
-      [{ text: 'Đồng ý' }]
-    );
+    try {
+      const hazardTitle = selectedHazard?.title
+        ? `Báo cáo nguy cơ: ${selectedHazard.title}`
+        : 'Báo cáo sự cố hiện trường';
+
+      const loc = await useLocationStore.getState().refreshLocation(false);
+      const created = await incidentService.createIncident({
+        title: hazardTitle,
+        description: data.note.trim() || 'Người dân gửi báo cáo nguy cơ khẩn cấp kèm ảnh hiện trường.',
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        locationAddress: loc.address,
+        reporterName: user?.name || profile.fullName || 'Công dân',
+        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        mediaUrls: data.mediaUrls || [],
+      });
+      await recordIncidentId(created.id);
+
+      const aiText = created.aiClassification?.summary
+        ? `\n\nAI Phân tích: ${created.aiClassification.summary}\n(Mức độ: ${created.severity})`
+        : '';
+
+      Alert.alert(
+        'Báo Cáo Đã Gửi Thành Công!',
+        `Đã chuyển thông tin tới trung tâm điều phối cứu hộ 114/115. Mã sự cố: #${created.id.slice(0, 8).toUpperCase()}.${aiText}`,
+        [{ text: 'Đồng ý' }]
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Lỗi Gửi Báo Cáo',
+        err.message || 'Không thể gửi báo cáo hiện trường tới máy chủ.'
+      );
+    }
   };
 
   return (
@@ -196,6 +367,7 @@ export const HomeScreen: React.FC = () => {
 
       {/* Main Content Area */}
       <ScrollView
+        scrollEnabled={!isSosPressing}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
@@ -212,7 +384,11 @@ export const HomeScreen: React.FC = () => {
 
         {/* 2. Hero SOS Trigger (Center-Bottom Thumb Zone) */}
         <View style={styles.heroSosSection}>
-          <SosPulseButton onSosTriggered={handleSosTriggered} holdDuration={2000} />
+          <SosPulseButton
+            onSosTriggered={handleSosTriggered}
+            holdDuration={2000}
+            onPressStateChange={setIsSosPressing}
+          />
         </View>
 
         {/* 3. Quick Hazard Grid: 4 Cards */}
@@ -293,11 +469,27 @@ export const HomeScreen: React.FC = () => {
         onSubmitReport={handleSubmitReport}
       />
 
+      {/* Fullscreen Emergency Dispatch Loading Overlay */}
+      {isSendingSos && (
+        <View style={styles.emergencyLoadingOverlay}>
+          <View style={styles.emergencyLoadingCard}>
+            <ActivityIndicator size="large" color="#DC2626" />
+            <Text style={styles.emergencyLoadingTitle}>ĐANG KÍCH HOẠT CỨU HỘ SOS</Text>
+            <Text style={styles.emergencyLoadingText}>{sosSendingLoadingText}</Text>
+          </View>
+        </View>
+      )}
+
       {/* SOS Success Modal Feedback */}
       <SosSuccessModal
         visible={isSosSuccessModalVisible}
-        onClose={() => setIsSosSuccessModalVisible(false)}
+        onClose={() => {
+          setIsSosSuccessModalVisible(false);
+          setActiveIncident(null);
+        }}
+        onCancelIncident={handleCancelIncident}
         address={address}
+        incident={activeIncident}
       />
     </ScreenContainer>
   );
@@ -470,5 +662,42 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  emergencyLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  emergencyLoadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    width: '85%',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  emergencyLoadingTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  emergencyLoadingText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

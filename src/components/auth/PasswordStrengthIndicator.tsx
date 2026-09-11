@@ -30,16 +30,16 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
   const metCount = criteria.filter((c) => c.met).length;
 
   let strengthLabel = 'Yếu';
-  let strengthColor = '#EF4444'; // Red
+  let strengthColor = '#DC2626'; // Emergency Red
   if (metCount === 2) {
     strengthLabel = 'Trung bình';
-    strengthColor = '#F59E0B'; // Amber
+    strengthColor = '#D97706'; // Amber
   } else if (metCount === 3) {
     strengthLabel = 'Khá';
-    strengthColor = '#3B82F6'; // Blue
+    strengthColor = '#2563EB'; // Electric Blue
   } else if (metCount === 4) {
     strengthLabel = 'Mạnh & An toàn';
-    strengthColor = '#10B981'; // Green
+    strengthColor = '#059669'; // Emerald
   }
 
   return (
@@ -95,7 +95,7 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
               ]}
             >
               {item.met ? (
-                <Check size={moderateScale(10)} color="#10B981" strokeWidth={3} />
+                <Check size={moderateScale(10)} color="#059669" strokeWidth={2.8} />
               ) : (
                 <X size={moderateScale(10)} color="#DC2626" strokeWidth={3} />
               )}
@@ -103,7 +103,7 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
             <Text
               style={[
                 styles.checkText,
-                { color: item.met ? '#0F172A' : '#94A3B8' },
+                { color: item.met ? '#0F172A' : '#64748B', fontWeight: item.met ? '600' : '400' },
               ]}
               allowFontScaling={false}
               maxFontSizeMultiplier={1.2}
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
-    padding: moderateScale(10),
+    padding: moderateScale(12),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginTop: verticalScale(4),
@@ -140,37 +140,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   strengthLabel: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(12),
     fontWeight: '700',
   },
   barContainer: {
     flexDirection: 'row',
     height: verticalScale(4),
     gap: moderateScale(5),
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(10),
   },
   barSegment: {
     flex: 1,
     borderRadius: moderateScale(2),
   },
   checklist: {
-    gap: verticalScale(4),
+    gap: verticalScale(5),
   },
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(6),
+    gap: moderateScale(8),
   },
   iconContainer: {
-    width: moderateScale(15),
-    height: moderateScale(15),
+    width: moderateScale(16),
+    height: moderateScale(16),
     borderRadius: moderateScale(8),
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkText: {
-    fontSize: moderateScale(11),
-    fontWeight: '500',
+    fontSize: moderateScale(11.5),
   },
 });
-

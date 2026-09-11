@@ -66,7 +66,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             activeOpacity={0.7}
             accessibilityLabel="Quay lại"
           >
-            <ArrowLeft color="#F8FAFC" size={moderateScale(20)} strokeWidth={2.4} />
+            <ArrowLeft color="#0F172A" size={moderateScale(20)} strokeWidth={2.4} />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholderBack} />
@@ -97,7 +97,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
         <View style={styles.logoContainer}>
           <View style={styles.iconRing}>
             <View style={styles.iconCenter}>
-              <ShieldAlert color="#EF4444" size={moderateScale(30)} strokeWidth={2.4} />
+              <ShieldAlert color="#DC2626" size={moderateScale(30)} strokeWidth={2.4} />
             </View>
           </View>
         </View>
@@ -128,7 +128,9 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: verticalScale(16),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(14),
   },
   topRow: {
     flexDirection: 'row',
@@ -140,11 +142,16 @@ const styles = StyleSheet.create({
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   placeholderBack: {
     width: moderateScale(38),
@@ -153,24 +160,24 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(5),
     borderRadius: moderateScale(16),
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
   },
   pulseDot: {
     width: moderateScale(6),
     height: moderateScale(6),
     borderRadius: moderateScale(3),
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     marginRight: moderateScale(6),
   },
   badgeText: {
-    color: '#FCA5A5',
+    color: '#DC2626',
     fontSize: moderateScale(10),
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -182,25 +189,25 @@ const styles = StyleSheet.create({
     width: moderateScale(64),
     height: moderateScale(64),
     borderRadius: moderateScale(32),
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: 'rgba(220, 38, 38, 0.25)',
   },
   iconCenter: {
     width: moderateScale(48),
     height: moderateScale(48),
     borderRadius: moderateScale(24),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
-    elevation: 4,
-    shadowColor: '#EF4444',
+    borderColor: '#E2E8F0',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
   },
   textContainer: {
@@ -209,18 +216,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: moderateScale(24),
-    fontWeight: '800',
-    color: '#F8FAFC',
+    fontWeight: '900',
+    color: '#0F172A',
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: moderateScale(12.5),
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     marginTop: verticalScale(4),
     lineHeight: verticalScale(18),
     paddingHorizontal: moderateScale(12),
   },
 });
-

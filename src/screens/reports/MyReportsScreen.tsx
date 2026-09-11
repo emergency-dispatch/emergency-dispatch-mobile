@@ -60,7 +60,7 @@ export const MyReportsScreen: React.FC = () => {
 
   return (
     <ScreenContainer
-      backgroundColor="#0F172A"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right']}
       style={styles.container}
     >
@@ -99,23 +99,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   listContent: {
     gap: 12,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     padding: 14,
     gap: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -126,7 +131,7 @@ const styles = StyleSheet.create({
   itemCode: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -137,13 +142,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusResolved: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
   },
   statusDispatched: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
   },
   statusPending: {
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
   },
   statusText: {
     fontSize: 11,
@@ -152,14 +157,14 @@ const styles = StyleSheet.create({
   itemType: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   itemLocation: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: '#475569',
   },
   itemTime: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
   },
 });

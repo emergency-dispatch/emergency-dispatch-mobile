@@ -130,33 +130,33 @@ export const ProfileScreen: React.FC = () => {
 
   // Summary badges for collapsed preview
   const identityBadges: SummaryBadgeItem[] = [
-    { text: profile.fullName, color: '#FFFFFF', bg: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.3)' },
-    { text: profile.phoneNumber, color: '#38BDF8' },
-    { text: 'Đã xác thực', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
+    { text: profile.fullName, color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
+    { text: profile.phoneNumber, color: '#DC2626' },
+    { text: 'Đã xác thực', color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
   ];
 
   const medicalBadges: SummaryBadgeItem[] = [
-    { text: `Máu: ${medicalId.bloodType || 'O+'}`, color: '#FFFFFF', bg: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' },
-    { text: `${medicalId.allergies?.length || 0} Dị ứng`, color: '#FCA5A5' },
-    { text: `${medicalId.chronicConditions?.length || 0} Bệnh nền`, color: '#FCD34D' },
+    { text: `Máu: ${medicalId.bloodType || 'O+'}`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
+    { text: `${medicalId.allergies?.length || 0} Dị ứng`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
+    { text: `${medicalId.chronicConditions?.length || 0} Bệnh nền`, color: '#B45309', bg: '#FEF3C7', borderColor: '#FDE68A' },
   ];
 
   const iceBadges: SummaryBadgeItem[] = [
-    { text: `${ice.contacts?.length || 0} Người thân`, color: '#FFFFFF', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
+    { text: `${ice.contacts?.length || 0} Người thân`, color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
     {
-      text: ice.autoSendSmsOnSos ? 'SMS SOS: BẬT' : 'SMS SOS: TẮT',
-      color: ice.autoSendSmsOnSos ? '#10B981' : '#94A3B8',
+      text: ice.autoSendSmsOnSos ? 'SMS SOS: BẬT' : 'SMS: TẮT',
+      color: ice.autoSendSmsOnSos ? '#059669' : '#64748B',
     },
   ];
 
   const specialBadges: SummaryBadgeItem[] = [
-    { text: specialInfo.preferredLanguage || 'Tiếng Việt', color: '#FCD34D' },
-    { text: specialInfo.dependentsNote ? 'Có người phụ thuộc' : 'Không có phụ thuộc', color: '#CBD5E1' },
+    { text: specialInfo.preferredLanguage || 'Tiếng Việt', color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
+    { text: specialInfo.dependentsNote ? 'Có người phụ thuộc' : 'Không có phụ thuộc', color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
   ];
 
   return (
     <ScreenContainer
-      backgroundColor="#0F172A"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right']}
       style={styles.container}
     >
@@ -187,7 +187,7 @@ export const ProfileScreen: React.FC = () => {
           accessible={true}
           accessibilityLabel="Chỉnh sửa hồ sơ"
         >
-          <Edit3 size={moderateScale(15)} color="#38BDF8" />
+          <Edit3 size={moderateScale(15)} color="#DC2626" />
           <Text
             style={styles.editHeaderBtnText}
             allowFontScaling={false}
@@ -234,7 +234,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.heroDivider} />
 
           <View style={styles.heroAddressRow}>
-            <MapPin size={15} color="#38BDF8" style={styles.addressIcon} />
+            <MapPin size={15} color="#DC2626" style={styles.addressIcon} />
             <Text style={styles.heroAddressText} numberOfLines={2}>
               {profile.address}
             </Text>
@@ -268,7 +268,7 @@ export const ProfileScreen: React.FC = () => {
         {/* 4. Controls: Section List Title & Toggle All Button */}
         <View style={styles.controlsRow}>
           <View style={styles.controlsLeft}>
-            <Layers size={16} color="#38BDF8" />
+            <Layers size={16} color="#DC2626" />
             <Text style={styles.controlsTitle}>CÁC NHÓM THÔNG TIN CỨU HỘ</Text>
           </View>
           <TouchableOpacity
@@ -289,9 +289,9 @@ export const ProfileScreen: React.FC = () => {
           id="identity"
           title="1. Định Danh & Liên Lạc"
           subtitle="Xác thực danh tính & nhận diện nạn nhân tại hiện trường"
-          icon={<User size={20} color="#38BDF8" />}
-          iconBgColor="rgba(56, 189, 248, 0.15)"
-          titleColor="#38BDF8"
+          icon={<User size={20} color="#DC2626" />}
+          iconBgColor="rgba(220, 38, 38, 0.08)"
+          titleColor="#0F172A"
           isExpanded={!!expandedCards.identity}
           onToggle={() => toggleCard('identity')}
           summaryBadges={identityBadges}
@@ -300,7 +300,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
-                <User size={14} color="#94A3B8" />
+                <User size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Họ và tên đầy đủ</Text>
               </View>
               <Text style={styles.infoValue}>{profile.fullName}</Text>
@@ -308,17 +308,17 @@ export const ProfileScreen: React.FC = () => {
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
-                <Phone size={14} color="#94A3B8" />
+                <Phone size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Số điện thoại chính chủ</Text>
               </View>
-              <Text style={[styles.infoValue, { color: '#38BDF8' }]}>
+              <Text style={[styles.infoValue, { color: '#DC2626' }]}>
                 {profile.phoneNumber}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
-                <CreditCard size={14} color="#94A3B8" />
+                <CreditCard size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Số CCCD / CMND</Text>
               </View>
               <Text style={styles.infoValue}>
@@ -328,7 +328,7 @@ export const ProfileScreen: React.FC = () => {
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
-                <Calendar size={14} color="#94A3B8" />
+                <Calendar size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Ngày sinh & Giới tính</Text>
               </View>
               <Text style={styles.infoValue}>
@@ -338,7 +338,7 @@ export const ProfileScreen: React.FC = () => {
 
             <View style={styles.addressSection}>
               <View style={styles.infoLabelRow}>
-                <MapPin size={14} color="#94A3B8" />
+                <MapPin size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Nơi ở thường trú</Text>
               </View>
               <View style={styles.addressBox}>
@@ -357,9 +357,9 @@ export const ProfileScreen: React.FC = () => {
           id="medical"
           title="2. Y Tế Khẩn Cấp (Medical ID)"
           subtitle="Chuẩn bị phác đồ cấp cứu & phòng ngừa sốc phản vệ"
-          icon={<HeartPulse size={20} color="#EF4444" />}
-          iconBgColor="rgba(239, 68, 68, 0.15)"
-          titleColor="#EF4444"
+          icon={<HeartPulse size={20} color="#DC2626" />}
+          iconBgColor="#FEE2E2"
+          titleColor="#0F172A"
           isExpanded={!!expandedCards.medical}
           onToggle={() => toggleCard('medical')}
           summaryBadges={medicalBadges}
@@ -380,8 +380,8 @@ export const ProfileScreen: React.FC = () => {
             {/* Allergies */}
             <View style={styles.subCategoryBlock}>
               <View style={styles.subCatHeader}>
-                <AlertTriangle size={15} color="#EF4444" />
-                <Text style={[styles.subCatTitle, { color: '#FCA5A5' }]}>
+                <AlertTriangle size={15} color="#DC2626" />
+                <Text style={[styles.subCatTitle, { color: '#991B1B' }]}>
                   Dị ứng (Thuốc / Thức ăn / Môi trường)
                 </Text>
               </View>
@@ -403,8 +403,8 @@ export const ProfileScreen: React.FC = () => {
             {/* Chronic Conditions */}
             <View style={styles.subCategoryBlock}>
               <View style={styles.subCatHeader}>
-                <HeartPulse size={15} color="#F59E0B" />
-                <Text style={[styles.subCatTitle, { color: '#FCD34D' }]}>
+                <HeartPulse size={15} color="#D97706" />
+                <Text style={[styles.subCatTitle, { color: '#B45309' }]}>
                   Tiền sử bệnh nền mãn tính
                 </Text>
               </View>
@@ -427,8 +427,8 @@ export const ProfileScreen: React.FC = () => {
             {/* Medications */}
             <View style={styles.subCategoryBlock}>
               <View style={styles.subCatHeader}>
-                <Pill size={15} color="#38BDF8" />
-                <Text style={[styles.subCatTitle, { color: '#7DD3FC' }]}>
+                <Pill size={15} color="#0284C7" />
+                <Text style={[styles.subCatTitle, { color: '#0369A1' }]}>
                   Thuốc đang điều trị thường xuyên
                 </Text>
               </View>
@@ -451,8 +451,8 @@ export const ProfileScreen: React.FC = () => {
             {/* Mobility / Disability */}
             <View style={styles.subCategoryBlock}>
               <View style={styles.subCatHeader}>
-                <Accessibility size={15} color="#A855F7" />
-                <Text style={[styles.subCatTitle, { color: '#D8B4FE' }]}>
+                <Accessibility size={15} color="#7C3AED" />
+                <Text style={[styles.subCatTitle, { color: '#6D28D9' }]}>
                   Tình trạng khuyết tật & Khó khăn vận động
                 </Text>
               </View>
@@ -474,7 +474,7 @@ export const ProfileScreen: React.FC = () => {
 
             {medicalId.additionalNotes ? (
               <View style={styles.additionalNoteBox}>
-                <Info size={14} color="#94A3B8" />
+                <Info size={14} color="#64748B" />
                 <Text style={styles.additionalNoteText}>
                   {medicalId.additionalNotes}
                 </Text>
@@ -490,9 +490,9 @@ export const ProfileScreen: React.FC = () => {
           id="ice"
           title="3. Người Thân Khẩn Cấp (ICE)"
           subtitle="Báo tin tức thời & liên lạc người thân khi nguy kịch"
-          icon={<PhoneCall size={20} color="#10B981" />}
-          iconBgColor="rgba(16, 185, 129, 0.15)"
-          titleColor="#10B981"
+          icon={<PhoneCall size={20} color="#059669" />}
+          iconBgColor="rgba(16, 185, 129, 0.1)"
+          titleColor="#0F172A"
           isExpanded={!!expandedCards.ice}
           onToggle={() => toggleCard('ice')}
           summaryBadges={iceBadges}
@@ -503,7 +503,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.smsToggleBox}>
               <View style={styles.smsToggleTextCol}>
                 <View style={styles.smsTagRow}>
-                  <MessageSquare size={13} color="#38BDF8" />
+                  <MessageSquare size={13} color="#DC2626" />
                   <Text style={styles.smsTag}>TỰ ĐỘNG GỬI SMS</Text>
                 </View>
                 <Text style={styles.smsToggleTitle}>
@@ -517,7 +517,7 @@ export const ProfileScreen: React.FC = () => {
               <Switch
                 value={ice.autoSendSmsOnSos}
                 onValueChange={handleToggleSms}
-                trackColor={{ false: '#334155', true: '#10B981' }}
+                trackColor={{ false: '#CBD5E1', true: '#10B981' }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -553,9 +553,9 @@ export const ProfileScreen: React.FC = () => {
           id="special"
           title="4. Thông Tin Đặc Thù & Gia Đình"
           subtitle="Ưu tiên nguồn lực cứu nạn khi sơ tán trẻ nhỏ & người già"
-          icon={<Users size={20} color="#F59E0B" />}
-          iconBgColor="rgba(245, 158, 11, 0.15)"
-          titleColor="#F59E0B"
+          icon={<Users size={20} color="#D97706" />}
+          iconBgColor="#FEF3C7"
+          titleColor="#0F172A"
           isExpanded={!!expandedCards.special}
           onToggle={() => toggleCard('special')}
           summaryBadges={specialBadges}
@@ -564,7 +564,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
-                <Languages size={14} color="#94A3B8" />
+                <Languages size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Ngôn ngữ ưu tiên giao tiếp</Text>
               </View>
               <Text style={[styles.infoValue, { fontWeight: '700' }]}>
@@ -574,7 +574,7 @@ export const ProfileScreen: React.FC = () => {
 
             <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
               <View style={styles.infoLabelRow}>
-                <FileText size={14} color="#94A3B8" />
+                <FileText size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Ghi chú người phụ thuộc</Text>
               </View>
             </View>
@@ -603,7 +603,7 @@ export const ProfileScreen: React.FC = () => {
           onPress={() => setIsLogoutModalVisible(true)}
           activeOpacity={0.8}
         >
-          <LogOut size={18} color="#EF4444" />
+          <LogOut size={18} color="#DC2626" />
           <Text style={styles.logoutBtnText}>Đăng Xuất / Đổi Tài Khoản</Text>
         </TouchableOpacity>
 
@@ -644,6 +644,7 @@ export const ProfileScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 0,
   },
   headerBar: {
@@ -654,9 +655,14 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(10),
     paddingBottom: verticalScale(10),
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    backgroundColor: '#0F172A',
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
     width: '100%',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerTextGroup: {
     flex: 1,
@@ -666,42 +672,47 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: moderateScale(19),
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     letterSpacing: 0.3,
   },
   headerSubtitle: {
     fontSize: moderateScale(11.5),
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(2),
   },
   editHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: 'rgba(220, 38, 38, 0.06)',
     paddingVertical: verticalScale(6),
     paddingHorizontal: moderateScale(10),
     borderRadius: moderateScale(10),
     gap: moderateScale(5),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
     flexShrink: 0,
   },
   editHeaderBtnText: {
     fontSize: moderateScale(12.5),
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   scrollContent: {
     padding: 16,
     gap: 14,
   },
   heroCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   heroTop: {
     flexDirection: 'row',
@@ -716,15 +727,17 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 2.5,
-    borderColor: '#38BDF8',
+    borderColor: '#DC2626',
   },
   avatarPlaceholder: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   verifiedBadge: {
     position: 'absolute',
@@ -734,7 +747,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 3,
     borderWidth: 1.5,
-    borderColor: '#1E293B',
+    borderColor: '#FFFFFF',
   },
   heroTextInfo: {
     flex: 1,
@@ -742,34 +755,36 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     alignSelf: 'flex-start',
     gap: 4,
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
   statusPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#059669',
     letterSpacing: 0.5,
   },
   heroName: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   heroPhone: {
     fontSize: 13.5,
-    color: '#38BDF8',
-    fontWeight: '600',
+    color: '#DC2626',
+    fontWeight: '700',
     marginTop: 2,
   },
   heroDivider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
   heroAddressRow: {
@@ -782,7 +797,7 @@ const styles = StyleSheet.create({
   },
   heroAddressText: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: '#475569',
     flex: 1,
     lineHeight: 17,
   },
@@ -795,7 +810,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -843,19 +858,21 @@ const styles = StyleSheet.create({
   controlsTitle: {
     fontSize: 11.5,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 0.6,
   },
   toggleAllBtn: {
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   toggleAllText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   cardContent: {
     gap: 12,
@@ -866,7 +883,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: '#F1F5F9',
   },
   infoLabelRow: {
     flexDirection: 'row',
@@ -876,11 +893,11 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12.5,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   infoValue: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontWeight: '600',
     flexShrink: 1,
     textAlign: 'right',
@@ -890,28 +907,28 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addressBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   addressBoxText: {
     fontSize: 13,
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontWeight: '600',
     lineHeight: 19,
   },
   bloodTypeCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FEF2F2',
     padding: 12,
     borderRadius: 14,
     gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: '#FECACA',
   },
   bloodTypeNote: {
     flex: 1,
@@ -919,11 +936,11 @@ const styles = StyleSheet.create({
   bloodTypeNoteTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#F87171',
+    color: '#991B1B',
   },
   bloodTypeNoteDesc: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#7F1D1D',
     marginTop: 2,
     lineHeight: 15,
   },
@@ -939,6 +956,7 @@ const styles = StyleSheet.create({
   subCatTitle: {
     fontSize: 12.5,
     fontWeight: '700',
+    color: '#0F172A',
   },
   badgeFlexWrap: {
     flexDirection: 'row',
@@ -946,33 +964,35 @@ const styles = StyleSheet.create({
   },
   emptyNoteText: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     fontStyle: 'italic',
   },
   additionalNoteBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     padding: 10,
     borderRadius: 10,
     gap: 8,
     marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   additionalNoteText: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: '#475569',
     flex: 1,
     lineHeight: 16,
   },
   smsToggleBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     padding: 12,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   smsToggleTextCol: {
     flex: 1,
@@ -987,62 +1007,64 @@ const styles = StyleSheet.create({
   smsTag: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   smsToggleTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginBottom: 2,
   },
   smsToggleDesc: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     lineHeight: 15,
   },
   iceListHeader: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 4,
   },
   noIceBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   noIceText: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     textAlign: 'center',
   },
   dependentsBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   dependentsText: {
     fontSize: 12.5,
-    color: '#CBD5E1',
+    color: '#334155',
     lineHeight: 18,
   },
   fullEditBtn: {
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     borderRadius: 16,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#0284C7',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
     marginTop: 6,
   },
   fullEditBtnText: {
@@ -1051,7 +1073,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   logoutBtn: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -1059,11 +1081,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
     marginTop: 12,
   },
   logoutBtnText: {
-    color: '#F87171',
+    color: '#DC2626',
     fontSize: 14.5,
     fontWeight: '700',
   },

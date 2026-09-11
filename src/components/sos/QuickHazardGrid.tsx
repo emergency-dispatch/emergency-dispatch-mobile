@@ -21,9 +21,9 @@ export const HAZARD_DATA: HazardItem[] = [
     title: 'Hỏa Hoạn',
     subtitle: 'Cháy nổ & cứu hỏa',
     icon: Flame,
-    color: '#EF4444',
-    bgColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    color: '#DC2626',
+    bgColor: 'rgba(220, 38, 38, 0.08)',
+    borderColor: 'rgba(220, 38, 38, 0.25)',
   },
   {
     id: 'crash',
@@ -31,9 +31,9 @@ export const HAZARD_DATA: HazardItem[] = [
     title: 'Tai Nạn Giao Thông',
     subtitle: 'Va chạm & lật xe',
     icon: Car,
-    color: '#F59E0B',
-    bgColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: 'rgba(245, 158, 11, 0.35)',
+    color: '#EA580C',
+    bgColor: 'rgba(234, 88, 12, 0.08)',
+    borderColor: 'rgba(234, 88, 12, 0.25)',
   },
   {
     id: 'chemical',
@@ -41,9 +41,9 @@ export const HAZARD_DATA: HazardItem[] = [
     title: 'Tràn Dầu / Hóa Chất',
     subtitle: 'Rò rỉ độc hại',
     icon: Droplet,
-    color: '#A855F7',
-    bgColor: 'rgba(168, 85, 247, 0.12)',
-    borderColor: 'rgba(168, 85, 247, 0.35)',
+    color: '#7C3AED',
+    bgColor: 'rgba(124, 58, 237, 0.08)',
+    borderColor: 'rgba(124, 58, 237, 0.25)',
   },
   {
     id: 'medical',
@@ -51,29 +51,30 @@ export const HAZARD_DATA: HazardItem[] = [
     title: 'Cấp Cứu Y Tế',
     subtitle: 'Bệnh nặng & chấn thương',
     icon: HeartPulse,
-    color: '#10B981',
-    bgColor: 'rgba(168, 85, 247, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    color: '#059669',
+    bgColor: 'rgba(5, 150, 105, 0.08)',
+    borderColor: 'rgba(5, 150, 105, 0.25)',
   },
 ];
 
 interface QuickHazardGridProps {
-  onSelectHazard: (hazard: HazardItem) => void;
+  onSelectHazard: (item: HazardItem) => void;
 }
 
-export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
-  onSelectHazard,
-}) => {
+export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard }) => {
   const { isSmallDevice, moderateScale, fontScale } = useResponsive();
-  const iconSize = isSmallDevice ? 18 : 22;
+
+  const iconCircleSize = moderateScale(isSmallDevice ? 32 : 36);
+  const cardPadding = moderateScale(isSmallDevice ? 10 : 12);
+  const cardMinHeight = moderateScale(isSmallDevice ? 85 : 98);
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={[styles.sectionTitle, { fontSize: fontScale(11.5) }]}>
+        <Text style={[styles.sectionTitle, { fontSize: fontScale(10.5) }]}>
           BÁO CÁO NHANH SỰ CỐ
         </Text>
-        <Text style={[styles.sectionBadge, { fontSize: fontScale(10.5) }]}>
+        <Text style={[styles.sectionBadge, { fontSize: fontScale(10) }]}>
           Chạm 1 chạm
         </Text>
       </View>
@@ -84,19 +85,18 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
           return (
             <TouchableOpacity
               key={item.id}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               onPress={() => onSelectHazard(item)}
               style={[
                 styles.card,
                 {
-                  backgroundColor: item.bgColor,
+                  padding: cardPadding,
+                  minHeight: cardMinHeight,
                   borderColor: item.borderColor,
-                  padding: moderateScale(10),
-                  minHeight: moderateScale(isSmallDevice ? 86 : 94),
                 },
               ]}
               accessible={true}
-              accessibilityLabel={`Báo cáo sự cố ${item.title}`}
+              accessibilityLabel={`Báo cáo ${item.title}. ${item.subtitle}`}
               accessibilityRole="button"
             >
               <View style={styles.cardHeader}>
@@ -104,18 +104,22 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
                   style={[
                     styles.iconCircle,
                     {
-                      backgroundColor: item.color + '22',
-                      width: moderateScale(isSmallDevice ? 32 : 36),
-                      height: moderateScale(isSmallDevice ? 32 : 36),
+                      backgroundColor: item.bgColor,
+                      width: iconCircleSize,
+                      height: iconCircleSize,
                     },
                   ]}
                 >
-                  <IconComponent size={iconSize} color={item.color} strokeWidth={2.4} />
+                  <IconComponent
+                    size={moderateScale(isSmallDevice ? 18 : 20)}
+                    color={item.color}
+                    strokeWidth={2.4}
+                  />
                 </View>
                 <Text
                   style={[
                     styles.codeTag,
-                    { color: item.color, fontSize: fontScale(8.5) },
+                    { color: item.color, fontSize: fontScale(9) },
                   ]}
                 >
                   {item.code}
@@ -162,12 +166,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 1.2,
   },
   sectionBadge: {
-    fontWeight: '600',
-    color: '#38BDF8',
+    fontWeight: '700',
+    color: '#DC2626',
   },
   grid: {
     flexDirection: 'row',
@@ -178,8 +182,14 @@ const styles = StyleSheet.create({
   card: {
     width: '48.5%',
     borderRadius: 14,
-    borderWidth: 1.2,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'space-between',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -198,12 +208,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: 1,
   },
   cardSubtitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '500',
   },
 });
-

@@ -46,14 +46,14 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
     <View style={styles.card}>
       <View style={styles.leftContent}>
         <View style={styles.avatarWrapper}>
-          <User size={20} color="#38BDF8" />
+          <User size={20} color="#DC2626" />
         </View>
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name}>{contact.name}</Text>
             {contact.isPrimary && (
               <View style={styles.primaryBadge}>
-                <Shield size={10} color="#10B981" />
+                <Shield size={10} color="#059669" />
                 <Text style={styles.primaryText}>Ưu tiên 1</Text>
               </View>
             )}
@@ -80,7 +80,7 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
             onPress={handleDelete}
             activeOpacity={0.7}
           >
-            <Trash2 size={16} color="#EF4444" />
+            <Trash2 size={16} color="#DC2626" />
           </TouchableOpacity>
         )}
       </View>
@@ -90,7 +90,7 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
@@ -98,7 +98,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   leftContent: {
     flexDirection: 'row',
@@ -110,10 +115,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.18)',
   },
   info: {
     flex: 1,
@@ -127,13 +134,13 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   primaryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 6,
@@ -143,17 +150,17 @@ const styles = StyleSheet.create({
   primaryText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#059669',
   },
   relation: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 2,
   },
   phone: {
     fontSize: 13,
-    color: '#38BDF8',
-    fontWeight: '600',
+    color: '#DC2626',
+    fontWeight: '700',
   },
   rightActions: {
     flexDirection: 'row',
@@ -172,7 +179,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },

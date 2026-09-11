@@ -140,7 +140,7 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0B0F19" safeArea style={styles.container}>
+    <ScreenContainer backgroundColor="#F8FAFC" safeArea style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -464,20 +464,20 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   card: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     elevation: 3,
-    shadowColor: '#000000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
   },
   roleSwitcherContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
@@ -493,10 +493,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   roleTabActiveCitizen: {
-    backgroundColor: '#EF4444',
-    shadowColor: '#EF4444',
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   roleTabText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   roleTabTextActive: {
     color: '#FFFFFF',
@@ -529,23 +529,23 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   rememberMeText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12.5,
   },
   forgotPasswordText: {
-    color: '#38BDF8',
+    color: '#DC2626',
     fontSize: 13,
     fontWeight: '600',
   },
   loginBtn: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 6,
     elevation: 4,
-    shadowColor: '#EF4444',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   loginBtnStaff: {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#E2E8F0',
   },
   demoHeader: {
     flexDirection: 'row',
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   demoHeaderText: {
     fontSize: 10.5,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: '#D97706',
     letterSpacing: 0.4,
   },
   demoButtonsRow: {
@@ -586,9 +586,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: '#FECACA',
     paddingVertical: 9,
     borderRadius: 10,
     gap: 6,
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   demoBtnCitizenText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#FCA5A5',
+    color: '#DC2626',
   },
   demoBtnStaff: {
     flex: 1,
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
   demoBtnStaffText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#0284C7',
   },
   footer: {
     flexDirection: 'row',
@@ -623,11 +623,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footerText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13.5,
   },
   registerLink: {
-    color: '#38BDF8',
+    color: '#DC2626',
     fontSize: 14,
     fontWeight: '700',
   },

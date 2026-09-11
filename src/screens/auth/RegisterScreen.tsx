@@ -172,7 +172,7 @@ export const RegisterScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor="#0B0F19" safeArea style={styles.container}>
+    <ScreenContainer backgroundColor="#F8FAFC" safeArea style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -204,9 +204,9 @@ export const RegisterScreen: React.FC = () => {
                 setFullName(val);
                 if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }));
               }}
-              variant="dark"
+              variant="light"
               error={errors.fullName}
-              leftIcon={<User size={18} color="#94A3B8" />}
+              leftIcon={<User size={18} color="#64748B" />}
             />
 
             {/* Phone */}
@@ -218,10 +218,10 @@ export const RegisterScreen: React.FC = () => {
                 setPhone(val);
                 if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
               }}
-              variant="dark"
+              variant="light"
               keyboardType="phone-pad"
               error={errors.phone}
-              leftIcon={<Phone size={18} color="#94A3B8" />}
+              leftIcon={<Phone size={18} color="#64748B" />}
             />
 
             {/* Email */}
@@ -233,11 +233,11 @@ export const RegisterScreen: React.FC = () => {
                 setEmail(val);
                 if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
               }}
-              variant="dark"
+              variant="light"
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
-              leftIcon={<Mail size={18} color="#94A3B8" />}
+              leftIcon={<Mail size={18} color="#64748B" />}
             />
 
             {/* Password */}
@@ -249,19 +249,19 @@ export const RegisterScreen: React.FC = () => {
                 setPassword(val);
                 if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
-              variant="dark"
+              variant="light"
               secureTextEntry={!showPassword}
               error={errors.password}
-              leftIcon={<Lock size={18} color="#94A3B8" />}
+              leftIcon={<Lock size={18} color="#64748B" />}
               rightIcon={
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color="#94A3B8" />
+                    <EyeOff size={18} color="#64748B" />
                   ) : (
-                    <Eye size={18} color="#94A3B8" />
+                    <Eye size={18} color="#64748B" />
                   )}
                 </TouchableOpacity>
               }
@@ -280,19 +280,19 @@ export const RegisterScreen: React.FC = () => {
                 if (errors.confirmPassword)
                   setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
               }}
-              variant="dark"
+              variant="light"
               secureTextEntry={!showConfirmPassword}
               error={errors.confirmPassword}
-              leftIcon={<Lock size={18} color="#94A3B8" />}
+              leftIcon={<Lock size={18} color="#64748B" />}
               rightIcon={
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff size={18} color="#94A3B8" />
+                    <EyeOff size={18} color="#64748B" />
                   ) : (
-                    <Eye size={18} color="#94A3B8" />
+                    <Eye size={18} color="#64748B" />
                   )}
                 </TouchableOpacity>
               }
@@ -306,7 +306,7 @@ export const RegisterScreen: React.FC = () => {
             >
               <View style={styles.accordionLeft}>
                 <View style={styles.emergencyIconWrap}>
-                  <HeartPulse color="#EF4444" size={16} />
+                  <HeartPulse color="#DC2626" size={16} />
                 </View>
                 <View>
                   <Text style={styles.accordionTitle}>2. Thiết lập Cứu hộ nhanh (Khuyên dùng)</Text>
@@ -314,9 +314,9 @@ export const RegisterScreen: React.FC = () => {
                 </View>
               </View>
               {showEmergencySection ? (
-                <ChevronUp color="#94A3B8" size={20} />
+                <ChevronUp color="#64748B" size={20} />
               ) : (
-                <ChevronDown color="#94A3B8" size={20} />
+                <ChevronDown color="#64748B" size={20} />
               )}
             </TouchableOpacity>
 
@@ -353,8 +353,8 @@ export const RegisterScreen: React.FC = () => {
                   placeholder="VD: Bố / Mẹ / Vợ / Chồng"
                   value={iceName}
                   onChangeText={setIceName}
-                  variant="dark"
-                  leftIcon={<User size={18} color="#94A3B8" />}
+                  variant="light"
+                  leftIcon={<User size={18} color="#64748B" />}
                 />
                 <Input
                   label="Số điện thoại người thân (ICE)"
@@ -364,10 +364,10 @@ export const RegisterScreen: React.FC = () => {
                     setIcePhone(val);
                     if (errors.icePhone) setErrors((prev) => ({ ...prev, icePhone: undefined }));
                   }}
-                  variant="dark"
+                  variant="light"
                   keyboardType="phone-pad"
                   error={errors.icePhone}
-                  leftIcon={<PhoneCall size={18} color="#94A3B8" />}
+                  leftIcon={<PhoneCall size={18} color="#64748B" />}
                 />
               </View>
             )}
@@ -431,21 +431,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     elevation: 3,
-    shadowColor: '#000000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   sectionHeader: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#60A5FA',
+    color: '#DC2626',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -454,13 +454,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 12,
     marginTop: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   accordionLeft: {
     flexDirection: 'row',
@@ -472,32 +472,32 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   accordionTitle: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '700',
   },
   accordionSubtitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11.5,
     marginTop: 1,
   },
   emergencyBox: {
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    backgroundColor: '#FEF2F2',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#FECACA',
     marginBottom: 12,
   },
   fieldLabel: {
     fontSize: 12.5,
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: '#334155',
     marginBottom: 8,
   },
   bloodList: {
@@ -508,17 +508,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginRight: 8,
   },
   bloodBadgeSelected: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
   bloodBadgeText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -536,39 +536,39 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#64748B',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
   termsText: {
     flex: 1,
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12.5,
     lineHeight: 18,
   },
   termsHighlight: {
-    color: '#60A5FA',
+    color: '#DC2626',
     fontWeight: '600',
   },
   termsError: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: 12,
     marginBottom: 10,
   },
   submitBtn: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#DC2626',
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 4,
-    elevation: 4,
-    shadowColor: '#3B82F6',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   submitBtnText: {
@@ -584,11 +584,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footerText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13.5,
   },
   loginLink: {
-    color: '#38BDF8',
+    color: '#DC2626',
     fontSize: 14,
     fontWeight: '700',
   },

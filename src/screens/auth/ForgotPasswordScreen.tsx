@@ -147,7 +147,7 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   return (
     <ScreenContainer
-      backgroundColor="#0B0F19"
+      backgroundColor="#F8FAFC"
       safeArea={true}
       edges={['top', 'left', 'right', 'bottom']}
       style={styles.container}
@@ -239,7 +239,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                 <View style={styles.cardBody}>
                   <View style={styles.iconCenterWrap}>
                     <View style={styles.stepIconBox}>
-                      <KeyRound size={moderateScale(26)} color="#38BDF8" />
+                      <KeyRound size={moderateScale(26)} color="#DC2626" />
                     </View>
                   </View>
 
@@ -251,15 +251,15 @@ export const ForgotPasswordScreen: React.FC = () => {
                       setAccount(val);
                       if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
                     }}
-                    variant="dark"
+                    variant="light"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     error={errors.account}
                     leftIcon={
                       account.includes('@') ? (
-                        <Mail size={moderateScale(18)} color="#94A3B8" />
+                        <Mail size={moderateScale(18)} color="#64748B" />
                       ) : (
-                        <Phone size={moderateScale(18)} color="#94A3B8" />
+                        <Phone size={moderateScale(18)} color="#64748B" />
                       )
                     }
                   />
@@ -279,7 +279,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                 <View style={styles.cardBody}>
                   <View style={styles.iconCenterWrap}>
                     <View style={styles.stepIconBox}>
-                      <ShieldCheck size={moderateScale(26)} color="#10B981" />
+                      <ShieldCheck size={moderateScale(26)} color="#DC2626" />
                     </View>
                   </View>
 
@@ -344,7 +344,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                 <View style={styles.cardBody}>
                   <View style={styles.iconCenterWrap}>
                     <View style={styles.stepIconBox}>
-                      <Lock size={moderateScale(26)} color="#F59E0B" />
+                      <Lock size={moderateScale(26)} color="#DC2626" />
                     </View>
                   </View>
 
@@ -356,19 +356,19 @@ export const ForgotPasswordScreen: React.FC = () => {
                       setNewPassword(val);
                       if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
                     }}
-                    variant="dark"
+                    variant="light"
                     secureTextEntry={!showPassword}
                     error={errors.password}
-                    leftIcon={<Lock size={moderateScale(18)} color="#94A3B8" />}
+                    leftIcon={<Lock size={moderateScale(18)} color="#64748B" />}
                     rightIcon={
                       <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         {showPassword ? (
-                          <EyeOff size={moderateScale(18)} color="#94A3B8" />
+                          <EyeOff size={moderateScale(18)} color="#64748B" />
                         ) : (
-                          <Eye size={moderateScale(18)} color="#94A3B8" />
+                          <Eye size={moderateScale(18)} color="#64748B" />
                         )}
                       </TouchableOpacity>
                     }
@@ -385,19 +385,19 @@ export const ForgotPasswordScreen: React.FC = () => {
                       if (errors.confirmPassword)
                         setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
                     }}
-                    variant="dark"
+                    variant="light"
                     secureTextEntry={!showConfirmPassword}
                     error={errors.confirmPassword}
-                    leftIcon={<Lock size={moderateScale(18)} color="#94A3B8" />}
+                    leftIcon={<Lock size={moderateScale(18)} color="#64748B" />}
                     rightIcon={
                       <TouchableOpacity
                         onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         {showConfirmPassword ? (
-                          <EyeOff size={moderateScale(18)} color="#94A3B8" />
+                          <EyeOff size={moderateScale(18)} color="#64748B" />
                         ) : (
-                          <Eye size={moderateScale(18)} color="#94A3B8" />
+                          <Eye size={moderateScale(18)} color="#64748B" />
                         )}
                       </TouchableOpacity>
                     }
@@ -500,23 +500,23 @@ const styles = StyleSheet.create({
     width: moderateScale(26),
     height: moderateScale(26),
     borderRadius: moderateScale(13),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepDotActive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    borderColor: '#DC2626',
   },
   stepDotCurrent: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#60A5FA',
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
     elevation: 3,
-    shadowColor: '#3B82F6',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   stepDotText: {
@@ -525,28 +525,28 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   stepDotTextActive: {
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
   stepLine: {
     flex: 1,
     height: 2,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#E2E8F0',
     marginHorizontal: moderateScale(6),
   },
   stepLineActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#DC2626',
   },
   card: {
     width: '100%',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(16),
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     elevation: 3,
-    shadowColor: '#000000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
   },
   cardBody: {
@@ -560,38 +560,38 @@ const styles = StyleSheet.create({
     width: moderateScale(52),
     height: moderateScale(52),
     borderRadius: moderateScale(26),
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: '#FECACA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   instructionText: {
     fontSize: moderateScale(12.5),
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     marginBottom: verticalScale(6),
     lineHeight: verticalScale(18),
   },
   highlightText: {
-    color: '#38BDF8',
+    color: '#DC2626',
     fontWeight: '700',
   },
   errorTextCenter: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: moderateScale(11.5),
     textAlign: 'center',
     marginBottom: verticalScale(6),
   },
   primaryBtn: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(12),
     marginTop: verticalScale(12),
-    elevation: 4,
-    shadowColor: '#3B82F6',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   btnText: {
@@ -628,27 +628,27 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: moderateScale(18),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     textAlign: 'center',
     marginBottom: verticalScale(6),
   },
   successSubtitle: {
     fontSize: moderateScale(12.5),
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: verticalScale(18),
     marginBottom: verticalScale(20),
     paddingHorizontal: moderateScale(8),
   },
   successBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(12),
     width: '100%',
-    elevation: 4,
-    shadowColor: '#10B981',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   footer: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     gap: moderateScale(6),
   },
   backLoginText: {
-    color: '#94A3B8',
+    color: '#DC2626',
     fontSize: moderateScale(12.5),
     fontWeight: '600',
   },

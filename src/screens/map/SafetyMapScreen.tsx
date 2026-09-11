@@ -6,7 +6,7 @@ import { MapPin, Navigation, Shield, AlertTriangle } from 'lucide-react-native';
 export const SafetyMapScreen: React.FC = () => {
   return (
     <ScreenContainer
-      backgroundColor="#0F172A"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right']}
       style={styles.container}
     >
@@ -19,7 +19,7 @@ export const SafetyMapScreen: React.FC = () => {
       {/* Mock Map View Area */}
       <View style={styles.mapArea}>
         <View style={styles.centerPill}>
-          <MapPin size={24} color="#EF4444" />
+          <MapPin size={24} color="#DC2626" />
           <Text style={styles.centerPillText}>Vị trí của bạn (Độ chính xác cao ±3m)</Text>
         </View>
 
@@ -59,19 +59,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   mapArea: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -80,27 +80,39 @@ const styles = StyleSheet.create({
   centerPill: {
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   centerPillText: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   legendContainer: {
     position: 'absolute',
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     padding: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   legendItem: {
     flexDirection: 'row',
@@ -108,19 +120,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   legendText: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   recenterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#DC2626',
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
     marginTop: 12,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   recenterText: {
     color: '#FFFFFF',

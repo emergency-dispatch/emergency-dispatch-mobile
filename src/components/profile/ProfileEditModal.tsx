@@ -301,7 +301,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               >
                 <User
                   size={16}
-                  color={activeTab === 'identity' ? '#38BDF8' : '#94A3B8'}
+                  color={activeTab === 'identity' ? '#DC2626' : '#64748B'}
                 />
                 <Text
                   style={[
@@ -322,7 +322,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               >
                 <HeartPulse
                   size={16}
-                  color={activeTab === 'medical' ? '#EF4444' : '#94A3B8'}
+                  color={activeTab === 'medical' ? '#DC2626' : '#64748B'}
                 />
                 <Text
                   style={[
@@ -878,17 +878,17 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '92%',
     height: '92%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   header: {
     flexDirection: 'row',
@@ -898,26 +898,26 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   closeBtn: {
     padding: 6,
     borderRadius: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     padding: 4,
     marginHorizontal: 16,
     marginTop: 12,
@@ -933,15 +933,19 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   tabItemActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   tabLabelActive: {
-    color: '#FFFFFF',
+    color: '#DC2626',
   },
   scrollBody: {
     flex: 1,
@@ -958,16 +962,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: '#0F172A',
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
   },
   textArea: {
@@ -984,24 +988,24 @@ const styles = StyleSheet.create({
   },
   genderBtn: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   genderBtnActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   genderText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   genderTextActive: {
-    color: '#0F172A',
+    color: '#DC2626',
   },
   bloodTypeGrid: {
     flexDirection: 'row',
@@ -1012,21 +1016,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: '#E2E8F0',
   },
   bloodBtnActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
   bloodText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#EF4444',
+    color: '#DC2626',
   },
   bloodTextActive: {
     color: '#FFFFFF',
@@ -1042,7 +1046,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addBtn: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     width: 44,
     height: 44,
     borderRadius: 12,
@@ -1062,26 +1066,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sugChip: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   sugText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#475569',
   },
   switchBox: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   switchTextCol: {
     flex: 1,
@@ -1090,29 +1094,29 @@ const styles = StyleSheet.create({
   switchTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: 4,
   },
   switchDesc: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     lineHeight: 16,
   },
   sectionHeading: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#0F172A',
     letterSpacing: 0.5,
   },
   contactItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   contactItemInfo: {
     flex: 1,
@@ -1120,24 +1124,24 @@ const styles = StyleSheet.create({
   contactItemName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   contactItemMeta: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   deleteContactBtn: {
     padding: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     borderRadius: 8,
   },
   addNewContactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderRadius: 12,
@@ -1147,20 +1151,20 @@ const styles = StyleSheet.create({
   addNewContactText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   addContactCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#DC2626',
   },
   addContactTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   addContactActions: {
     flexDirection: 'row',
@@ -1172,12 +1176,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 8,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
   },
   cancelAddText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: '#64748B',
   },
   confirmAddBtn: {
     paddingVertical: 8,
@@ -1192,36 +1196,36 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 11,
-    color: '#F59E0B',
+    color: '#D97706',
     lineHeight: 16,
     fontStyle: 'italic',
   },
   footer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#E2E8F0',
     gap: 12,
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   cancelBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   saveBtn: {
     flex: 2,
     flexDirection: 'row',
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

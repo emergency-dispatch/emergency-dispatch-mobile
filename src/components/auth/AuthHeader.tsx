@@ -134,7 +134,9 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: verticalScale(16),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(14),
   },
   topRow: {
     flexDirection: 'row',
@@ -234,4 +236,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(12),
   },
 });
-

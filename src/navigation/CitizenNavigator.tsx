@@ -27,14 +27,19 @@ export const CitizenNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: '#1E293B',
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E2E8F0',
           borderTopWidth: 1,
           height: tabHeight,
           paddingBottom: paddingBottom,
           paddingTop: 8,
+          elevation: 4,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
         },
-        tabBarActiveTintColor: '#EF4444',
+        tabBarActiveTintColor: '#DC2626',
         tabBarInactiveTintColor: '#64748B',
         tabBarLabelStyle: {
           fontSize: fontScale(isSmallDevice ? 9.5 : 10.5),

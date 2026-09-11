@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
     zIndex: 3,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.7,
-    shadowRadius: 18,
-    elevation: 16,
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 14,
   },
   buttonPressed: {
     backgroundColor: '#B91C1C',

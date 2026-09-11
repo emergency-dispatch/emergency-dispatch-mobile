@@ -31,7 +31,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -47,4 +50,5 @@ AGENTS.md
 .agents/
 .gemini/
 .cursor/
+.idea/
 

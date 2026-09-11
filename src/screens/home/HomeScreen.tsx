@@ -104,7 +104,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <ScreenContainer
-      backgroundColor="#0F172A"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right']}
       style={[
         styles.container,
@@ -134,7 +134,7 @@ export const HomeScreen: React.FC = () => {
 
           <View style={styles.addressInfo}>
             <View style={styles.addressTitleRow}>
-              <MapPin size={12} color="#38BDF8" />
+              <MapPin size={12} color="#DC2626" />
               <Text style={[styles.accuracyTag, { fontSize: fontScale(9) }]}>
                 Chính xác ±3m
               </Text>
@@ -170,7 +170,7 @@ export const HomeScreen: React.FC = () => {
           accessibilityLabel="Xem lịch sử sự cố đã gửi"
           accessibilityRole="button"
         >
-          <Clock size={headerIconSize} color="#38BDF8" />
+          <Clock size={headerIconSize} color="#475569" />
         </TouchableOpacity>
 
         {/* Medical ID / Profile Quick Button */}
@@ -190,7 +190,7 @@ export const HomeScreen: React.FC = () => {
           accessibilityLabel="Xem hồ sơ y tế cứu hộ"
           accessibilityRole="button"
         >
-          <HeartPulse size={headerIconSize} color="#EF4444" />
+          <HeartPulse size={headerIconSize} color="#DC2626" />
         </TouchableOpacity>
       </View>
 
@@ -204,7 +204,7 @@ export const HomeScreen: React.FC = () => {
       >
         {/* Top Banner Notice */}
         <View style={styles.systemBanner}>
-          <Sparkles size={13} color="#38BDF8" />
+          <Sparkles size={13} color="#DC2626" />
           <Text style={[styles.systemBannerText, { fontSize: fontScale(9.5) }]}>
             HỆ THỐNG CỨU HỘ ĐANG TRỰC TUYẾN (24/7)
           </Text>
@@ -232,7 +232,7 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Chụp ảnh hiện trường nhanh"
             >
-              <Camera size={isSmallDevice ? 16 : 18} color="#38BDF8" />
+              <Camera size={isSmallDevice ? 16 : 18} color="#2563EB" />
               <Text
                 style={[
                   styles.quickBarBtnText,
@@ -251,7 +251,7 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Quay clip 5 giây hiện trường"
             >
-              <Video size={isSmallDevice ? 16 : 18} color="#EF4444" />
+              <Video size={isSmallDevice ? 16 : 18} color="#DC2626" />
               <Text
                 style={[
                   styles.quickBarBtnText,
@@ -270,7 +270,7 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel="Ghi chú mô tả hiện trường"
             >
-              <FileEdit size={isSmallDevice ? 16 : 18} color="#A855F7" />
+              <FileEdit size={isSmallDevice ? 16 : 18} color="#7C3AED" />
               <Text
                 style={[
                   styles.quickBarBtnText,
@@ -318,13 +318,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     paddingVertical: 8,
     paddingHorizontal: 12,
     gap: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   gpsIndicatorWrapper: {
     width: 14,
@@ -337,7 +342,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: 'rgba(16, 185, 129, 0.4)',
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
   },
   gpsDot: {
     width: 8,
@@ -356,12 +361,12 @@ const styles = StyleSheet.create({
   accuracyTag: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   addressText: {
     fontSize: 11.5,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   rotating: {
     transform: [{ rotate: '45deg' }],
@@ -370,15 +375,20 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   profileButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: 'rgba(220, 38, 38, 0.06)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
   },
   scrollContent: {
     paddingBottom: 24,
@@ -388,9 +398,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.3)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -400,7 +410,7 @@ const styles = StyleSheet.create({
   systemBannerText: {
     fontSize: 10.5,
     fontWeight: '800',
-    color: '#60A5FA',
+    color: '#DC2626',
     letterSpacing: 0.8,
   },
   heroSosSection: {
@@ -410,17 +420,22 @@ const styles = StyleSheet.create({
   },
   mediaQuickBar: {
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     padding: 12,
     marginTop: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   quickBarTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 1,
     marginBottom: 8,
     paddingHorizontal: 4,
@@ -434,25 +449,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     paddingVertical: 10,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   photoBtn: {
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: '#E2E8F0',
   },
   videoBtn: {
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(220, 38, 38, 0.25)',
+    backgroundColor: 'rgba(220, 38, 38, 0.04)',
   },
   noteBtn: {
-    borderColor: 'rgba(168, 85, 247, 0.3)',
+    borderColor: '#E2E8F0',
   },
   quickBarBtnText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
 });

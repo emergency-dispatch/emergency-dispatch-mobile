@@ -492,11 +492,11 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   emergencyBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FEF2F2',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#FECACA',
     marginBottom: 12,
   },
   fieldLabel: {
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   submitBtnText: {

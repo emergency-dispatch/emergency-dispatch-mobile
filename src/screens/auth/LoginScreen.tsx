@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   loginBtnStaff: {

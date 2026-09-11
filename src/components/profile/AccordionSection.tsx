@@ -11,9 +11,9 @@ import {
 import { ChevronDown, ChevronUp, Edit3 } from 'lucide-react-native';
 
 // Only enable experimental layout animation on Old Architecture Android (no-op & warns on New Architecture)
-const isFabric =
-  Boolean((globalThis as any)?._IS_FABRIC) ||
-  Boolean((globalThis as any)?.nativeFabricUIManager);
+const isFabric = Boolean(
+  (globalThis as any)?._IS_FABRIC || (globalThis as any)?.nativeFabricUIManager
+);
 if (
   Platform.OS === 'android' &&
   !isFabric &&
@@ -119,9 +119,9 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
 
         <View style={styles.chevronWrapper}>
           {isExpanded ? (
-            <ChevronUp size={18} color="#94A3B8" />
+            <ChevronUp size={18} color="#64748B" />
           ) : (
-            <ChevronDown size={18} color="#94A3B8" />
+            <ChevronDown size={18} color="#64748B" />
           )}
         </View>
       </TouchableOpacity>
@@ -141,7 +141,7 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
               accessible={true}
               accessibilityLabel={`Chỉnh sửa ${title}`}
             >
-              <Edit3 size={14} color="#38BDF8" />
+              <Edit3 size={14} color="#DC2626" />
               <Text style={styles.quickEditText}>Chỉnh sửa mục này</Text>
             </TouchableOpacity>
           )}
@@ -153,15 +153,20 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   containerExpanded: {
-    borderColor: '#475569',
-    backgroundColor: '#1E293B',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
     lineHeight: 15,
   },
@@ -200,28 +205,28 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   summaryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#E2E8F0',
   },
   summaryBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: '#475569',
   },
   chevronWrapper: {
     padding: 4,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     marginBottom: 14,
   },
   expandedBody: {
@@ -232,8 +237,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    backgroundColor: 'rgba(220, 38, 38, 0.06)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
     borderWidth: 1,
     borderRadius: 10,
     paddingVertical: 8,
@@ -243,6 +248,6 @@ const styles = StyleSheet.create({
   quickEditText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
 });

@@ -33,43 +33,43 @@ export const EmergencyBadge: React.FC<EmergencyBadgeProps> = ({
     switch (variant) {
       case 'allergy':
         return {
-          bg: 'rgba(239, 68, 68, 0.15)',
-          border: 'rgba(239, 68, 68, 0.4)',
-          text: '#FCA5A5',
-          iconColor: '#EF4444',
+          bg: '#FEE2E2',
+          border: '#FECACA',
+          text: '#B91C1C',
+          iconColor: '#DC2626',
           Icon: AlertTriangle,
         };
       case 'condition':
         return {
-          bg: 'rgba(245, 158, 11, 0.15)',
-          border: 'rgba(245, 158, 11, 0.4)',
-          text: '#FCD34D',
-          iconColor: '#F59E0B',
+          bg: '#FEF3C7',
+          border: '#FDE68A',
+          text: '#B45309',
+          iconColor: '#D97706',
           Icon: HeartPulse,
         };
       case 'medication':
         return {
-          bg: 'rgba(56, 189, 248, 0.15)',
-          border: 'rgba(56, 189, 248, 0.4)',
-          text: '#7DD3FC',
-          iconColor: '#38BDF8',
+          bg: '#E0F2FE',
+          border: '#BAE6FD',
+          text: '#0369A1',
+          iconColor: '#0284C7',
           Icon: Pill,
         };
       case 'mobility':
         return {
-          bg: 'rgba(168, 85, 247, 0.15)',
-          border: 'rgba(168, 85, 247, 0.4)',
-          text: '#D8B4FE',
-          iconColor: '#A855F7',
+          bg: '#F3E8FF',
+          border: '#E9D5FF',
+          text: '#6D28D9',
+          iconColor: '#7C3AED',
           Icon: Accessibility,
         };
       case 'special':
       default:
         return {
-          bg: 'rgba(16, 185, 129, 0.15)',
-          border: 'rgba(16, 185, 129, 0.4)',
-          text: '#6EE7B7',
-          iconColor: '#10B981',
+          bg: '#F1F5F9',
+          border: '#E2E8F0',
+          text: '#334155',
+          iconColor: '#475569',
           Icon: Info,
         };
     }

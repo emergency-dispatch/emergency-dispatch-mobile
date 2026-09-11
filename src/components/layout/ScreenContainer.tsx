@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, StyleProp, ViewStyle, StatusBar } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle, StatusBar as RNStatusBar } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 
@@ -33,13 +34,17 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
         : 'dark-content'
       : statusBarStyle;
 
+  const expoStatusStyle =
+    finalBarStyle === 'light-content' ? 'light' : 'dark';
+
   if (safeArea) {
     return (
       <SafeAreaView
         edges={edges ?? ['top', 'left', 'right', 'bottom']}
         style={[styles.container, { backgroundColor }, style]}
       >
-        <StatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+        <RNStatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+        <ExpoStatusBar style={expoStatusStyle} />
         {children}
       </SafeAreaView>
     );
@@ -47,7 +52,8 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor }, style]}>
-      <StatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+      <RNStatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+      <ExpoStatusBar style={expoStatusStyle} />
       {children}
     </View>
   );

@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
     borderWidth: 1.5,
     borderRadius: 14,
     paddingVertical: 8,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#F87171',
+    color: '#DC2626',
     letterSpacing: 0.8,
   },
   labelLarge: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#991B1B',
   },
   valueLarge: {
     fontSize: 26,

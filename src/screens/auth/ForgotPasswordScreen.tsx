@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   btnText: {
@@ -647,14 +647,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(8),
   },
   successBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(12),
     width: '100%',
-    elevation: 4,
-    shadowColor: '#10B981',
+    elevation: 3,
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   footer: {

@@ -37,7 +37,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
       {/* Shift Title & Progress */}
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
-          <TrendingUp size={moderateScale(15)} color="#38BDF8" />
+          <TrendingUp size={moderateScale(15)} color="#DC2626" />
           <Text
             style={styles.sectionTitle}
             numberOfLines={1}
@@ -174,11 +174,16 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(14),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     marginBottom: verticalScale(12),
   },
   headerRow: {
@@ -195,24 +200,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: moderateScale(11),
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#334155',
     letterSpacing: 0.8,
   },
   shiftTimeText: {
     fontSize: moderateScale(11),
-    fontWeight: '600',
-    color: '#38BDF8',
+    fontWeight: '700',
+    color: '#DC2626',
   },
   progressBarBg: {
     height: verticalScale(4),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
     borderRadius: moderateScale(2),
     overflow: 'hidden',
     marginBottom: verticalScale(12),
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(2),
   },
   gridRow: {
@@ -222,12 +227,12 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(12),
     padding: moderateScale(10),
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   iconContainer: {
     width: moderateScale(34),
@@ -245,13 +250,13 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: moderateScale(18),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: -0.5,
   },
   metricUnit: {
     fontSize: moderateScale(10),
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   metricLabel: {
     fontSize: moderateScale(10),
@@ -262,7 +267,9 @@ const styles = StyleSheet.create({
   },
   subBadge: {
     marginTop: verticalScale(6),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(5),
     borderRadius: moderateScale(4),

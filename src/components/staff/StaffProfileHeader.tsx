@@ -96,7 +96,7 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
             onPress={onPressNotifications}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Bell size={moderateScale(20)} color="#F1F5F9" />
+            <Bell size={moderateScale(20)} color="#DC2626" />
             {unreadNotificationsCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.badgeText}>
@@ -112,7 +112,7 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
             onPress={onPressSettings}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Settings size={moderateScale(20)} color="#94A3B8" />
+            <Settings size={moderateScale(20)} color="#475569" />
           </TouchableOpacity>
         </View>
       </View>
@@ -155,16 +155,16 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(14),
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     marginBottom: verticalScale(12),
   },
   topRow: {
@@ -187,14 +187,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: moderateScale(24),
-    backgroundColor: '#334155',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
     fontSize: moderateScale(16),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   statusDot: {
@@ -218,19 +218,19 @@ const styles = StyleSheet.create({
   staffName: {
     fontSize: moderateScale(16),
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: -0.2,
   },
   verifiedBadge: {
     marginLeft: scale(6),
     padding: moderateScale(2),
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    backgroundColor: '#FEF2F2',
     borderRadius: moderateScale(10),
   },
   staffRole: {
     fontSize: moderateScale(12),
-    fontWeight: '500',
-    color: '#94A3B8',
+    fontWeight: '600',
+    color: '#64748B',
     marginTop: verticalScale(2),
   },
   actionButtons: {
@@ -242,9 +242,9 @@ const styles = StyleSheet.create({
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     minWidth: moderateScale(16),
     height: moderateScale(16),
     borderRadius: moderateScale(8),
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: scale(3),
     borderWidth: 1.5,
-    borderColor: '#1E293B',
+    borderColor: '#FFFFFF',
   },
   badgeText: {
     fontSize: moderateScale(9),
@@ -275,19 +275,19 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(12),
     paddingTop: verticalScale(10),
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#F1F5F9',
     gap: scale(8),
   },
   metaBadge: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     paddingVertical: verticalScale(6),
     paddingHorizontal: scale(8),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     minWidth: 0,
   },
   badgeIconBg: {
@@ -311,11 +311,11 @@ const styles = StyleSheet.create({
   badgeValue: {
     fontSize: moderateScale(11.5),
     fontWeight: '800',
-    color: '#F1F5F9',
+    color: '#0F172A',
     marginTop: verticalScale(1),
   },
   plateValue: {
-    color: '#FCA5A5',
+    color: '#DC2626',
     fontFamily: 'monospace',
     letterSpacing: 0.4,
   },

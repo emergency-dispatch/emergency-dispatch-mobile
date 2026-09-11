@@ -58,7 +58,7 @@ export const StaffNotificationsModal: React.FC<StaffNotificationsModalProps> = (
           <View style={styles.modalHeader}>
             <View style={styles.headerTitleRow}>
               <View style={styles.badgeIconBg}>
-                <Bell size={moderateScale(20)} color="#38BDF8" />
+                <Bell size={moderateScale(20)} color="#DC2626" />
               </View>
               <View>
                 <Text style={styles.modalTitle}>Thông Báo Điều Phối 115</Text>
@@ -71,7 +71,7 @@ export const StaffNotificationsModal: React.FC<StaffNotificationsModalProps> = (
               style={styles.closeButton}
               onPress={onClose}
             >
-              <X size={moderateScale(20)} color="#94A3B8" />
+              <X size={moderateScale(20)} color="#475569" />
             </TouchableOpacity>
           </View>
 
@@ -135,13 +135,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: moderateScale(24),
     borderTopRightRadius: moderateScale(24),
     maxHeight: '85%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     paddingBottom: verticalScale(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -151,7 +156,7 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(16),
     paddingBottom: verticalScale(12),
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#F1F5F9',
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -163,25 +168,25 @@ const styles = StyleSheet.create({
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalTitle: {
     fontSize: moderateScale(15),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   modalSubtitle: {
     fontSize: moderateScale(11),
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(2),
   },
   closeButton: {
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: scale(8),
@@ -196,15 +201,15 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(12),
     padding: moderateScale(12),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   unreadCard: {
-    borderColor: '#38BDF8',
-    backgroundColor: '#1E293B',
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   iconContainer: {
     width: moderateScale(36),
@@ -226,7 +231,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: moderateScale(13),
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     flex: 1,
     marginRight: scale(6),
   },
@@ -236,20 +241,20 @@ const styles = StyleSheet.create({
   },
   cardMessage: {
     fontSize: moderateScale(11.5),
-    color: '#94A3B8',
+    color: '#475569',
     lineHeight: moderateScale(16),
   },
   modalFooter: {
     paddingHorizontal: scale(16),
     paddingTop: verticalScale(10),
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#F1F5F9',
   },
   markReadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     paddingVertical: verticalScale(12),
     borderRadius: moderateScale(12),
     gap: scale(6),

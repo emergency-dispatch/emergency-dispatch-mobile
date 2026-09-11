@@ -191,10 +191,10 @@ export const StaffDashboardScreen: React.FC = () => {
 
   return (
     <ScreenContainer
-      backgroundColor="#0B0F19"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right']}
       safeArea
-      statusBarStyle="light-content"
+      statusBarStyle="dark-content"
     >
       <View style={styles.mainWrapper}>
         {/* Scrollable Dashboard Content */}
@@ -209,8 +209,8 @@ export const StaffDashboardScreen: React.FC = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#38BDF8"
-              colors={['#38BDF8', '#10B981', '#EF4444']}
+              tintColor="#DC2626"
+              colors={['#DC2626', '#EF4444']}
             />
           }
         >
@@ -384,7 +384,7 @@ export const StaffDashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#F8FAFC',
   },
   scrollView: {
     flex: 1,
@@ -395,17 +395,17 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(10),
   },
   emergencyAlertBanner: {
-    backgroundColor: 'rgba(220, 38, 38, 0.22)',
+    backgroundColor: '#FEF2F2',
     borderRadius: moderateScale(16),
     padding: moderateScale(12),
     borderWidth: 1.5,
     borderColor: '#EF4444',
     marginBottom: verticalScale(12),
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   emergencyBannerHeader: {
     flexDirection: 'row',
@@ -431,28 +431,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   liveTimerPill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    backgroundColor: '#FFFBEB',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: '#FDE68A',
     flexShrink: 0,
   },
   liveTimerText: {
     fontSize: moderateScale(10),
     fontWeight: '800',
-    color: '#FBBF24',
+    color: '#B45309',
   },
   emergencyBannerTitle: {
     fontSize: moderateScale(13.5),
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#991B1B',
     letterSpacing: 0.3,
   },
   emergencyBannerSub: {
     fontSize: moderateScale(11),
-    color: '#FCA5A5',
+    color: '#475569',
     fontWeight: '600',
     marginTop: verticalScale(3),
   },

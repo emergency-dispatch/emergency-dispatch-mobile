@@ -207,11 +207,11 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     paddingVertical: verticalScale(10),
     paddingHorizontal: scale(14),
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
   },
   stepperTrack: {
     flexDirection: 'row',
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   nodeCircleCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
     borderColor: '#34D399',
   },
   nodeCircleActive: {
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   nodeCirclePending: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
   },
   connectorWrapper: {
     flex: 1,
@@ -272,13 +272,13 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
   },
   connectorCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
   },
   connectorActive: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#DC2626',
   },
   connectorPending: {
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
   },
   stepLabel: {
     fontSize: moderateScale(10.5),
@@ -286,23 +286,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stepLabelCompleted: {
-    color: '#10B981',
+    color: '#059669',
   },
   stepLabelActive: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontWeight: '800',
   },
   stepLabelPending: {
-    color: '#64748B',
+    color: '#94A3B8',
   },
   stepSublabel: {
     fontSize: moderateScale(8.5),
-    color: '#64748B',
+    color: '#94A3B8',
     marginTop: verticalScale(1),
     textAlign: 'center',
   },
   stepSublabelActive: {
-    color: '#38BDF8',
-    fontWeight: '600',
+    color: '#DC2626',
+    fontWeight: '700',
   },
 });

@@ -78,7 +78,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
       {/* Header with Title & View All */}
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
-          <History size={moderateScale(16)} color="#38BDF8" />
+          <History size={moderateScale(16)} color="#DC2626" />
           <Text
             style={styles.sectionTitle}
             numberOfLines={1}
@@ -100,7 +100,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
           >
             Xem tất cả
           </Text>
-          <ChevronRight size={moderateScale(13)} color="#38BDF8" />
+          <ChevronRight size={moderateScale(13)} color="#DC2626" />
         </TouchableOpacity>
       </View>
 
@@ -216,11 +216,16 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(14),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     marginBottom: verticalScale(12),
   },
   headerRow: {
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: moderateScale(11),
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#334155',
     letterSpacing: 0.8,
   },
   viewAllButton: {
@@ -247,18 +252,18 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: moderateScale(11),
-    fontWeight: '600',
-    color: '#38BDF8',
+    fontWeight: '700',
+    color: '#DC2626',
   },
   list: {
     gap: verticalScale(10),
   },
   missionCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(12),
     padding: moderateScale(12),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   lastCard: {
     marginBottom: 0,
@@ -287,7 +292,7 @@ const styles = StyleSheet.create({
   missionCode: {
     fontSize: moderateScale(12),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: 0.3,
   },
   completedTime: {
@@ -313,7 +318,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(6),
     borderRadius: moderateScale(4),
@@ -322,12 +327,12 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: moderateScale(9.5),
     fontWeight: '700',
-    color: '#10B981',
+    color: '#059669',
   },
   incidentTitle: {
     fontSize: moderateScale(13),
     fontWeight: '700',
-    color: '#F1F5F9',
+    color: '#0F172A',
     marginBottom: verticalScale(6),
   },
   addressRow: {
@@ -338,13 +343,15 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: moderateScale(11),
-    color: '#94A3B8',
+    color: '#64748B',
     flex: 1,
   },
   metricsFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingVertical: verticalScale(6),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
@@ -357,12 +364,12 @@ const styles = StyleSheet.create({
   metricItemText: {
     fontSize: moderateScale(10),
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: '#475569',
   },
   metricDivider: {
     width: 1,
     height: verticalScale(10),
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     marginHorizontal: scale(8),
   },
   arrowIcon: {

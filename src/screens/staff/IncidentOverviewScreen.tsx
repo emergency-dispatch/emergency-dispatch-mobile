@@ -92,10 +92,10 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   return (
     <ScreenContainer
-      backgroundColor="#0B0F19"
+      backgroundColor="#F8FAFC"
       edges={['top', 'left', 'right', 'bottom']}
       safeArea
-      statusBarStyle="light-content"
+      statusBarStyle="dark-content"
     >
       <View style={styles.rootContainer}>
         {/* 1. Header Bar */}
@@ -106,7 +106,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             style={styles.backButton}
             onPress={handleGoBack}
           >
-            <ArrowLeft size={moderateScale(20)} color="#F8FAFC" />
+            <ArrowLeft size={moderateScale(20)} color="#0F172A" />
           </TouchableOpacity>
 
           {/* Incident Code Badge */}
@@ -235,7 +235,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
@@ -243,24 +243,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   incidentCodeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
     borderColor: '#EF4444',
     paddingVertical: verticalScale(5),
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   incidentCodeText: {
     fontSize: moderateScale(13),
     fontWeight: '900',
-    color: '#FEE2E2',
+    color: '#DC2626',
     fontFamily: 'monospace',
     letterSpacing: 0.5,
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     gap: scale(5),
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },

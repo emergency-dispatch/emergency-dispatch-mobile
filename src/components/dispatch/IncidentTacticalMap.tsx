@@ -220,7 +220,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
         <View style={styles.ambulanceBadge}>
           <Truck size={moderateScale(16)} color="#FFFFFF" strokeWidth={2.4} />
           <View style={styles.ambulanceHeadingArrow}>
-            <Navigation size={moderateScale(10)} color="#0284C7" />
+            <Navigation size={moderateScale(10)} color="#DC2626" />
           </View>
         </View>
 
@@ -282,7 +282,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
           onPress={() => setSirenActive(!sirenActive)}
         >
           {sirenActive ? (
-            <Volume2 size={moderateScale(16)} color="#EF4444" />
+            <Volume2 size={moderateScale(16)} color="#DC2626" />
           ) : (
             <VolumeX size={moderateScale(16)} color="#94A3B8" />
           )}
@@ -299,7 +299,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
         >
           <Layers
             size={moderateScale(16)}
-            color={trafficActive ? '#38BDF8' : '#94A3B8'}
+            color={trafficActive ? '#DC2626' : '#94A3B8'}
           />
         </TouchableOpacity>
 
@@ -309,7 +309,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
           style={styles.controlButton}
           onPress={onRecenter}
         >
-          <Crosshair size={moderateScale(16)} color="#F8FAFC" />
+          <Crosshair size={moderateScale(16)} color="#334155" />
         </TouchableOpacity>
       </View>
 
@@ -340,13 +340,13 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
             <View
               style={[
                 styles.sirenDot,
-                { backgroundColor: sirenActive ? '#10B981' : '#64748B' },
+                { backgroundColor: sirenActive ? '#16A34A' : '#94A3B8' },
               ]}
             />
             <Text
               style={[
                 styles.sirenStatusText,
-                { color: sirenActive ? '#10B981' : '#94A3B8' },
+                { color: sirenActive ? '#16A34A' : '#64748B' },
               ]}
             >
               {sirenActive ? 'BẬT (115)' : 'TẮT'}
@@ -361,7 +361,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
 const styles = StyleSheet.create({
   mapRoot: {
     flex: 1,
-    backgroundColor: '#070A12',
+    backgroundColor: '#F1F5F9',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -378,10 +378,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: verticalScale(18),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     paddingLeft: scale(12),
   },
@@ -391,10 +391,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: verticalScale(20),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     paddingLeft: scale(12),
   },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: verticalScale(8),
-    backgroundColor: '#141D2E',
+    backgroundColor: '#E2E8F0',
   },
   roadSecondaryH2: {
     position: 'absolute',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: verticalScale(8),
-    backgroundColor: '#141D2E',
+    backgroundColor: '#E2E8F0',
   },
   roadMainV1: {
     position: 'absolute',
@@ -420,10 +420,10 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: scale(20),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -433,10 +433,10 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: scale(22),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: scale(8),
-    backgroundColor: '#141D2E',
+    backgroundColor: '#E2E8F0',
   },
   roadSecondaryV2: {
     position: 'absolute',
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: scale(10),
-    backgroundColor: '#141D2E',
+    backgroundColor: '#E2E8F0',
   },
   streetNameText: {
     fontSize: moderateScale(8.5),
@@ -482,8 +482,8 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: '#10B981',
     shadowColor: '#10B981',
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
   },
   trafficYellow1: {
     position: 'absolute',
@@ -515,11 +515,11 @@ const styles = StyleSheet.create({
     left: '28%',
     width: '46%',
     height: verticalScale(5),
-    backgroundColor: '#38BDF8',
-    shadowColor: '#38BDF8',
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
     elevation: 4,
   },
   routeJunction: {
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     width: scale(10),
     height: verticalScale(10),
     borderRadius: moderateScale(5),
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#DC2626',
   },
   routeSegment2: {
     position: 'absolute',
@@ -537,10 +537,10 @@ const styles = StyleSheet.create({
     left: '74%',
     width: scale(5),
     height: '28%',
-    backgroundColor: '#38BDF8',
-    shadowColor: '#38BDF8',
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
     elevation: 4,
   },
   waypointNode1: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(4),
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#0284C7',
+    borderColor: '#DC2626',
   },
   waypointNode2: {
     position: 'absolute',
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(4),
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#0284C7',
+    borderColor: '#DC2626',
   },
   ambulancePinWrapper: {
     position: 'absolute',
@@ -580,22 +580,22 @@ const styles = StyleSheet.create({
     height: moderateScale(48),
     borderRadius: moderateScale(24),
     borderWidth: 1.5,
-    borderColor: '#38BDF8',
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: '#DC2626',
+    backgroundColor: 'rgba(220, 38, 38, 0.15)',
   },
   ambulanceBadge: {
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#0284C7',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
     elevation: 6,
     position: 'relative',
   },
@@ -607,20 +607,25 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(7),
     padding: moderateScale(2),
     borderWidth: 1,
-    borderColor: '#0284C7',
+    borderColor: '#DC2626',
     transform: [{ rotate: '45deg' }],
   },
   ambulanceCallout: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    backgroundColor: '#FFFFFF',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(6),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: '#0284C7',
+    borderColor: '#E2E8F0',
     marginTop: verticalScale(4),
     gap: scale(4),
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   liveGreenDot: {
     width: moderateScale(5),
@@ -631,7 +636,7 @@ const styles = StyleSheet.create({
   ambulanceCalloutText: {
     fontSize: moderateScale(9),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   incidentPinWrapper: {
     position: 'absolute',
@@ -661,58 +666,63 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
     elevation: 8,
   },
   incidentCallout: {
-    backgroundColor: 'rgba(30, 10, 12, 0.95)',
+    backgroundColor: '#FFFFFF',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#FECACA',
     marginTop: verticalScale(4),
     alignItems: 'center',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   incidentCalloutTitle: {
     fontSize: moderateScale(8.5),
     fontWeight: '900',
-    color: '#EF4444',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   incidentCalloutSub: {
     fontSize: moderateScale(8),
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#334155',
   },
   topNavHudBanner: {
     position: 'absolute',
     top: verticalScale(10),
     left: scale(10),
     right: scale(10),
-    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+    backgroundColor: 'rgba(255, 255, 255, 0.97)',
     borderRadius: moderateScale(12),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.4)',
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: verticalScale(8),
     paddingHorizontal: scale(10),
     gap: scale(10),
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 4,
     zIndex: 30,
   },
   navTurnIconWrap: {
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(8),
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -722,31 +732,32 @@ const styles = StyleSheet.create({
   navTurnDistance: {
     fontSize: moderateScale(13),
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   navTurnInstruction: {
     fontSize: moderateScale(10),
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '600',
     marginTop: verticalScale(1),
   },
   navEtaChip: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     paddingVertical: verticalScale(4),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(8),
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#FECACA',
     alignItems: 'center',
   },
   navEtaTime: {
     fontSize: moderateScale(11),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   navEtaDist: {
     fontSize: moderateScale(9),
-    color: '#94A3B8',
+    color: '#64748B',
+    fontWeight: '600',
   },
   floatingControlsGroup: {
     position: 'absolute',
@@ -759,38 +770,43 @@ const styles = StyleSheet.create({
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   controlButtonActiveRed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
   },
   controlButtonActiveCyan: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
-    borderColor: '#38BDF8',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
   },
   bottomTelemetryBar: {
     position: 'absolute',
     bottom: verticalScale(8),
     left: scale(10),
     right: scale(10),
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.97)',
     borderRadius: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingVertical: verticalScale(6),
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
     zIndex: 30,
   },
   telemetryItem: {
@@ -805,18 +821,18 @@ const styles = StyleSheet.create({
   telemetryValue: {
     fontSize: moderateScale(13),
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginTop: verticalScale(1),
   },
   telemetryUnit: {
     fontSize: moderateScale(9),
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   telemetryDivider: {
     width: 1,
     height: verticalScale(22),
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
   },
   sirenStatusRow: {
     flexDirection: 'row',

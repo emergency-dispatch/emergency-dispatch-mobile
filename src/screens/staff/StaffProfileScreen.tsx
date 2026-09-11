@@ -78,10 +78,10 @@ export const StaffProfileScreen: React.FC = () => {
 
   return (
     <ScreenContainer
-      backgroundColor="#0B0F19"
+      backgroundColor="#F8FAFC"
       safeArea
       edges={['top', 'left', 'right']}
-      statusBarStyle="light-content"
+      statusBarStyle="dark-content"
     >
       {/* 1. Header Bar */}
       <View style={styles.headerBar}>
@@ -105,7 +105,7 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.heroTop}>
             <View style={styles.avatarWrapper}>
               <View style={styles.avatarPlaceholder}>
-                <Truck size={moderateScale(32)} color="#38BDF8" />
+                <Truck size={moderateScale(32)} color="#DC2626" />
               </View>
               <View style={styles.verifiedBadge}>
                 <ShieldCheck size={moderateScale(12)} color="#FFFFFF" strokeWidth={3} />
@@ -124,15 +124,15 @@ export const StaffProfileScreen: React.FC = () => {
           {/* Credentials Badges */}
           <View style={styles.credentialsRow}>
             <View style={styles.credBadge}>
-              <Award size={moderateScale(12)} color="#F59E0B" />
+              <Award size={moderateScale(12)} color="#D97706" />
               <Text style={styles.credBadgeText}>5 Năm Cứu Hộ</Text>
             </View>
             <View style={styles.credBadge}>
-              <Zap size={moderateScale(12)} color="#EF4444" />
+              <Zap size={moderateScale(12)} color="#DC2626" />
               <Text style={styles.credBadgeText}>Code Red T1</Text>
             </View>
             <View style={styles.credBadge}>
-              <Activity size={moderateScale(12)} color="#10B981" />
+              <Activity size={moderateScale(12)} color="#059669" />
               <Text style={styles.credBadgeText}>Chứng Chỉ ACLS/AED</Text>
             </View>
           </View>
@@ -141,7 +141,7 @@ export const StaffProfileScreen: React.FC = () => {
 
           {/* Station & Contact */}
           <View style={styles.stationRow}>
-            <Building2 size={moderateScale(14)} color="#38BDF8" />
+            <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
               Trạm Q.10 - Bệnh viện Cấp Cứu Trưng Vương
             </Text>
@@ -152,7 +152,7 @@ export const StaffProfileScreen: React.FC = () => {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconWrap}>
-              <Truck size={moderateScale(18)} color="#38BDF8" />
+              <Truck size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Phương Tiện & Trang Bị Quản Lý</Text>
@@ -171,15 +171,15 @@ export const StaffProfileScreen: React.FC = () => {
             <View style={styles.vehicleMetricsGrid}>
               <View style={styles.vehicleMetricItem}>
                 <Text style={styles.vMetricLabel}>Bình Nhiên Liệu</Text>
-                <Text style={[styles.vMetricValue, { color: '#10B981' }]}>85% (Đầy)</Text>
+                <Text style={[styles.vMetricValue, { color: '#059669' }]}>85% (Đầy)</Text>
               </View>
               <View style={styles.vehicleMetricItem}>
                 <Text style={styles.vMetricLabel}>Oxy Trung Tâm</Text>
-                <Text style={[styles.vMetricValue, { color: '#38BDF8' }]}>200 Bar (Chuẩn)</Text>
+                <Text style={[styles.vMetricValue, { color: '#DC2626' }]}>200 Bar (Chuẩn)</Text>
               </View>
               <View style={styles.vehicleMetricItem}>
                 <Text style={styles.vMetricLabel}>Định Vị Telemetry</Text>
-                <Text style={[styles.vMetricValue, { color: '#F59E0B' }]}>Online (±2m)</Text>
+                <Text style={[styles.vMetricValue, { color: '#D97706' }]}>Online (±2m)</Text>
               </View>
             </View>
 
@@ -195,8 +195,8 @@ export const StaffProfileScreen: React.FC = () => {
         {/* 4. Duty Squad Crew Members */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-              <Users size={moderateScale(18)} color="#F59E0B" />
+            <View style={[styles.sectionIconWrap, { backgroundColor: '#FEF2F2' }]}>
+              <Users size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Thành Viên Kíp Trực Cùng Ca</Text>
@@ -224,8 +224,8 @@ export const StaffProfileScreen: React.FC = () => {
 
           {/* Member 2: Nurse */}
           <View style={styles.crewMemberRow}>
-            <View style={[styles.crewAvatarWrap, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#EC4899' }]}>ĐD</Text>
+            <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
+              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>ĐD</Text>
             </View>
             <View style={styles.crewInfoGroup}>
               <Text style={styles.crewName}>ĐD. Nguyễn Thị Lan</Text>
@@ -242,8 +242,8 @@ export const StaffProfileScreen: React.FC = () => {
 
           {/* Member 3: Driver (You) */}
           <View style={[styles.crewMemberRow, styles.crewMemberRowSelf]}>
-            <View style={[styles.crewAvatarWrap, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#38BDF8' }]}>LX</Text>
+            <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
+              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>LX</Text>
             </View>
             <View style={styles.crewInfoGroup}>
               <Text style={styles.crewName}>{user?.name || 'Lê Quốc Huy'} (Chính bạn)</Text>
@@ -258,8 +258,8 @@ export const StaffProfileScreen: React.FC = () => {
         {/* 5. Performance & Shift Stats */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <Activity size={moderateScale(18)} color="#10B981" />
+            <View style={[styles.sectionIconWrap, { backgroundColor: '#FEF2F2' }]}>
+              <Activity size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Hiệu Suất Phản Ứng Cứu Hộ</Text>
@@ -273,15 +273,15 @@ export const StaffProfileScreen: React.FC = () => {
               <Text style={styles.statLabel}>Ca Hoàn Thành</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#38BDF8' }]}>6.4m</Text>
+              <Text style={[styles.statNumber, { color: '#DC2626' }]}>6.4m</Text>
               <Text style={styles.statLabel}>ETA Trung Bình</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#10B981' }]}>98.6%</Text>
+              <Text style={[styles.statNumber, { color: '#059669' }]}>98.6%</Text>
               <Text style={styles.statLabel}>Đúng Giờ</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#FBBF24' }]}>4.9★</Text>
+              <Text style={[styles.statNumber, { color: '#D97706' }]}>4.9★</Text>
               <Text style={styles.statLabel}>Đánh Giá</Text>
             </View>
           </View>
@@ -290,8 +290,8 @@ export const StaffProfileScreen: React.FC = () => {
         {/* 6. Operational Settings */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: 'rgba(148, 163, 184, 0.15)' }]}>
-              <Sliders size={moderateScale(18)} color="#94A3B8" />
+            <View style={[styles.sectionIconWrap, { backgroundColor: '#FEF2F2' }]}>
+              <Sliders size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Cài Đặt Vận Hành Kíp Trực</Text>
@@ -306,7 +306,7 @@ export const StaffProfileScreen: React.FC = () => {
             onPress={() => setIsRadioModalVisible(true)}
           >
             <View style={styles.settingItemLeft}>
-              <Radio size={moderateScale(16)} color="#38BDF8" />
+              <Radio size={moderateScale(16)} color="#DC2626" />
               <View>
                 <Text style={styles.settingItemTitle}>Kênh Bộ Đàm Nội Bộ</Text>
                 <Text style={styles.settingItemSub}>{radioChannel}</Text>
@@ -424,9 +424,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
   },
   headerTitleGroup: {
     flex: 1,
@@ -434,20 +434,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: moderateScale(13.5),
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: 0.4,
   },
   headerSubtitle: {
     fontSize: moderateScale(10.5),
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(1),
   },
   dutyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: '#A7F3D0',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(12),
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   dutyBadgeText: {
     fontSize: moderateScale(9.5),
     fontWeight: '800',
-    color: '#10B981',
+    color: '#059669',
   },
   scrollContent: {
     paddingHorizontal: scale(14),
@@ -471,16 +471,16 @@ const styles = StyleSheet.create({
     gap: verticalScale(12),
   },
   heroCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(18),
     padding: moderateScale(14),
-    borderWidth: 1.5,
-    borderColor: '#1E293B',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   heroTop: {
     flexDirection: 'row',
@@ -494,9 +494,9 @@ const styles = StyleSheet.create({
     width: moderateScale(54),
     height: moderateScale(54),
     borderRadius: moderateScale(27),
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
-    borderColor: '#38BDF8',
+    borderColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -504,20 +504,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     width: moderateScale(18),
     height: moderateScale(18),
     borderRadius: moderateScale(9),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderColor: '#FFFFFF',
   },
   heroTextInfo: {
     flex: 1,
   },
   staffIdPill: {
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    backgroundColor: '#FEF2F2',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(6),
     borderRadius: moderateScale(4),
@@ -527,17 +527,17 @@ const styles = StyleSheet.create({
   staffIdText: {
     fontSize: moderateScale(9.5),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
     fontFamily: 'monospace',
   },
   heroName: {
     fontSize: moderateScale(16),
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   heroRole: {
     fontSize: moderateScale(11),
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(1),
   },
   credentialsRow: {
@@ -549,22 +549,22 @@ const styles = StyleSheet.create({
   credBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(7),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     gap: scale(4),
   },
   credBadgeText: {
     fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: '#334155',
   },
   heroDivider: {
     height: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     marginVertical: verticalScale(10),
   },
   stationRow: {
@@ -574,15 +574,20 @@ const styles = StyleSheet.create({
   },
   stationText: {
     fontSize: moderateScale(11),
-    color: '#94A3B8',
+    color: '#475569',
     flex: 1,
   },
   sectionCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(12),
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -594,7 +599,7 @@ const styles = StyleSheet.create({
     width: moderateScale(34),
     height: moderateScale(34),
     borderRadius: moderateScale(8),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -604,18 +609,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: moderateScale(13),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   sectionSub: {
     fontSize: moderateScale(10),
     color: '#64748B',
   },
   vehicleDetailsBox: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(12),
     padding: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   vehiclePlateRow: {
     flexDirection: 'row',
@@ -626,12 +631,12 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: moderateScale(12),
     fontWeight: '800',
-    color: '#F1F5F9',
+    color: '#0F172A',
     flex: 1,
     marginRight: scale(6),
   },
   plateBadge: {
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
@@ -644,7 +649,9 @@ const styles = StyleSheet.create({
   },
   vehicleMetricsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: moderateScale(8),
     paddingVertical: verticalScale(6),
     justifyContent: 'space-around',
@@ -670,38 +677,41 @@ const styles = StyleSheet.create({
   gearListLabel: {
     fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#334155',
   },
   gearListText: {
     fontSize: moderateScale(10),
-    color: '#CBD5E1',
+    color: '#64748B',
     flex: 1,
   },
   crewMemberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     padding: moderateScale(8),
     marginBottom: verticalScale(6),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     gap: scale(8),
   },
   crewMemberRowSelf: {
-    borderColor: 'rgba(56, 189, 248, 0.4)',
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
   },
   crewAvatarWrap: {
     width: moderateScale(32),
     height: moderateScale(32),
     borderRadius: moderateScale(16),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   crewAvatarText: {
     fontSize: moderateScale(11),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   crewInfoGroup: {
     flex: 1,
@@ -709,22 +719,22 @@ const styles = StyleSheet.create({
   crewName: {
     fontSize: moderateScale(12),
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   crewRole: {
     fontSize: moderateScale(9.5),
-    color: '#94A3B8',
+    color: '#64748B',
   },
   crewCallBtn: {
     width: moderateScale(30),
     height: moderateScale(30),
     borderRadius: moderateScale(15),
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   selfBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    backgroundColor: '#DC2626',
     paddingVertical: verticalScale(2),
     paddingHorizontal: scale(6),
     borderRadius: moderateScale(4),
@@ -732,7 +742,7 @@ const styles = StyleSheet.create({
   selfBadgeText: {
     fontSize: moderateScale(9),
     fontWeight: '800',
-    color: '#38BDF8',
+    color: '#FFFFFF',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -740,15 +750,17 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     paddingVertical: verticalScale(8),
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   statNumber: {
     fontSize: moderateScale(15),
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   statLabel: {
     fontSize: moderateScale(8.5),
@@ -761,19 +773,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     padding: moderateScale(10),
     marginBottom: verticalScale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   settingToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
     padding: moderateScale(10),
     marginBottom: verticalScale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   settingItemLeft: {
     flexDirection: 'row',
@@ -788,7 +804,7 @@ const styles = StyleSheet.create({
   settingItemTitle: {
     fontSize: moderateScale(11.5),
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   settingItemSub: {
     fontSize: moderateScale(9.5),
@@ -796,15 +812,15 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(1),
   },
   handoverBtn: {
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(14),
     paddingVertical: verticalScale(13),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: scale(8),
-    shadowColor: '#0284C7',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
@@ -815,7 +831,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   logoutBtn: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FEF2F2',
     borderRadius: moderateScale(14),
     paddingVertical: verticalScale(13),
     flexDirection: 'row',
@@ -823,10 +839,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: scale(8),
     borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: '#FCA5A5',
   },
   logoutBtnText: {
-    color: '#F87171',
+    color: '#DC2626',
     fontSize: moderateScale(13.5),
     fontWeight: '800',
   },

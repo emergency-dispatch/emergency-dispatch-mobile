@@ -81,7 +81,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
       {/* Station Details Header */}
       <View style={styles.header}>
         <View style={styles.stationIconContainer}>
-          <Building2 size={moderateScale(18)} color="#38BDF8" />
+          <Building2 size={moderateScale(18)} color="#DC2626" />
         </View>
         <View style={styles.stationTextGroup}>
           <Text
@@ -171,7 +171,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
 
         {/* Map Top Badge: Live Coordinates */}
         <View style={styles.coordsBadge}>
-          <Crosshair size={moderateScale(11)} color="#06B6D4" />
+          <Crosshair size={moderateScale(11)} color="#DC2626" />
           <Text style={styles.coordsText} numberOfLines={1}>
             {latitude.toFixed(4)}° N, {longitude.toFixed(4)}° E
           </Text>
@@ -203,7 +203,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
             >
               Bản Đồ
             </Text>
-            <ExternalLink size={moderateScale(12)} color="#38BDF8" />
+            <ExternalLink size={moderateScale(12)} color="#DC2626" />
           </TouchableOpacity>
         </View>
       </View>
@@ -251,11 +251,16 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(14),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     marginBottom: verticalScale(12),
   },
   header: {
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: scale(10),
@@ -278,7 +283,7 @@ const styles = StyleSheet.create({
   stationTitle: {
     fontSize: moderateScale(13.5),
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   addressRow: {
     flexDirection: 'row',
@@ -288,19 +293,19 @@ const styles = StyleSheet.create({
   },
   stationAddress: {
     fontSize: moderateScale(11),
-    color: '#94A3B8',
+    color: '#64748B',
     flex: 1,
   },
   mapContainer: {
     height: verticalScale(140),
-    backgroundColor: '#090D16',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(12),
     overflow: 'hidden',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   gridOverlay: {
     position: 'absolute',
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   gridLineHorizontal2: {
     position: 'absolute',
@@ -323,7 +328,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   gridLineVertical1: {
     position: 'absolute',
@@ -331,7 +336,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   gridLineVertical2: {
     position: 'absolute',
@@ -339,7 +344,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   radarWave: {
     position: 'absolute',
@@ -347,8 +352,8 @@ const styles = StyleSheet.create({
     height: moderateScale(90),
     borderRadius: moderateScale(45),
     borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.6)',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+    backgroundColor: 'rgba(220, 38, 38, 0.04)',
   },
   staticRingInner: {
     position: 'absolute',
@@ -356,7 +361,7 @@ const styles = StyleSheet.create({
     height: moderateScale(70),
     borderRadius: moderateScale(35),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderColor: 'rgba(220, 38, 38, 0.2)',
     borderStyle: 'dashed',
   },
   staticRingOuter: {
@@ -365,7 +370,7 @@ const styles = StyleSheet.create({
     height: moderateScale(125),
     borderRadius: moderateScale(62.5),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: 'rgba(220, 38, 38, 0.1)',
   },
   centerMarker: {
     alignItems: 'center',
@@ -375,22 +380,22 @@ const styles = StyleSheet.create({
   pulseBeaconRing: {
     padding: moderateScale(4),
     borderRadius: moderateScale(22),
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
   },
   vehicleMarkerBadge: {
     width: moderateScale(32),
     height: moderateScale(32),
     borderRadius: moderateScale(16),
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   coordsBadge: {
     position: 'absolute',
@@ -398,18 +403,18 @@ const styles = StyleSheet.create({
     left: scale(8),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: 'rgba(51, 65, 85, 0.8)',
+    borderColor: '#E2E8F0',
     gap: scale(4),
   },
   coordsText: {
     fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#DC2626',
     fontFamily: 'monospace',
   },
   mapBottomBar: {
@@ -424,12 +429,12 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: 'rgba(51, 65, 85, 0.8)',
+    borderColor: '#E2E8F0',
     gap: scale(5),
   },
   liveGreenDot: {
@@ -441,23 +446,23 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontSize: moderateScale(9.5),
     fontWeight: '600',
-    color: '#E2E8F0',
+    color: '#334155',
   },
   expandMapButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#E2E8F0',
     gap: scale(4),
   },
   expandMapText: {
     fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   footerRow: {
     flexDirection: 'row',
@@ -466,7 +471,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
     paddingTop: verticalScale(8),
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#F1F5F9',
     gap: scale(10),
   },
   vehicleInfoGroup: {
@@ -475,17 +480,17 @@ const styles = StyleSheet.create({
   vehicleModelText: {
     fontSize: moderateScale(11.5),
     fontWeight: '700',
-    color: '#F1F5F9',
+    color: '#0F172A',
   },
   vehicleStatusText: {
     fontSize: moderateScale(10.5),
-    color: '#10B981',
+    color: '#059669',
     marginTop: verticalScale(1),
   },
   navigateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0284C7',
+    backgroundColor: '#DC2626',
     paddingVertical: verticalScale(7),
     paddingHorizontal: scale(12),
     borderRadius: moderateScale(8),

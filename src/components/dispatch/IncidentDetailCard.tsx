@@ -95,7 +95,7 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
         {/* 1. Caller & On-Scene Contact Card */}
         <View style={styles.callerCard}>
           <View style={styles.callerAvatarWrap}>
-            <Users size={moderateScale(18)} color="#38BDF8" />
+            <Users size={moderateScale(18)} color="#DC2626" />
           </View>
 
           <View style={styles.callerInfoGroup}>
@@ -115,7 +115,7 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
               style={styles.smsButton}
               onPress={handleSmsCaller}
             >
-              <MessageSquare size={moderateScale(16)} color="#38BDF8" />
+              <MessageSquare size={moderateScale(16)} color="#DC2626" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -173,7 +173,7 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
         {/* 3. Patients & Hospital Destination */}
         <View style={styles.hospitalCard}>
           <View style={styles.hospitalIconWrap}>
-            <Building2 size={moderateScale(18)} color="#10B981" />
+            <Building2 size={moderateScale(18)} color="#DC2626" />
           </View>
           <View style={styles.hospitalTextGroup}>
             <Text style={styles.hospitalLabel} numberOfLines={1}>
@@ -283,13 +283,18 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
 
 const styles = StyleSheet.create({
   cardWrapper: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: moderateScale(22),
     borderTopRightRadius: moderateScale(22),
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     paddingTop: verticalScale(6),
     flex: 1,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 8,
   },
   sheetHandleContainer: {
     alignItems: 'center',
@@ -299,7 +304,7 @@ const styles = StyleSheet.create({
     width: scale(36),
     height: verticalScale(4),
     borderRadius: moderateScale(2),
-    backgroundColor: '#475569',
+    backgroundColor: '#CBD5E1',
   },
   cardScroll: {
     flex: 1,
@@ -313,18 +318,18 @@ const styles = StyleSheet.create({
   callerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(14),
     padding: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     gap: scale(10),
   },
   callerAvatarWrap: {
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -339,10 +344,10 @@ const styles = StyleSheet.create({
   callerName: {
     fontSize: moderateScale(13),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   callerRoleBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    backgroundColor: '#FEF2F2',
     paddingVertical: verticalScale(1),
     paddingHorizontal: scale(6),
     borderRadius: moderateScale(4),
@@ -350,11 +355,11 @@ const styles = StyleSheet.create({
   callerRoleText: {
     fontSize: moderateScale(9),
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#DC2626',
   },
   callerPhoneText: {
     fontSize: moderateScale(11.5),
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(2),
     fontFamily: 'monospace',
     fontWeight: '600',
@@ -368,23 +373,23 @@ const styles = StyleSheet.create({
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.4)',
+    borderColor: '#FCA5A5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   callNowButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#DC2626',
     paddingVertical: verticalScale(8),
     paddingHorizontal: scale(12),
     borderRadius: moderateScale(10),
     gap: scale(5),
-    shadowColor: '#10B981',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -394,15 +399,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   emergencyWarningBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: '#FFFBEB',
     borderRadius: moderateScale(14),
     padding: moderateScale(12),
     borderWidth: 1.5,
     borderColor: '#F59E0B',
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   warningHeaderRow: {
     flexDirection: 'row',
@@ -413,13 +418,13 @@ const styles = StyleSheet.create({
   warningHeaderTitle: {
     fontSize: moderateScale(11),
     fontWeight: '900',
-    color: '#FBBF24',
+    color: '#B45309',
     letterSpacing: 0.5,
   },
   warningNotesText: {
     fontSize: moderateScale(12),
     lineHeight: moderateScale(17),
-    color: '#FEF3C7',
+    color: '#92400E',
     fontWeight: '600',
     fontStyle: 'italic',
   },
@@ -427,12 +432,12 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(8),
     paddingTop: verticalScale(8),
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.25)',
+    borderTopColor: '#FDE68A',
   },
   gearTitle: {
     fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#FDE68A',
+    color: '#B45309',
     marginBottom: verticalScale(4),
   },
   gearTagsRow: {
@@ -443,34 +448,34 @@ const styles = StyleSheet.create({
   gearTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: '#FEF3C7',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: '#FDE68A',
     gap: scale(4),
   },
   gearTagText: {
     fontSize: moderateScale(9.5),
     fontWeight: '700',
-    color: '#FEF08A',
+    color: '#92400E',
   },
   hospitalCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(14),
     padding: moderateScale(10),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     gap: scale(10),
   },
   hospitalIconWrap: {
     width: moderateScale(38),
     height: moderateScale(38),
     borderRadius: moderateScale(19),
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -486,22 +491,22 @@ const styles = StyleSheet.create({
   hospitalName: {
     fontSize: moderateScale(12.5),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginTop: verticalScale(2),
   },
   hospitalDistanceText: {
     fontSize: moderateScale(10.5),
-    color: '#10B981',
-    fontWeight: '600',
+    color: '#DC2626',
+    fontWeight: '700',
     marginTop: verticalScale(1),
   },
   actionFooter: {
     paddingHorizontal: scale(14),
     paddingTop: verticalScale(8),
     paddingBottom: verticalScale(10),
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#E2E8F0',
   },
   advanceStageButtonRed: {
     height: verticalScale(56),
@@ -512,11 +517,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
     borderWidth: 1.5,
-    borderColor: '#F87171',
+    borderColor: '#EF4444',
   },
   advanceStageButtonEmerald: {
     height: verticalScale(56),
@@ -527,11 +532,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
     borderWidth: 1.5,
-    borderColor: '#34D399',
+    borderColor: '#10B981',
   },
   advanceButtonInner: {
     flexDirection: 'row',
@@ -557,7 +562,7 @@ const styles = StyleSheet.create({
   completedBadgeBox: {
     height: verticalScale(56),
     borderRadius: moderateScale(28),
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1.5,
     borderColor: '#10B981',
     flexDirection: 'row',
@@ -568,7 +573,7 @@ const styles = StyleSheet.create({
   completedBadgeText: {
     fontSize: moderateScale(12),
     fontWeight: '800',
-    color: '#10B981',
+    color: '#059669',
     letterSpacing: 0.5,
   },
 });

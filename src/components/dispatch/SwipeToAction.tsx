@@ -38,7 +38,7 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
   successTitle = 'ĐÃ XÁC NHẬN XUẤT PHÁT!',
   sliderColor = '#10B981',
   activeTrackColor = 'rgba(16, 185, 129, 0.25)',
-  inactiveTrackColor = '#1E293B',
+  inactiveTrackColor = '#F1F5F9',
   thumbColor = '#FFFFFF',
   disabled = false,
   icon,
@@ -193,8 +193,8 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
           borderColor: isCompleted
             ? '#10B981'
             : isDragging
-            ? '#38BDF8'
-            : '#334155',
+            ? '#DC2626'
+            : '#E2E8F0',
           backgroundColor: inactiveTrackColor,
         },
       ]}
@@ -212,7 +212,7 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
             backgroundColor: isCompleted
               ? 'rgba(16, 185, 129, 0.85)'
               : isDragging
-              ? 'rgba(56, 189, 248, 0.35)'
+              ? 'rgba(220, 38, 38, 0.25)'
               : activeTrackColor,
           },
         ]}
@@ -230,7 +230,7 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
         <Animated.View
           style={[styles.chevronGroup, { opacity: chevronPulse }]}
         >
-          <ChevronsRight size={moderateScale(18)} color="#38BDF8" />
+          <ChevronsRight size={moderateScale(18)} color="#DC2626" />
         </Animated.View>
 
         <Text
@@ -245,7 +245,7 @@ export const SwipeToAction: React.FC<SwipeToActionProps> = ({
         <Animated.View
           style={[styles.chevronGroup, { opacity: chevronPulse }]}
         >
-          <ChevronsRight size={moderateScale(18)} color="#10B981" />
+          <ChevronsRight size={moderateScale(18)} color="#DC2626" />
         </Animated.View>
       </Animated.View>
 
@@ -310,11 +310,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
     paddingHorizontal: moderateScale(4),
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   trackFill: {
     position: 'absolute',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: moderateScale(11.5),
     fontWeight: '800',
-    color: '#F1F5F9',
+    color: '#334155',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },

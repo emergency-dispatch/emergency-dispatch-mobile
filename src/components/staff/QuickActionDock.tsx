@@ -66,7 +66,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
           onPress={onPressCheckSupplies}
         >
           <View style={[styles.iconWrapper, styles.suppliesIconWrapper]}>
-            <PackageCheck size={moderateScale(19)} color="#06B6D4" />
+            <PackageCheck size={moderateScale(19)} color="#DC2626" />
           </View>
           <Text
             style={styles.buttonLabel}
@@ -126,7 +126,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
           onPress={onPressHistory}
         >
           <View style={[styles.iconWrapper, styles.historyIconWrapper]}>
-            <ClipboardList size={moderateScale(19)} color="#A78BFA" />
+            <ClipboardList size={moderateScale(19)} color="#DC2626" />
           </View>
           <Text
             style={styles.buttonLabel}
@@ -152,16 +152,16 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
 
 const styles = StyleSheet.create({
   dockContainer: {
-    backgroundColor: 'rgba(15, 23, 42, 0.96)',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#E2E8F0',
     paddingTop: verticalScale(8),
     paddingHorizontal: scale(12),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   dockInner: {
     flexDirection: 'row',
@@ -171,16 +171,21 @@ const styles = StyleSheet.create({
   },
   dockButton: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(14),
     paddingVertical: verticalScale(8),
     paddingHorizontal: scale(6),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     minHeight: verticalScale(72),
     minWidth: 0,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   iconWrapper: {
     width: moderateScale(34),
@@ -191,22 +196,22 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(3),
   },
   suppliesIconWrapper: {
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    backgroundColor: '#FEF2F2',
   },
   historyIconWrapper: {
-    backgroundColor: 'rgba(167, 139, 250, 0.15)',
+    backgroundColor: '#FEF2F2',
   },
   buttonLabel: {
     fontSize: moderateScale(10.5),
     fontWeight: '700',
-    color: '#F1F5F9',
+    color: '#0F172A',
     textAlign: 'center',
     width: '100%',
   },
   buttonSublabel: {
     fontSize: moderateScale(8.5),
     fontWeight: '500',
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: verticalScale(1.5),
     textAlign: 'center',
     width: '100%',
@@ -223,24 +228,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: moderateScale(16),
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
   },
   sosMainButton: {
     width: '100%',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     borderRadius: moderateScale(14),
     paddingVertical: verticalScale(8),
     paddingHorizontal: scale(6),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#FECACA',
+    borderColor: '#EF4444',
     minHeight: verticalScale(72),
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
   },
   sosButtonText: {
     fontSize: moderateScale(11),

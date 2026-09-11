@@ -104,7 +104,7 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
       {/* Status Header Label */}
       <View style={styles.headerRow}>
         <View style={styles.headerTitleGroup}>
-          <Activity size={moderateScale(15)} color="#38BDF8" />
+          <Activity size={moderateScale(15)} color="#DC2626" />
           <Text style={styles.headerTitle}>TRẠNG THÁI TRỰC CA</Text>
         </View>
         <View style={styles.activePill}>
@@ -303,11 +303,16 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(16),
     padding: moderateScale(14),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     marginBottom: verticalScale(12),
   },
   headerRow: {
@@ -324,18 +329,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: moderateScale(11),
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#334155',
     letterSpacing: 0.8,
   },
   activePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(20),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     gap: scale(5),
   },
   pulseCircle: {
@@ -350,12 +355,12 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
     borderRadius: moderateScale(12),
     padding: scale(4),
     gap: scale(6),
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   segmentButton: {
     flex: 1,
@@ -368,19 +373,34 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   segmentOnlineActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#10B981',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   segmentBusyActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#F59E0B',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   segmentOfflineActive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#EF4444',
+    borderColor: '#DC2626',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   statusIndicator: {
     width: moderateScale(6),
@@ -399,31 +419,31 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   segmentTextOnlineActive: {
-    color: '#10B981',
+    color: '#059669',
     fontWeight: '800',
   },
   segmentTextBusyActive: {
-    color: '#F59E0B',
+    color: '#D97706',
     fontWeight: '800',
   },
   segmentTextOfflineActive: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontWeight: '800',
   },
   segmentSubtext: {
     fontSize: moderateScale(9.5),
     fontWeight: '500',
-    color: '#475569',
+    color: '#94A3B8',
     marginTop: verticalScale(1),
   },
   segmentSubtextOnlineActive: {
-    color: '#34D399',
+    color: '#059669',
   },
   segmentSubtextBusyActive: {
-    color: '#FBBF24',
+    color: '#D97706',
   },
   segmentSubtextOfflineActive: {
-    color: '#F87171',
+    color: '#DC2626',
   },
   telemetryRow: {
     flexDirection: 'row',
@@ -432,19 +452,19 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
     paddingTop: verticalScale(8),
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#F1F5F9',
     flexWrap: 'wrap',
     gap: scale(6),
   },
   telemetryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     paddingVertical: verticalScale(4),
     paddingHorizontal: scale(7),
     borderRadius: moderateScale(6),
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     gap: scale(4),
   },
   telemetryDot: {
@@ -455,6 +475,6 @@ const styles = StyleSheet.create({
   telemetryText: {
     fontSize: moderateScale(10),
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: '#475569',
   },
 });

@@ -8,6 +8,9 @@ import {
   Image,
   Switch,
   Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import {
   User,
@@ -33,7 +36,20 @@ import {
   ChevronDown,
   ChevronUp,
   LogOut,
+  Camera,
+  X,
+  Mail,
+  Images,
 } from 'lucide-react-native';
+import { mediaService } from '../../services/media.service';
+
+const AVATAR_PRESETS = [
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
+];
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal } from '../../components/common';
@@ -50,6 +66,7 @@ import {
 } from '../../components/profile/ProfileEditModal';
 import { AccordionSection, SummaryBadgeItem } from '../../components/profile/AccordionSection';
 import { UserEmergencyProfile } from '../../types/profile';
+import { formatDobWithAge } from '../../types/user';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export const ProfileScreen: React.FC = () => {
@@ -67,6 +84,59 @@ export const ProfileScreen: React.FC = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isAvatarModalVisible, setIsAvatarModalVisible] = useState(false);
+  const [tempAvatarUrl, setTempAvatarUrl] = useState('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleOpenAvatarModal = () => {
+    setTempAvatarUrl(profile.avatarUrl || '');
+    setIsAvatarModalVisible(true);
+  };
+
+  const handleSaveAvatar = async () => {
+    await updateProfile({ avatarUrl: tempAvatarUrl.trim() || undefined });
+    setIsAvatarModalVisible(false);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const asset = await mediaService.pickFromCamera();
+      if (!asset) return;
+      setIsUploadingAvatar(true);
+      const url = await mediaService.uploadMedia(asset);
+      setTempAvatarUrl(url);
+      await updateProfile({ avatarUrl: url });
+      setIsAvatarModalVisible(false);
+      Alert.alert('Thành công', 'Đã chụp và cập nhật ảnh đại diện mới!');
+    } catch (err: any) {
+      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh đại diện lên máy chủ.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handlePickLibrary = async () => {
+    try {
+      const asset = await mediaService.pickFromLibrary();
+      if (!asset) return;
+      setIsUploadingAvatar(true);
+      const url = await mediaService.uploadMedia(asset);
+      setTempAvatarUrl(url);
+      await updateProfile({ avatarUrl: url });
+      setIsAvatarModalVisible(false);
+      Alert.alert('Thành công', 'Đã tải ảnh lên và cập nhật ảnh đại diện mới!');
+    } catch (err: any) {
+      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh đại diện lên máy chủ.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setTempAvatarUrl('');
+    await updateProfile({ avatarUrl: undefined });
+    setIsAvatarModalVisible(false);
+  };
 
   const handleConfirmLogout = async () => {
     setIsLogoutModalVisible(false);
@@ -130,13 +200,13 @@ export const ProfileScreen: React.FC = () => {
 
   // Summary badges for collapsed preview
   const identityBadges: SummaryBadgeItem[] = [
-    { text: profile.fullName, color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
-    { text: profile.phoneNumber, color: '#DC2626' },
-    { text: 'Đã xác thực', color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
+    { text: profile.fullName || 'Chưa cập nhật tên', color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
+    { text: profile.phoneNumber || 'Chưa có SĐT', color: '#DC2626' },
+    { text: profile.email || 'Chưa có email', color: '#64748B' },
   ];
 
   const medicalBadges: SummaryBadgeItem[] = [
-    { text: `Máu: ${medicalId.bloodType || 'O+'}`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
+    { text: `Máu: ${medicalId.bloodType || 'Chưa rõ'}`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
     { text: `${medicalId.allergies?.length || 0} Dị ứng`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
     { text: `${medicalId.chronicConditions?.length || 0} Bệnh nền`, color: '#B45309', bg: '#FEF3C7', borderColor: '#FDE68A' },
   ];
@@ -179,23 +249,6 @@ export const ProfileScreen: React.FC = () => {
             Medical ID & Thông Tin Định Danh
           </Text>
         </View>
-
-        <TouchableOpacity
-          style={styles.editHeaderBtn}
-          onPress={() => handleOpenEditTab('identity')}
-          activeOpacity={0.7}
-          accessible={true}
-          accessibilityLabel="Chỉnh sửa hồ sơ"
-        >
-          <Edit3 size={moderateScale(15)} color="#DC2626" />
-          <Text
-            style={styles.editHeaderBtnText}
-            allowFontScaling={false}
-            maxFontSizeMultiplier={1.2}
-          >
-            Chỉnh sửa
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -205,7 +258,13 @@ export const ProfileScreen: React.FC = () => {
         {/* 2. Hero Identity Card */}
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
-            <View style={styles.avatarWrapper}>
+            <TouchableOpacity
+              style={styles.avatarWrapper}
+              onPress={handleOpenAvatarModal}
+              activeOpacity={0.8}
+              accessible={true}
+              accessibilityLabel="Chỉnh sửa ảnh đại diện"
+            >
               {profile.avatarUrl ? (
                 <Image
                   source={{ uri: profile.avatarUrl }}
@@ -216,18 +275,23 @@ export const ProfileScreen: React.FC = () => {
                   <User size={36} color="#94A3B8" />
                 </View>
               )}
-              <View style={styles.verifiedBadge}>
-                <ShieldCheck size={12} color="#FFFFFF" />
+              {profile.isVerified ? (
+                <View style={styles.verifiedBadge}>
+                  <ShieldCheck size={10} color="#FFFFFF" />
+                </View>
+              ) : null}
+              <View style={styles.cameraBadge}>
+                <Camera size={12} color="#FFFFFF" />
               </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.heroTextInfo}>
               <View style={styles.statusPill}>
                 <Sparkles size={11} color="#10B981" />
                 <Text style={styles.statusPillText}>HỒ SƠ ĐÃ SẴN SÀNG CỨU HỘ</Text>
               </View>
-              <Text style={styles.heroName}>{profile.fullName}</Text>
-              <Text style={styles.heroPhone}>{profile.phoneNumber}</Text>
+              <Text style={styles.heroName}>{profile.fullName || 'Chưa cập nhật họ tên'}</Text>
+              <Text style={styles.heroPhone}>{profile.phoneNumber || 'Chưa cập nhật số điện thoại'}</Text>
             </View>
           </View>
 
@@ -236,7 +300,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.heroAddressRow}>
             <MapPin size={15} color="#DC2626" style={styles.addressIcon} />
             <Text style={styles.heroAddressText} numberOfLines={2}>
-              {profile.address}
+              {profile.address || 'Chưa cập nhật địa chỉ'}
             </Text>
           </View>
         </View>
@@ -303,7 +367,7 @@ export const ProfileScreen: React.FC = () => {
                 <User size={14} color="#64748B" />
                 <Text style={styles.infoLabel}>Họ và tên đầy đủ</Text>
               </View>
-              <Text style={styles.infoValue}>{profile.fullName}</Text>
+              <Text style={styles.infoValue}>{profile.fullName || 'Chưa cập nhật'}</Text>
             </View>
 
             <View style={styles.infoRow}>
@@ -312,7 +376,17 @@ export const ProfileScreen: React.FC = () => {
                 <Text style={styles.infoLabel}>Số điện thoại chính chủ</Text>
               </View>
               <Text style={[styles.infoValue, { color: '#DC2626' }]}>
-                {profile.phoneNumber}
+                {profile.phoneNumber || 'Chưa cập nhật'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabelRow}>
+                <Mail size={14} color="#64748B" />
+                <Text style={styles.infoLabel}>Email</Text>
+              </View>
+              <Text style={styles.infoValue} numberOfLines={1}>
+                {profile.email || 'Chưa cập nhật'}
               </Text>
             </View>
 
@@ -332,7 +406,7 @@ export const ProfileScreen: React.FC = () => {
                 <Text style={styles.infoLabel}>Ngày sinh & Giới tính</Text>
               </View>
               <Text style={styles.infoValue}>
-                {profile.dateOfBirth || '--'} • {profile.gender || 'Nam'}
+                {formatDobWithAge(profile.dateOfBirth) || '--'} • {profile.gender || 'Chưa rõ'}
               </Text>
             </View>
 
@@ -637,6 +711,121 @@ export const ProfileScreen: React.FC = () => {
         onSave={handleSaveProfile}
         initialTab={editInitialTab}
       />
+
+      {/* Modal: Quick Edit Avatar */}
+      <Modal
+        visible={isAvatarModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => !isUploadingAvatar && setIsAvatarModalVisible(false)}
+      >
+        <View style={styles.avatarModalBackdrop}>
+          <View style={styles.avatarModalCard}>
+            <View style={styles.avatarModalHeader}>
+              <Text style={styles.avatarModalTitle}>Đổi Ảnh Đại Diện</Text>
+              <TouchableOpacity
+                onPress={() => !isUploadingAvatar && setIsAvatarModalVisible(false)}
+                disabled={isUploadingAvatar}
+              >
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.avatarModalPreviewCenter}>
+              {tempAvatarUrl ? (
+                <Image source={{ uri: tempAvatarUrl }} style={styles.avatarModalBigImg} />
+              ) : (
+                <View style={styles.avatarModalBigPlaceholder}>
+                  <User size={48} color="#94A3B8" />
+                </View>
+              )}
+              {isUploadingAvatar && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.avatarLoadingText}>Đang tải ảnh lên...</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Direct Upload Buttons: Camera & Library */}
+            <View style={styles.avatarPickerRow}>
+              <TouchableOpacity
+                style={[styles.avatarPickerBtn, styles.avatarCameraBtn]}
+                onPress={handleTakePhoto}
+                disabled={isUploadingAvatar}
+                activeOpacity={0.8}
+              >
+                <Camera size={18} color="#FFFFFF" />
+                <Text style={styles.avatarCameraBtnText}>Chụp Ảnh Mới</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.avatarPickerBtn, styles.avatarLibraryBtn]}
+                onPress={handlePickLibrary}
+                disabled={isUploadingAvatar}
+                activeOpacity={0.8}
+              >
+                <Images size={18} color="#0284C7" />
+                <Text style={styles.avatarLibraryBtnText}>Chọn Từ Thư Viện</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.avatarModalLabel}>Hoặc liên kết ảnh (URL):</Text>
+            <TextInput
+              style={styles.avatarModalInput}
+              value={tempAvatarUrl}
+              onChangeText={setTempAvatarUrl}
+              placeholder="https://... (dán liên kết ảnh)"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              editable={!isUploadingAvatar}
+            />
+
+            <Text style={[styles.avatarModalLabel, { marginTop: 10 }]}>Hoặc chọn mẫu nhanh:</Text>
+            <View style={styles.avatarModalPresetRow}>
+              {AVATAR_PRESETS.map((preset, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  disabled={isUploadingAvatar}
+                  onPress={() => setTempAvatarUrl(preset)}
+                  style={[
+                    styles.avatarModalPresetItem,
+                    tempAvatarUrl === preset && styles.avatarModalPresetActive,
+                  ]}
+                >
+                  <Image source={{ uri: preset }} style={styles.avatarModalPresetImg} />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.avatarModalActions}>
+              {tempAvatarUrl || profile.avatarUrl ? (
+                <TouchableOpacity
+                  disabled={isUploadingAvatar}
+                  onPress={handleRemoveAvatar}
+                  style={styles.avatarClearBtn}
+                >
+                  <Text style={styles.avatarClearText}>Xóa Ảnh</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                disabled={isUploadingAvatar}
+                onPress={() => setIsAvatarModalVisible(false)}
+                style={styles.avatarCancelBtn}
+              >
+                <Text style={styles.avatarCancelText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={isUploadingAvatar}
+                onPress={handleSaveAvatar}
+                style={styles.avatarSaveBtn}
+              >
+                <Text style={styles.avatarSaveText}>Lưu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -741,13 +930,31 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     position: 'absolute',
-    bottom: -2,
+    top: -2,
     right: -2,
     backgroundColor: '#10B981',
     borderRadius: 10,
     padding: 3,
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#DC2626',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
   },
   heroTextInfo: {
     flex: 1,
@@ -1091,6 +1298,185 @@ const styles = StyleSheet.create({
   },
   footerSpace: {
     height: 30,
+  },
+  avatarModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  avatarModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 380,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  avatarModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  avatarModalPreviewCenter: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarModalBigImg: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 3,
+    borderColor: '#DC2626',
+  },
+  avatarModalBigPlaceholder: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+  },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  avatarLoadingText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  avatarPickerRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  avatarPickerBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  avatarCameraBtn: {
+    backgroundColor: '#DC2626',
+  },
+  avatarCameraBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  avatarLibraryBtn: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  avatarLibraryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  avatarModalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  avatarModalInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  avatarModalPresetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  avatarModalPresetItem: {
+    borderRadius: 24,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+    padding: 1,
+  },
+  avatarModalPresetActive: {
+    borderColor: '#DC2626',
+  },
+  avatarModalPresetImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarModalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatarClearBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+  },
+  avatarClearText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  avatarCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  avatarCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  avatarSaveBtn: {
+    flex: 2,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+  },
+  avatarSaveText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });
 

@@ -6,60 +6,48 @@ import {
   SpecialSpecificInfo,
   IceContact,
 } from '../types/profile';
+import {
+  mapBackendUserToProfile,
+  mapProfileToUpdateDto,
+} from '../types/user';
 import { storage } from '../services/storage';
+import { AppConfig } from '../constants/config';
+import { userService } from '../services/user.service';
 
 const STORAGE_KEY = '@emergency_user_profile';
 
 export const INITIAL_PROFILE: UserEmergencyProfile = {
-  id: 'usr_rescue_9981',
-  fullName: 'Nguyễn Văn An',
-  phoneNumber: '0912 345 678',
-  email: 'nguyenvanan.emergency@gmail.com',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-  idCardNumber: '079095012345',
-  address: 'Số 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-  dateOfBirth: '15/08/1995',
-  gender: 'Nam',
-  isVerified: true,
+  id: '',
+  fullName: '',
+  phoneNumber: '',
+  email: '',
+  avatarUrl: undefined,
+  idCardNumber: '',
+  address: '',
+  dateOfBirth: '',
+  gender: undefined,
+  isVerified: false,
   updatedAt: new Date().toISOString(),
 
-  // 2. Y tế khẩn cấp (Medical ID)
   medicalId: {
-    bloodType: 'O+',
-    chronicConditions: ['Hen suyễn (Mãn tính)', 'Tăng huyết áp nhẹ'],
-    allergies: ['Dị ứng Penicillin (Sốc phản vệ)', 'Dị ứng hải sản có vỏ'],
-    currentMedications: ['Ventolin Inhaler 100mcg (Cắt cơn)', 'Amlodipine 5mg (Mỗi sáng)'],
-    mobilityLimitations: ['Khó thở khi gắng sức mạnh'],
-    additionalNotes: 'Cần bình xịt thở khẩn cấp trong trường hợp ngạt khói hoặc hoảng loạn.',
+    bloodType: 'Chưa rõ',
+    chronicConditions: [],
+    allergies: [],
+    currentMedications: [],
+    mobilityLimitations: [],
+    additionalNotes: '',
   },
 
-  // 3. Người thân khẩn cấp (ICE)
   ice: {
     autoSendSmsOnSos: true,
-    contacts: [
-      {
-        id: 'ice_1',
-        name: 'Nguyễn Thị Mai',
-        relationship: 'Vợ',
-        phoneNumber: '0987 654 321',
-        isPrimary: true,
-      },
-      {
-        id: 'ice_2',
-        name: 'Nguyễn Văn Hùng',
-        relationship: 'Bố ruột',
-        phoneNumber: '0903 112 233',
-        isPrimary: false,
-      },
-    ],
+    contacts: [],
     smsTemplate: 'KHẨN CẤP: Tôi đang kích hoạt tín hiệu SOS tại toạ độ {GPS_COORDS}. Hãy liên hệ lực lượng cứu hộ 114/115 hỗ trợ tôi ngay!',
   },
 
-  // 4. Thông tin bổ sung đặc thù
   specialInfo: {
     preferredLanguage: 'Tiếng Việt',
-    dependentsNote: 'Căn hộ có 01 trẻ em 8 tháng tuổi và 01 cụ già 82 tuổi (khả năng di chuyển chậm, cần hỗ trợ khi sơ tán cầu thang bộ).',
-    householdMembersCount: 4,
+    dependentsNote: '',
+    householdMembersCount: undefined,
   },
 };
 
@@ -84,6 +72,7 @@ interface ProfileState {
   removeIceContact: (contactId: string) => Promise<void>;
   toggleAutoSendSms: (enabled: boolean) => Promise<void>;
   updateSpecialInfo: (specialData: Partial<SpecialSpecificInfo>) => Promise<void>;
+  registerFcmToken: (fcmToken: string) => Promise<boolean>;
   resetToDefault: () => Promise<void>;
 }
 
@@ -94,13 +83,37 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   loadProfile: async () => {
     try {
       set({ isLoading: true });
-      const saved = await storage.getItem<UserEmergencyProfile>(STORAGE_KEY);
-      if (saved) {
-        set({ profile: saved, isLoading: false });
-      } else {
-        await storage.setItem(STORAGE_KEY, INITIAL_PROFILE);
-        set({ profile: INITIAL_PROFILE, isLoading: false });
+      let saved = await storage.getItem<UserEmergencyProfile>(STORAGE_KEY);
+
+      // Clean up legacy hardcoded dummy profile if present in cache
+      if (saved && saved.id === 'usr_rescue_9981') {
+        saved = null;
+        await storage.removeItem(STORAGE_KEY);
       }
+
+      if (saved) {
+        set({ profile: saved });
+      }
+
+      // Check if user is authenticated and sync with backend
+      const token = await storage.getItem<string>(AppConfig.STORAGE_KEYS.AUTH_TOKEN);
+      if (token && !token.startsWith('demo-token-')) {
+        try {
+          const remoteDto = await userService.getProfile();
+          const synced = mapBackendUserToProfile(remoteDto, saved || INITIAL_PROFILE);
+          set({ profile: synced, isLoading: false });
+          await storage.setItem(STORAGE_KEY, synced);
+          return;
+        } catch (apiErr) {
+          console.warn('Cannot sync remote profile, using local cache:', apiErr);
+        }
+      }
+
+      if (!saved) {
+        await storage.setItem(STORAGE_KEY, INITIAL_PROFILE);
+        set({ profile: INITIAL_PROFILE });
+      }
+      set({ isLoading: false });
     } catch (error) {
       console.error('Failed to load profile from storage', error);
       set({ isLoading: false });
@@ -108,51 +121,51 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   },
 
   updateProfile: async (updates) => {
-    const updated = {
+    const updated: UserEmergencyProfile = {
       ...get().profile,
       ...updates,
       updatedAt: new Date().toISOString(),
     };
     set({ profile: updated });
     await storage.setItem(STORAGE_KEY, updated);
+
+    // Sync to backend if authenticated
+    try {
+      const token = await storage.getItem<string>(AppConfig.STORAGE_KEYS.AUTH_TOKEN);
+      if (token && !token.startsWith('demo-token-')) {
+        const dto = mapProfileToUpdateDto(updated);
+        const remoteUser = await userService.updateProfile(dto);
+        const merged = mapBackendUserToProfile(remoteUser, updated);
+        set({ profile: merged });
+        await storage.setItem(STORAGE_KEY, merged);
+      }
+    } catch (err) {
+      console.warn('Backend profile update failed, kept local state:', err);
+    }
   },
 
   updateIdentity: async (identityData) => {
-    const updated: UserEmergencyProfile = {
-      ...get().profile,
-      ...identityData,
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    await get().updateProfile(identityData);
   },
 
   updateMedicalProfile: async (medicalData) => {
     const current = get().profile;
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       medicalId: {
         ...current.medicalId,
         ...medicalData,
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
   },
 
   updateIceSettings: async (iceData) => {
     const current = get().profile;
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       ice: {
         ...current.ice,
         ...iceData,
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
   },
 
   addIceContact: async (contactData) => {
@@ -161,60 +174,55 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       ...contactData,
       id: `ice_${Date.now()}`,
     };
-    const updatedContacts = [...current.ice.contacts, newContact];
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       ice: {
         ...current.ice,
-        contacts: updatedContacts,
+        contacts: [...current.ice.contacts, newContact],
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
   },
 
   removeIceContact: async (contactId) => {
     const current = get().profile;
-    const updatedContacts = current.ice.contacts.filter((c) => c.id !== contactId);
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       ice: {
         ...current.ice,
-        contacts: updatedContacts,
+        contacts: current.ice.contacts.filter((c) => c.id !== contactId),
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
   },
 
   toggleAutoSendSms: async (enabled) => {
     const current = get().profile;
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       ice: {
         ...current.ice,
         autoSendSmsOnSos: enabled,
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
   },
 
   updateSpecialInfo: async (specialData) => {
     const current = get().profile;
-    const updated: UserEmergencyProfile = {
-      ...current,
+    await get().updateProfile({
       specialInfo: {
         ...current.specialInfo,
         ...specialData,
       },
-      updatedAt: new Date().toISOString(),
-    };
-    set({ profile: updated });
-    await storage.setItem(STORAGE_KEY, updated);
+    });
+  },
+
+  registerFcmToken: async (fcmToken: string): Promise<boolean> => {
+    try {
+      const token = await storage.getItem<string>(AppConfig.STORAGE_KEYS.AUTH_TOKEN);
+      if (token && !token.startsWith('demo-token-')) {
+        return await userService.updateFcmToken(fcmToken);
+      }
+      return false;
+    } catch (err) {
+      console.warn('Failed to register FCM token:', err);
+      return false;
+    }
   },
 
   resetToDefault: async () => {

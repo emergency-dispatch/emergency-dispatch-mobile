@@ -113,6 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         storage.removeItem(AppConfig.STORAGE_KEYS.AUTH_TOKEN),
         storage.removeItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
         storage.removeItem(AppConfig.STORAGE_KEYS.USER_INFO),
+        storage.removeItem('@emergency_user_profile'),
         currentRefresh ? authService.logout(currentRefresh) : Promise.resolve(),
       ]);
     } catch {

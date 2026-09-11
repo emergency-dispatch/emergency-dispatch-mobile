@@ -34,7 +34,10 @@ import { mediaService } from '../../services/media.service';
 import { IncidentResponseDto } from '../../types/incident';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useAppStore } from '../../store/useAppStore';
+import { useLocationStore } from '../../store/useLocationStore';
 import { storage } from '../../services/storage';
+import { mapboxService } from '../../services/mapbox.service';
+import { locationService } from '../../services/location.service';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
@@ -46,9 +49,13 @@ export const HomeScreen: React.FC = () => {
   const { profile } = useProfileStore();
   const { user } = useAppStore();
 
-  // GPS Address state
-  const [address, setAddress] = useState('123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM');
-  const [isRefreshingGps, setIsRefreshingGps] = useState(false);
+  // Global Shared GPS Location State
+  const {
+    coords: userCoords,
+    address,
+    isFetchingLocation: isRefreshingGps,
+    refreshLocation,
+  } = useLocationStore();
 
   // Modals & triggers state
   const [selectedHazard, setSelectedHazard] = useState<HazardItem | null>(null);
@@ -83,12 +90,13 @@ export const HomeScreen: React.FC = () => {
     return () => pulse.stop();
   }, []);
 
+  // Fetch real GPS on mount (shared with Map screen)
+  useEffect(() => {
+    refreshLocation();
+  }, []);
+
   const handleRefreshGps = () => {
-    setIsRefreshingGps(true);
-    setTimeout(() => {
-      setIsRefreshingGps(false);
-      setAddress('123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM (GPS Vệ tinh)');
-    }, 600);
+    refreshLocation(true);
   };
 
   const recordIncidentId = async (id: string) => {
@@ -118,8 +126,8 @@ export const HomeScreen: React.FC = () => {
       const created = await incidentService.createIncident({
         title: 'Báo động SOS Khẩn cấp',
         description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp kèm ảnh hiện trường.',
-        latitude: 10.776889,
-        longitude: 106.700806,
+        latitude: userCoords.latitude,
+        longitude: userCoords.longitude,
         locationAddress: address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
         reporterPhone: user?.phone || profile.phoneNumber || undefined,
@@ -147,8 +155,8 @@ export const HomeScreen: React.FC = () => {
       const created = await incidentService.createIncident({
         title: 'Báo động SOS Khẩn cấp',
         description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp kèm ảnh hiện trường.',
-        latitude: 10.776889,
-        longitude: 106.700806,
+        latitude: userCoords.latitude,
+        longitude: userCoords.longitude,
         locationAddress: address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
         reporterPhone: user?.phone || profile.phoneNumber || undefined,
@@ -172,8 +180,8 @@ export const HomeScreen: React.FC = () => {
       const created = await incidentService.createIncident({
         title: 'Báo động SOS Khẩn cấp',
         description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).',
-        latitude: 10.776889,
-        longitude: 106.700806,
+        latitude: userCoords.latitude,
+        longitude: userCoords.longitude,
         locationAddress: address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
         reporterPhone: user?.phone || profile.phoneNumber || undefined,
@@ -214,8 +222,8 @@ export const HomeScreen: React.FC = () => {
       const created = await incidentService.createIncident({
         title: hazardTitle,
         description: data.note.trim() || 'Người dân gửi báo cáo nguy cơ khẩn cấp kèm ảnh hiện trường.',
-        latitude: 10.776889,
-        longitude: 106.700806,
+        latitude: userCoords.latitude,
+        longitude: userCoords.longitude,
         locationAddress: address,
         reporterName: user?.name || profile.fullName || 'Công dân',
         reporterPhone: user?.phone || profile.phoneNumber || undefined,

@@ -68,9 +68,9 @@ export const ProfileScreen: React.FC = () => {
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setIsLogoutModalVisible(false);
-    logout();
+    await logout();
     (navigation as any).navigate('Auth', { screen: 'Login' });
   };
 

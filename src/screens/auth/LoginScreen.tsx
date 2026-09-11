@@ -33,10 +33,17 @@ import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore, mapBackendUser } from '../../store/useAppStore';
 import { UserRole, DEMO_CITIZEN_USER, DEMO_STAFF_USER } from '../../types/models';
+import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useResponsive } from '../../utils/responsive';
+
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { AppConfig } from '../../constants/config';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -54,6 +61,59 @@ export const LoginScreen: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({});
+
+  // Google OAuth Hook
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest(
+    {
+      clientId: AppConfig.GOOGLE_CLIENT_ID,
+      webClientId: AppConfig.GOOGLE_CLIENT_ID,
+      androidClientId: AppConfig.GOOGLE_CLIENT_ID,
+      iosClientId: AppConfig.GOOGLE_CLIENT_ID,
+    },
+    {
+      scheme: 'emergencydispatch',
+    }
+  );
+
+  // Handle Google OAuth response
+  React.useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const { id_token } = googleResponse.params;
+      if (id_token) {
+        handleGoogleAuthSuccess(id_token);
+      }
+    }
+  }, [googleResponse]);
+
+  const handleGoogleAuthSuccess = async (idToken: string) => {
+    setIsLoading(true);
+    try {
+      const authData = await authService.googleLogin({ idToken });
+      const mappedUser = mapBackendUser(authData.user);
+      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
+      (navigation as any).navigate('Main');
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Đăng nhập Google thất bại. Vui lòng kiểm tra kết nối.';
+      Alert.alert('Đăng nhập Google thất bại', errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGooglePress = async () => {
+    try {
+      if (!googleRequest) {
+        Alert.alert('Đăng nhập Google', 'Đang khởi tạo phiên làm việc Google OAuth. Vui lòng thử lại sau giây lát.');
+        return;
+      }
+      await promptGoogleAsync();
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể mở trình đăng nhập Google.');
+    }
+  };
 
   // Role change handler
   const handleRoleChange = (role: UserRole) => {
@@ -101,36 +161,51 @@ export const LoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call authentication
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      const email = account.trim();
+      const authData = await authService.login({
+        email,
+        password,
+      });
 
-      const loggedUser =
-        selectedRole === 'staff'
-          ? {
-              ...DEMO_STAFF_USER,
-              email: account.includes('@') ? account : `${account}@emergency.vn`,
-            }
-          : {
-              ...DEMO_CITIZEN_USER,
-              email: account.includes('@') ? account : `${account}@gmail.com`,
-              name: account.includes('@') ? account.split('@')[0] : `Người Dân ${account.slice(-4)}`,
-            };
+      const mappedUser = mapBackendUser(authData.user);
+      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
 
-      setAuth(loggedUser, 'jwt-token-' + selectedRole + '-' + Date.now());
-
-      // Navigate to Main flow (AppNavigator will automatically pick Citizen or Staff Tab Navigator)
       (navigation as any).navigate('Main');
-    } catch (error) {
-      Alert.alert('Lỗi đăng nhập', 'Không thể kết nối đến máy chủ điều phối. Vui lòng thử lại.');
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin.';
+      Alert.alert('Lỗi đăng nhập', errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
   // Quick Fast-Login helper for testing
-  const handleFastLogin = (role: UserRole) => {
-    switchDemoRole(role);
-    (navigation as any).navigate('Main');
+  const handleFastLogin = async (role: UserRole) => {
+    setIsLoading(true);
+    const demoEmail =
+      role === 'staff'
+        ? 'staff@emergencydispatch.com'
+        : 'citizen@emergencydispatch.com';
+    const demoPassword = role === 'staff' ? 'Staff@123456' : 'Citizen@123456';
+
+    try {
+      const authData = await authService.login({
+        email: demoEmail,
+        password: demoPassword,
+      });
+      const mappedUser = mapBackendUser(authData.user);
+      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
+      (navigation as any).navigate('Main');
+    } catch {
+      // Fallback to offline demo mode if backend is unreachable
+      switchDemoRole(role);
+      (navigation as any).navigate('Main');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Guest SOS Emergency Bypass (no login required for life-threatening events)
@@ -259,17 +334,17 @@ export const LoginScreen: React.FC = () => {
                 setAccount(val);
                 if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
               }}
-              variant="dark"
+              variant="light"
               keyboardType={selectedRole === 'staff' ? 'default' : 'email-address'}
               autoCapitalize="none"
               error={errors.account}
               leftIcon={
                 selectedRole === 'staff' ? (
-                  <ShieldCheck size={18} color="#38BDF8" />
+                  <ShieldCheck size={18} color="#0284C7" />
                 ) : account.includes('@') ? (
-                  <Mail size={18} color="#94A3B8" />
+                  <Mail size={18} color="#64748B" />
                 ) : (
-                  <Phone size={18} color="#94A3B8" />
+                  <Phone size={18} color="#64748B" />
                 )
               }
             />
@@ -283,19 +358,19 @@ export const LoginScreen: React.FC = () => {
                 setPassword(val);
                 if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
-              variant="dark"
+              variant="light"
               secureTextEntry={!showPassword}
               error={errors.password}
-              leftIcon={<Lock size={18} color="#94A3B8" />}
+              leftIcon={<Lock size={18} color="#64748B" />}
               rightIcon={
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color="#94A3B8" />
+                    <EyeOff size={18} color="#64748B" />
                   ) : (
-                    <Eye size={18} color="#94A3B8" />
+                    <Eye size={18} color="#64748B" />
                   )}
                 </TouchableOpacity>
               }
@@ -380,18 +455,7 @@ export const LoginScreen: React.FC = () => {
             {selectedRole === 'citizen' && (
               <SocialAuthButtons
                 dividerText="HOẶC ĐĂNG NHẬP VỚI"
-                onGooglePress={() => {
-                  Alert.alert('Đăng nhập Google', 'Tính năng kết nối tài khoản Google đang được kích hoạt.');
-                }}
-                onApplePress={() => {
-                  Alert.alert('Đăng nhập Apple', 'Tính năng kết nối tài khoản Apple ID đang được kích hoạt.');
-                }}
-                onPhoneOtpPress={() => {
-                  navigation.navigate('OtpVerification', {
-                    emailOrPhone: account || '0987654321',
-                    flow: 'phone_auth',
-                  });
-                }}
+                onGooglePress={handleGooglePress}
               />
             )}
           </View>

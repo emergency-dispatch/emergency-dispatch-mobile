@@ -147,7 +147,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             onPress={handleResend}
             activeOpacity={0.7}
           >
-            <RotateCw size={moderateScale(13)} color="#3B82F6" />
+            <RotateCw size={moderateScale(13)} color="#DC2626" />
             <Text
               style={styles.resendTextActive}
               allowFontScaling={false}
@@ -173,7 +173,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: verticalScale(12),
+    marginVertical: verticalScale(14),
     alignItems: 'center',
     width: '100%',
   },
@@ -181,39 +181,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    maxWidth: moderateScale(320),
-    gap: moderateScale(6),
-    marginBottom: verticalScale(14),
+    maxWidth: moderateScale(330),
+    gap: moderateScale(8),
+    marginBottom: verticalScale(16),
   },
   box: {
     flex: 1,
-    height: verticalScale(48),
-    minWidth: moderateScale(38),
-    maxWidth: moderateScale(46),
-    borderRadius: moderateScale(10),
-    backgroundColor: '#0F172A',
+    height: verticalScale(52),
+    minWidth: moderateScale(40),
+    maxWidth: moderateScale(48),
+    borderRadius: moderateScale(12),
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
   },
   boxFocused: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#1E293B',
+    borderColor: '#DC2626',
+    backgroundColor: '#FFFFFF',
     elevation: 4,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
   boxFilled: {
-    borderColor: '#10B981',
-    backgroundColor: '#0F172A',
+    borderColor: '#DC2626',
+    backgroundColor: '#FFFFFF',
   },
   boxInput: {
-    fontSize: moderateScale(19),
-    fontWeight: '700',
-    color: '#F8FAFC',
+    fontSize: moderateScale(21),
+    fontWeight: '800',
+    color: '#0F172A',
     width: '100%',
     height: '100%',
     textAlign: 'center',
@@ -225,22 +230,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(6),
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(8),
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(14),
+    borderRadius: moderateScale(10),
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   resendTextActive: {
-    color: '#60A5FA',
-    fontSize: moderateScale(12),
-    fontWeight: '600',
+    color: '#DC2626',
+    fontSize: moderateScale(12.5),
+    fontWeight: '700',
   },
   countdownText: {
-    color: '#94A3B8',
-    fontSize: moderateScale(12),
+    color: '#64748B',
+    fontSize: moderateScale(12.5),
   },
   countdownHighlight: {
-    color: '#F59E0B',
+    color: '#DC2626',
     fontWeight: '700',
   },
 });

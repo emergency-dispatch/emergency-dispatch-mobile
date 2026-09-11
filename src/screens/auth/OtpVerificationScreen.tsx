@@ -18,6 +18,7 @@ import { OtpInput } from '../../components/auth/OtpInput';
 import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
+import { authService } from '../../services/auth.service';
 
 type OtpNavProp = NativeStackNavigationProp<AuthStackParamList, 'OtpVerification'>;
 type OtpRouteProp = RouteProp<AuthStackParamList, 'OtpVerification'>;
@@ -27,7 +28,7 @@ export const OtpVerificationScreen: React.FC = () => {
   const route = useRoute<OtpRouteProp>();
   const { setAuth } = useAppStore();
 
-  const { emailOrPhone = '0987654321', flow = 'phone_auth' } = route.params || {};
+  const { emailOrPhone = 'citizen@emergencydispatch.com', flow = 'register' } = route.params || {};
 
   const [otpValue, setOtpValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,41 +43,46 @@ export const OtpVerificationScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (flow === 'register') {
+        await authService.verifyEmail({
+          email: emailOrPhone,
+          token: code,
+        });
 
-      if (flow === 'phone_auth') {
-        const mockUser = {
-          id: 'user-' + Date.now(),
-          email: emailOrPhone.includes('@') ? emailOrPhone : `${emailOrPhone}@emergency.vn`,
-          name: `Công dân ${emailOrPhone.slice(-4)}`,
-          role: 'citizen' as const,
-          createdAt: new Date().toISOString(),
-        };
-
-        setAuth(mockUser, 'mock-jwt-token-' + Date.now());
-
-        Alert.alert('Đăng nhập thành công', 'Chào mừng bạn đến với Hệ thống Điều phối Cứu hộ!', [
+        Alert.alert('Xác thực thành công 🎉', 'Tài khoản của bạn đã được kích hoạt. Hãy đăng nhập để bắt đầu sử dụng dịch vụ.', [
           {
-            text: 'Tiếp tục',
-            onPress: () => {
-              (navigation as any).navigate('Main', { screen: 'HomeTab' });
-            },
+            text: 'Đăng Nhập Ngay',
+            onPress: () => navigation.navigate('Login'),
           },
         ]);
       } else if (flow === 'forgot_password') {
         navigation.navigate('ForgotPassword', { emailOrPhone });
       } else {
-        Alert.alert('Xác thực thành công', 'Tài khoản của bạn đã được xác minh.', [
+        Alert.alert('Xác thực thành công', 'Mã OTP của bạn đã được xác minh hợp lệ.', [
           {
-            text: 'Đăng nhập',
+            text: 'Đăng Nhập',
             onPress: () => navigation.navigate('Login'),
           },
         ]);
       }
-    } catch (e) {
-      setError('Mã OTP không chính xác hoặc đã hết hạn.');
+    } catch (e: any) {
+      const errorMsg =
+        e.response?.data?.message ||
+        e.message ||
+        'Mã OTP không chính xác hoặc đã hết hạn.';
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      await authService.resendVerification({ email: emailOrPhone });
+      Alert.alert('Đã gửi lại mã', `Mã xác thực OTP mới đã được gửi tới ${emailOrPhone}`);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Không thể gửi lại mã xác thực.';
+      Alert.alert('Lỗi gửi mã', msg);
     }
   };
 
@@ -121,9 +127,7 @@ export const OtpVerificationScreen: React.FC = () => {
               onComplete={(completedOtp) => {
                 handleVerify(completedOtp);
               }}
-              onResend={() => {
-                Alert.alert('Đã gửi lại OTP', 'Mã xác thực mới đã được gửi qua SMS.');
-              }}
+              onResend={handleResend}
             />
 
             {error && <Text style={styles.errorText}>{error}</Text>}

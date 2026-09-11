@@ -33,6 +33,7 @@ import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { BloodType } from '../../types/profile';
+import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -114,19 +115,14 @@ export const RegisterScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-
-      const newUser = {
-        id: 'user-' + Date.now(),
+      await authService.register({
+        fullName: fullName.trim(),
         email: email.trim(),
-        name: fullName.trim(),
-        role: 'citizen' as const,
-        createdAt: new Date().toISOString(),
-      };
+        password,
+        phoneNumber: phone.trim() || undefined,
+      });
 
-
-      // Save initial profile if emergency info provided
+      // Save initial profile data locally
       updateProfile({
         fullName: fullName.trim(),
         phoneNumber: phone.trim(),
@@ -150,22 +146,27 @@ export const RegisterScreen: React.FC = () => {
         },
       });
 
-      setAuth(newUser, 'mock-jwt-token-' + Date.now());
-
       Alert.alert(
         'Đăng Ký Thành Công 🎉',
-        'Tài khoản cứu hộ của bạn đã được thiết lập. Hãy sẵn sàng nhận trợ giúp và điều phối khi cần thiết.',
+        'Mã xác thực OTP 6 số đã được gửi tới email của bạn. Vui lòng nhập mã để kích hoạt tài khoản.',
         [
           {
-            text: 'Bắt Đầu',
+            text: 'Nhập Mã OTP',
             onPress: () => {
-              (navigation as any).navigate('Main', { screen: 'HomeTab' });
+              navigation.navigate('OtpVerification', {
+                emailOrPhone: email.trim(),
+                flow: 'register',
+              });
             },
           },
         ]
       );
-    } catch (error) {
-      Alert.alert('Đăng ký thất bại', 'Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại.');
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại.';
+      Alert.alert('Đăng ký thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }

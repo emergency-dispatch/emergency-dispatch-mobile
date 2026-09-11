@@ -31,6 +31,7 @@ import { PasswordStrengthIndicator } from '../../components/auth/PasswordStrengt
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
+import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 
 type ForgotPasswordNavProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
@@ -76,11 +77,12 @@ export const ForgotPasswordScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await authService.forgotPassword({ email: account.trim() });
       setErrors({});
       setCurrentStep('VERIFY_OTP');
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể gửi mã xác thực. Vui lòng thử lại.');
+    } catch (e: any) {
+      const msg = e.response?.data?.message || e.message || 'Không thể gửi mã xác thực. Vui lòng thử lại.';
+      Alert.alert('Lỗi', msg);
     } finally {
       setIsLoading(false);
     }
@@ -93,16 +95,8 @@ export const ForgotPasswordScreen: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setErrors({});
-      setCurrentStep('RESET_PASSWORD');
-    } catch (e) {
-      Alert.alert('Lỗi', 'Mã OTP không hợp lệ hoặc đã hết hạn.');
-    } finally {
-      setIsLoading(false);
-    }
+    setErrors({});
+    setCurrentStep('RESET_PASSWORD');
   };
 
   // Step 3: Reset Password
@@ -110,8 +104,8 @@ export const ForgotPasswordScreen: React.FC = () => {
     const newErrors: Record<string, string> = {};
     if (!newPassword) {
       newErrors.password = 'Vui lòng nhập mật khẩu mới';
-    } else if (newPassword.length < 8) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+    } else if (newPassword.length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     }
 
     if (newPassword !== confirmPassword) {
@@ -125,11 +119,17 @@ export const ForgotPasswordScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await authService.resetPassword({
+        email: account.trim(),
+        token: otpValue.trim(),
+        newPassword,
+        confirmPassword,
+      });
       setErrors({});
       setCurrentStep('SUCCESS');
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
+    } catch (e: any) {
+      const msg = e.response?.data?.message || e.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
+      Alert.alert('Lỗi đặt lại mật khẩu', msg);
     } finally {
       setIsLoading(false);
     }
@@ -301,8 +301,13 @@ export const ForgotPasswordScreen: React.FC = () => {
                     onComplete={() => {
                       // Auto submit when 6 digits are complete
                     }}
-                    onResend={() => {
-                      Alert.alert('Đã gửi lại OTP', 'Mã xác thực mới đã được gửi lại.');
+                    onResend={async () => {
+                      try {
+                        await authService.forgotPassword({ email: account.trim() });
+                        Alert.alert('Đã gửi lại OTP', `Mã xác thực mới đã được gửi tới ${account.trim()}`);
+                      } catch (err: any) {
+                        Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể gửi lại mã OTP.');
+                      }
                     }}
                   />
                   {errors.otp && (

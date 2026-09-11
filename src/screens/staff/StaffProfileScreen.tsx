@@ -70,9 +70,9 @@ export const StaffProfileScreen: React.FC = () => {
   };
 
   // Logout confirmation
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setIsLogoutModalVisible(false);
-    logout();
+    await logout();
     (navigation as any).navigate('Auth', { screen: 'Login' });
   };
 

@@ -62,4 +62,27 @@ export const incidentService = {
 
     return response.data;
   },
+
+  /**
+   * PUT /api/incidents/{id}/cancel — Hủy sự cố (bấm nhầm / báo sai)
+   * Phù hợp với BE hiện hành: [HttpPut("{id}/cancel")] nhận [FromBody] string reason
+   */
+  async cancelIncident(id: string, reason?: string): Promise<IncidentResponseDto> {
+    const reasonText = reason || 'Người dân bấm nhầm nút SOS';
+    const response = await apiService.put<BackendApiResponse<IncidentResponseDto>>(
+      Endpoints.INCIDENTS.CANCEL(id),
+      JSON.stringify(reasonText),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể hủy sự cố.');
+    }
+
+    return response.data;
+  },
 };

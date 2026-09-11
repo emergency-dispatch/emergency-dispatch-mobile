@@ -60,7 +60,7 @@ class MapboxService {
       // Fallback to default
     }
 
-    return '123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM';
+    return `Tọa độ GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
   }
 
   /**

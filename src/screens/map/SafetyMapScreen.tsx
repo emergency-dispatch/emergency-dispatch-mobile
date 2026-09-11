@@ -142,7 +142,7 @@ export const SafetyMapScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View>
-            <Text style={styles.title}>Bản Đồ An Toàn Mapbox</Text>
+            <Text style={styles.title}>Bản Đồ An Toàn</Text>
             <Text style={styles.subtitle}>Mạng lưới cứu hộ, bệnh viện & cảnh báo sự cố 24/7</Text>
           </View>
           <TouchableOpacity

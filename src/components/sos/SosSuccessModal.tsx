@@ -6,13 +6,16 @@ import {
   Modal,
   TouchableOpacity,
   Vibration,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { ShieldAlert, CheckCircle2, PhoneCall, XCircle, Sparkles } from 'lucide-react-native';
+import { ShieldAlert, CheckCircle2, PhoneCall, XCircle, Sparkles, X } from 'lucide-react-native';
 import { IncidentResponseDto } from '../../types/incident';
 
 interface SosSuccessModalProps {
   visible: boolean;
   onClose: () => void;
+  onCancelIncident?: (incidentId: string) => Promise<void> | void;
   address: string;
   incident?: IncidentResponseDto | null;
 }
@@ -20,15 +23,18 @@ interface SosSuccessModalProps {
 export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
   visible,
   onClose,
+  onCancelIncident,
   address,
   incident,
 }) => {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
     if (visible) {
       setSecondsElapsed(0);
+      setIsCancelling(false);
       Vibration.vibrate([0, 250, 100, 250]);
       timer = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
@@ -38,6 +44,34 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
       if (timer) clearInterval(timer);
     };
   }, [visible]);
+
+  const handlePressCancel = () => {
+    Alert.alert(
+      'Hủy Báo Động SOS?',
+      'Bạn có chắc chắn muốn hủy tín hiệu SOS vừa gửi vì bấm nhầm không?',
+      [
+        { text: 'Không, giữ lại', style: 'cancel' },
+        {
+          text: 'Xác nhận hủy',
+          style: 'destructive',
+          onPress: async () => {
+            if (incident?.id && onCancelIncident) {
+              setIsCancelling(true);
+              try {
+                await onCancelIncident(incident.id);
+              } catch (err: any) {
+                Alert.alert('Lỗi hủy báo động', err.message || 'Không thể hủy báo động lúc này.');
+              } finally {
+                setIsCancelling(false);
+              }
+            } else {
+              onClose();
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const incidentCode = incident
     ? `#${incident.id.slice(0, 8).toUpperCase()}`
@@ -52,33 +86,46 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
+          {/* Top-Right Close Button (X) */}
+          <TouchableOpacity
+            style={styles.closeIconButton}
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessible={true}
+            accessibilityLabel="Đóng thông báo SOS"
+          >
+            <X size={20} color="#64748B" />
+          </TouchableOpacity>
+
           {/* Top Status Icon */}
           <View style={styles.iconCircle}>
-            <ShieldAlert size={48} color="#EF4444" strokeWidth={2.5} />
+            <ShieldAlert size={44} color="#DC2626" strokeWidth={2.5} />
           </View>
 
           <Text style={styles.alertHeader}>TÍN HIỆU SOS ĐÃ TIẾP NHẬN</Text>
           <Text style={styles.alertCode}>MÃ SỰ CỐ: {incidentCode}</Text>
 
+          {/* Status checklist */}
           <View style={styles.statusBox}>
             <View style={styles.statusRow}>
-              <CheckCircle2 size={16} color="#10B981" />
+              <CheckCircle2 size={16} color="#16A34A" />
               <Text style={styles.statusText}>Đã gửi toạ độ GPS chính xác</Text>
             </View>
             <View style={styles.statusRow}>
-              <CheckCircle2 size={16} color="#10B981" />
+              <CheckCircle2 size={16} color="#16A34A" />
               <Text style={styles.statusText}>Đã kết nối trung tâm điều phối 114/115</Text>
             </View>
             {incident?.aiClassification && (
               <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
-                <Sparkles size={16} color="#38BDF8" style={{ marginTop: 2 }} />
-                <Text style={[styles.statusText, { color: '#38BDF8', flex: 1 }]}>
+                <Sparkles size={16} color="#0284C7" style={{ marginTop: 2 }} />
+                <Text style={[styles.statusText, { color: '#0284C7', flex: 1 }]}>
                   AI Phân Loại ({incident.severity}): {incident.aiClassification.summary}
                 </Text>
               </View>
             )}
           </View>
 
+          {/* Location box */}
           <View style={styles.locationBox}>
             <Text style={styles.locationLabel}>VỊ TRÍ HIỆN TRƯỜNG:</Text>
             <Text style={styles.locationAddress}>{address}</Text>
@@ -99,14 +146,31 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.dismissButton}
+              onPress={onClose}
+              accessible={true}
+              accessibilityLabel="Đóng cửa sổ và theo dõi trên bản đồ"
+            >
+              <Text style={styles.dismissButtonText}>Đóng & Theo Dõi Ca Cứu Hộ</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               activeOpacity={0.7}
               style={styles.cancelButton}
-              onPress={onClose}
+              onPress={handlePressCancel}
+              disabled={isCancelling}
               accessible={true}
               accessibilityLabel="Hủy báo động SOS nếu bấm nhầm"
             >
-              <XCircle size={16} color="#94A3B8" />
-              <Text style={styles.cancelButtonText}>Hủy báo động (Bấm nhầm)</Text>
+              {isCancelling ? (
+                <ActivityIndicator size="small" color="#DC2626" />
+              ) : (
+                <>
+                  <XCircle size={16} color="#DC2626" />
+                  <Text style={styles.cancelButtonText}>Hủy báo động (Bấm nhầm)</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -118,55 +182,57 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   card: {
     width: '100%',
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#DC2626',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#FEE2E2',
     padding: 24,
     alignItems: 'center',
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.7,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 12,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(220, 38, 38, 0.15)',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 2,
-    borderColor: '#DC2626',
+    borderColor: '#FECACA',
   },
   alertHeader: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    color: '#EF4444',
-    letterSpacing: 1.5,
+    color: '#DC2626',
+    letterSpacing: 1.2,
     textAlign: 'center',
     marginBottom: 4,
   },
   alertCode: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 1,
+    color: '#64748B',
+    letterSpacing: 0.8,
     marginBottom: 16,
   },
   statusBox: {
     width: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
     padding: 12,
     gap: 8,
     marginBottom: 14,
@@ -178,34 +244,34 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12.5,
-    color: '#F1F5F9',
+    color: '#1E293B',
     fontWeight: '600',
   },
   locationBox: {
     width: '100%',
-    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.3)',
-    borderRadius: 12,
+    borderColor: '#BFDBFE',
+    borderRadius: 14,
     padding: 12,
     marginBottom: 20,
   },
   locationLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#60A5FA',
+    color: '#2563EB',
     letterSpacing: 0.8,
     marginBottom: 2,
   },
   locationAddress: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: 4,
   },
   timerText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '500',
   },
   actionButtons: {
@@ -220,6 +286,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
+    elevation: 2,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
   },
   callButtonText: {
     color: '#FFFFFF',
@@ -231,12 +302,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    paddingVertical: 12,
+    borderRadius: 12,
     gap: 6,
   },
   cancelButtonText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  dismissButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  dismissButtonText: {
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  closeIconButton: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 });

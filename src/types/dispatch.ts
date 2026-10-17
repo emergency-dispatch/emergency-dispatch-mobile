@@ -88,7 +88,7 @@ export const MOCK_EMERGENCY_INCIDENT: EmergencyIncident = {
   patientSummary: '3 Nạn nhân • 1 Hôn mê • 2 Đa chấn thương gãy cẳng chân',
   triageLevel: 'T1',
   callerName: 'Anh Hoàng Nam',
-  callerRole: 'Người đi đường / Nhân chứng gọi 115',
+  callerRole: 'Người đi đường / Nhân chứng báo nạn khẩn cấp',
   callerPhone: '0903123456',
   emergencyNotes:
     'Có 2 người bị kẹt cabin, yêu cầu mang kìm cắt thủy lực và bình oxy dự phòng. Chú ý nguy cơ rò rỉ nhiên liệu từ xe tải.',

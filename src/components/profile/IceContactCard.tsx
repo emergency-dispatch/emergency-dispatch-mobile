@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Phone, User, Shield, Trash2, Edit2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { IceContact } from '../../types/profile';
 
 interface IceContactCardProps {
@@ -16,10 +17,12 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
   onDelete,
   showActions = true,
 }) => {
+  const { t } = useTranslation();
+
   const handleCall = () => {
     const cleanPhone = contact.phoneNumber.replace(/[^0-9+]/g, '');
     if (!cleanPhone) {
-      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ');
+      Alert.alert(t('common.error'), 'Số điện thoại không hợp lệ');
       return;
     }
     Linking.openURL(`tel:${cleanPhone}`).catch(() => {
@@ -32,7 +35,7 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
       'Xác nhận xoá',
       `Bạn có chắc chắn muốn xoá người liên hệ khẩn cấp "${contact.name}" không?`,
       [
-        { text: 'Huỷ', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Xoá',
           style: 'destructive',
@@ -54,11 +57,13 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
             {contact.isPrimary && (
               <View style={styles.primaryBadge}>
                 <Shield size={10} color="#059669" />
-                <Text style={styles.primaryText}>Ưu tiên 1</Text>
+                <Text style={styles.primaryText}>{t('profile.primary_ice')}</Text>
               </View>
             )}
           </View>
-          <Text style={styles.relation}>Mối quan hệ: {contact.relationship}</Text>
+          <Text style={styles.relation}>
+            {t('profile.relationship_label')}: {contact.relationship}
+          </Text>
           <Text style={styles.phone}>{contact.phoneNumber}</Text>
         </View>
       </View>

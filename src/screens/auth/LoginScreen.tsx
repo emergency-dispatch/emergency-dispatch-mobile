@@ -169,9 +169,9 @@ export const LoginScreen: React.FC = () => {
     setSelectedRole(role);
     setErrors({});
     if (role === 'staff' && !account) {
-      setAccount('nhanvien115@emergency.vn');
+      setAccount('cuuho@emergency.vn');
       setPassword('123456');
-    } else if (role === 'citizen' && account === 'nhanvien115@emergency.vn') {
+    } else if (role === 'citizen' && account === 'cuuho@emergency.vn') {
       setAccount('');
       setPassword('');
     }
@@ -509,7 +509,7 @@ export const LoginScreen: React.FC = () => {
             <Button
               title={
                 selectedRole === 'staff'
-                  ? `${t('auth.login_btn')} (115)`
+                  ? `${t('auth.login_btn')} (${t('auth.role_staff')})`
                   : t('auth.login_btn')
               }
               onPress={handleLogin}

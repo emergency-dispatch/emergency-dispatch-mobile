@@ -203,28 +203,28 @@ export const ProfileScreen: React.FC = () => {
 
   // Summary badges for collapsed preview
   const identityBadges: SummaryBadgeItem[] = [
-    { text: profile.fullName || 'Chưa cập nhật tên', color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
-    { text: profile.phoneNumber || 'Chưa có SĐT', color: '#DC2626' },
-    { text: profile.email || 'Chưa có email', color: '#64748B' },
+    { text: profile.fullName || t('profile.badge_no_name'), color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
+    { text: profile.phoneNumber || t('profile.badge_no_phone'), color: '#DC2626' },
+    { text: profile.email || t('profile.badge_no_email'), color: '#64748B' },
   ];
 
   const medicalBadges: SummaryBadgeItem[] = [
-    { text: `Máu: ${medicalId.bloodType || 'Chưa rõ'}`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
-    { text: `${medicalId.allergies?.length || 0} Dị ứng`, color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
-    { text: `${medicalId.chronicConditions?.length || 0} Bệnh nền`, color: '#B45309', bg: '#FEF3C7', borderColor: '#FDE68A' },
+    { text: t('profile.badge_blood', { type: medicalId.bloodType || t('profile.unknown') }), color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
+    { text: t('profile.badge_allergies', { count: medicalId.allergies?.length || 0 }), color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
+    { text: t('profile.badge_conditions', { count: medicalId.chronicConditions?.length || 0 }), color: '#B45309', bg: '#FEF3C7', borderColor: '#FDE68A' },
   ];
 
   const iceBadges: SummaryBadgeItem[] = [
-    { text: `${ice.contacts?.length || 0} Người thân`, color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
+    { text: t('profile.badge_relatives', { count: ice.contacts?.length || 0 }), color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
     {
-      text: ice.autoSendSmsOnSos ? 'SMS SOS: BẬT' : 'SMS: TẮT',
+      text: ice.autoSendSmsOnSos ? t('profile.badge_sms_on') : t('profile.badge_sms_off'),
       color: ice.autoSendSmsOnSos ? '#059669' : '#64748B',
     },
   ];
 
   const specialBadges: SummaryBadgeItem[] = [
-    { text: specialInfo.preferredLanguage || 'Tiếng Việt', color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
-    { text: specialInfo.dependentsNote ? 'Có người phụ thuộc' : 'Không có phụ thuộc', color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
+    { text: specialInfo.preferredLanguage || (i18n.language?.startsWith('vi') ? 'Tiếng Việt' : 'English'), color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
+    { text: specialInfo.dependentsNote ? t('profile.badge_has_dependents') : t('profile.badge_no_dependents'), color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
   ];
 
   return (
@@ -278,7 +278,7 @@ export const ProfileScreen: React.FC = () => {
               onPress={handleOpenAvatarModal}
               activeOpacity={0.8}
               accessible={true}
-              accessibilityLabel="Chỉnh sửa ảnh đại diện"
+              accessibilityLabel={t('profile.edit_avatar')}
             >
               {profile.avatarUrl ? (
                 <Image
@@ -303,10 +303,10 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.heroTextInfo}>
               <View style={styles.statusPill}>
                 <Sparkles size={11} color="#10B981" />
-                <Text style={styles.statusPillText}>HỒ SƠ ĐÃ SẴN SÀNG CỨU HỘ</Text>
+                <Text style={styles.statusPillText}>{t('profile.ready_badge')}</Text>
               </View>
-              <Text style={styles.heroName}>{profile.fullName || 'Chưa cập nhật họ tên'}</Text>
-              <Text style={styles.heroPhone}>{profile.phoneNumber || 'Chưa cập nhật số điện thoại'}</Text>
+              <Text style={styles.heroName}>{profile.fullName || t('profile.no_name')}</Text>
+              <Text style={styles.heroPhone}>{profile.phoneNumber || t('profile.no_phone')}</Text>
             </View>
           </View>
 
@@ -315,7 +315,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.heroAddressRow}>
             <MapPin size={15} color="#DC2626" style={styles.addressIcon} />
             <Text style={styles.heroAddressText} numberOfLines={2}>
-              {profile.address || 'Chưa cập nhật địa chỉ'}
+              {profile.address || t('profile.no_address')}
             </Text>
           </View>
         </View>
@@ -326,7 +326,7 @@ export const ProfileScreen: React.FC = () => {
           activeOpacity={0.8}
           onPress={() => setIsMedicalModalVisible(true)}
           accessible={true}
-          accessibilityLabel="Mở thẻ y tế cấp cứu khẩn cấp"
+          accessibilityLabel={t('profile.open_medical_card')}
         >
           <View style={styles.medicalBannerLeft}>
             <View style={styles.medicalBannerIconWrap}>
@@ -334,10 +334,10 @@ export const ProfileScreen: React.FC = () => {
             </View>
             <View style={styles.medicalBannerTextCol}>
               <Text style={styles.medicalBannerTitle}>
-                THẺ Y TẾ CẤP CỨU (MEDICAL ID)
+                {t('profile.medical_banner_title')}
               </Text>
               <Text style={styles.medicalBannerSubtitle}>
-                Chế độ hiển thị nhanh cho Bác sĩ & Cứu hộ 114/115
+                {t('profile.medical_banner_sub')}
               </Text>
             </View>
           </View>
@@ -348,7 +348,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.controlsRow}>
           <View style={styles.controlsLeft}>
             <Layers size={16} color="#DC2626" />
-            <Text style={styles.controlsTitle}>CÁC NHÓM THÔNG TIN CỨU HỘ</Text>
+            <Text style={styles.controlsTitle}>{t('profile.sections_title')}</Text>
           </View>
           <TouchableOpacity
             style={styles.toggleAllBtn}
@@ -356,7 +356,7 @@ export const ProfileScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Text style={styles.toggleAllText}>
-              {isAllExpanded ? 'Thu gọn tất cả' : 'Mở tất cả'}
+              {isAllExpanded ? t('profile.collapse_all') : t('profile.expand_all')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -366,8 +366,8 @@ export const ProfileScreen: React.FC = () => {
         {/* ========================================================= */}
         <AccordionSection
           id="identity"
-          title="1. Định Danh & Liên Lạc"
-          subtitle="Xác thực danh tính & nhận diện nạn nhân tại hiện trường"
+          title={t('profile.section_identity_title')}
+          subtitle={t('profile.section_identity_sub')}
           icon={<User size={20} color="#DC2626" />}
           iconBgColor="rgba(220, 38, 38, 0.08)"
           titleColor="#0F172A"
@@ -380,59 +380,59 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <User size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Họ và tên đầy đủ</Text>
+                <Text style={styles.infoLabel}>{t('profile.fullname_label')}</Text>
               </View>
-              <Text style={styles.infoValue}>{profile.fullName || 'Chưa cập nhật'}</Text>
+              <Text style={styles.infoValue}>{profile.fullName || t('profile.not_updated')}</Text>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <Phone size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Số điện thoại chính chủ</Text>
+                <Text style={styles.infoLabel}>{t('profile.phone_label')}</Text>
               </View>
               <Text style={[styles.infoValue, { color: '#DC2626' }]}>
-                {profile.phoneNumber || 'Chưa cập nhật'}
+                {profile.phoneNumber || t('profile.not_updated')}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <Mail size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('profile.email_label')}</Text>
               </View>
               <Text style={styles.infoValue} numberOfLines={1}>
-                {profile.email || 'Chưa cập nhật'}
+                {profile.email || t('profile.not_updated')}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <CreditCard size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Số CCCD / CMND</Text>
+                <Text style={styles.infoLabel}>{t('profile.id_card_label')}</Text>
               </View>
               <Text style={styles.infoValue}>
-                {profile.idCardNumber || 'Chưa cập nhật'}
+                {profile.idCardNumber || t('profile.not_updated')}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoLabelRow}>
                 <Calendar size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Ngày sinh & Giới tính</Text>
+                <Text style={styles.infoLabel}>{t('profile.dob_gender_label')}</Text>
               </View>
               <Text style={styles.infoValue}>
-                {formatDobWithAge(profile.dateOfBirth) || '--'} • {profile.gender || 'Chưa rõ'}
+                {formatDobWithAge(profile.dateOfBirth) || '--'} • {profile.gender || t('profile.unknown')}
               </Text>
             </View>
 
             <View style={styles.addressSection}>
               <View style={styles.infoLabelRow}>
                 <MapPin size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Nơi ở thường trú</Text>
+                <Text style={styles.infoLabel}>{t('profile.residence_label')}</Text>
               </View>
               <View style={styles.addressBox}>
                 <Text style={styles.addressBoxText}>
-                  {profile.address || 'Chưa cập nhật'}
+                  {profile.address || t('profile.not_updated')}
                 </Text>
               </View>
             </View>
@@ -444,8 +444,8 @@ export const ProfileScreen: React.FC = () => {
         {/* ========================================================= */}
         <AccordionSection
           id="medical"
-          title="2. Y Tế Khẩn Cấp (Medical ID)"
-          subtitle="Chuẩn bị phác đồ cấp cứu & phòng ngừa sốc phản vệ"
+          title={t('profile.section_medical_title')}
+          subtitle={t('profile.section_medical_sub')}
           icon={<HeartPulse size={20} color="#DC2626" />}
           iconBgColor="#FEE2E2"
           titleColor="#0F172A"
@@ -459,9 +459,9 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.bloodTypeCardRow}>
               <BloodTypeBadge bloodType={medicalId.bloodType} size="medium" />
               <View style={styles.bloodTypeNote}>
-                <Text style={styles.bloodTypeNoteTitle}>Nhóm máu chỉ định</Text>
+                <Text style={styles.bloodTypeNoteTitle}>{t('profile.indicated_blood_type')}</Text>
                 <Text style={styles.bloodTypeNoteDesc}>
-                  Hỗ trợ lực lượng 115 chuẩn bị sẵn túi máu tương thích khi tiếp cận.
+                  {t('profile.blood_type_desc')}
                 </Text>
               </View>
             </View>
@@ -471,7 +471,7 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.subCatHeader}>
                 <AlertTriangle size={15} color="#DC2626" />
                 <Text style={[styles.subCatTitle, { color: '#991B1B' }]}>
-                  Dị ứng (Thuốc / Thức ăn / Môi trường)
+                  {t('profile.allergies_title')}
                 </Text>
               </View>
               {medicalId.allergies && medicalId.allergies.length > 0 ? (
@@ -485,7 +485,7 @@ export const ProfileScreen: React.FC = () => {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyNoteText}>Chưa ghi nhận dị ứng</Text>
+                <Text style={styles.emptyNoteText}>{t('profile.no_allergies')}</Text>
               )}
             </View>
 
@@ -494,7 +494,7 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.subCatHeader}>
                 <HeartPulse size={15} color="#D97706" />
                 <Text style={[styles.subCatTitle, { color: '#B45309' }]}>
-                  Tiền sử bệnh nền mãn tính
+                  {t('profile.conditions_title')}
                 </Text>
               </View>
               {medicalId.chronicConditions &&
@@ -509,7 +509,7 @@ export const ProfileScreen: React.FC = () => {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyNoteText}>Không có bệnh nền mãn tính</Text>
+                <Text style={styles.emptyNoteText}>{t('profile.no_conditions')}</Text>
               )}
             </View>
 
@@ -518,7 +518,7 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.subCatHeader}>
                 <Pill size={15} color="#0284C7" />
                 <Text style={[styles.subCatTitle, { color: '#0369A1' }]}>
-                  Thuốc đang điều trị thường xuyên
+                  {t('profile.medications_title')}
                 </Text>
               </View>
               {medicalId.currentMedications &&
@@ -533,7 +533,7 @@ export const ProfileScreen: React.FC = () => {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyNoteText}>Không dùng thuốc định kỳ</Text>
+                <Text style={styles.emptyNoteText}>{t('profile.no_medications')}</Text>
               )}
             </View>
 
@@ -542,7 +542,7 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.subCatHeader}>
                 <Accessibility size={15} color="#7C3AED" />
                 <Text style={[styles.subCatTitle, { color: '#6D28D9' }]}>
-                  Tình trạng khuyết tật & Khó khăn vận động
+                  {t('profile.mobility_title')}
                 </Text>
               </View>
               {medicalId.mobilityLimitations &&
@@ -557,7 +557,7 @@ export const ProfileScreen: React.FC = () => {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyNoteText}>Vận động bình thường</Text>
+                <Text style={styles.emptyNoteText}>{t('profile.normal_mobility')}</Text>
               )}
             </View>
 
@@ -577,8 +577,8 @@ export const ProfileScreen: React.FC = () => {
         {/* ========================================================= */}
         <AccordionSection
           id="ice"
-          title="3. Người Thân Khẩn Cấp (ICE)"
-          subtitle="Báo tin tức thời & liên lạc người thân khi nguy kịch"
+          title={t('profile.section_ice_title')}
+          subtitle={t('profile.section_ice_sub')}
           icon={<PhoneCall size={20} color="#059669" />}
           iconBgColor="rgba(16, 185, 129, 0.1)"
           titleColor="#0F172A"
@@ -593,13 +593,13 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.smsToggleTextCol}>
                 <View style={styles.smsTagRow}>
                   <MessageSquare size={13} color="#DC2626" />
-                  <Text style={styles.smsTag}>TỰ ĐỘNG GỬI SMS</Text>
+                  <Text style={styles.smsTag}>{t('profile.auto_sms_tag')}</Text>
                 </View>
                 <Text style={styles.smsToggleTitle}>
-                  Gửi toạ độ cho người thân khi bấm SOS
+                  {t('profile.auto_sms_title')}
                 </Text>
                 <Text style={styles.smsToggleDesc}>
-                  Khi bấm SOS, tự động gửi tin nhắn SMS chứa liên kết GPS tới các số điện thoại ICE bên dưới.
+                  {t('profile.auto_sms_desc')}
                 </Text>
               </View>
 
@@ -613,7 +613,7 @@ export const ProfileScreen: React.FC = () => {
 
             {/* List of ICE Contacts */}
             <Text style={styles.iceListHeader}>
-              Danh sách người thân nhận báo động:
+              {t('profile.ice_list_title')}
             </Text>
 
             {ice.contacts && ice.contacts.length > 0 ? (
@@ -628,7 +628,7 @@ export const ProfileScreen: React.FC = () => {
             ) : (
               <View style={styles.noIceBox}>
                 <Text style={styles.noIceText}>
-                  Chưa có người liên hệ khẩn cấp nào. Hãy bấm "Chỉnh sửa" để thêm người thân.
+                  {t('profile.no_ice_contacts')}
                 </Text>
               </View>
             )}
@@ -640,8 +640,8 @@ export const ProfileScreen: React.FC = () => {
         {/* ========================================================= */}
         <AccordionSection
           id="special"
-          title="4. Thông Tin Đặc Thù & Gia Đình"
-          subtitle="Ưu tiên nguồn lực cứu nạn khi sơ tán trẻ nhỏ & người già"
+          title={t('profile.section_special_title')}
+          subtitle={t('profile.section_special_sub')}
           icon={<Users size={20} color="#D97706" />}
           iconBgColor="#FEF3C7"
           titleColor="#0F172A"
@@ -673,13 +673,13 @@ export const ProfileScreen: React.FC = () => {
             <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
               <View style={styles.infoLabelRow}>
                 <FileText size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Ghi chú người phụ thuộc</Text>
+                <Text style={styles.infoLabel}>{t('profile.dependents_note_label')}</Text>
               </View>
             </View>
 
             <View style={styles.dependentsBox}>
               <Text style={styles.dependentsText}>
-                {specialInfo.dependentsNote || 'Không có ghi chú người phụ thuộc đặc biệt.'}
+                {specialInfo.dependentsNote || t('profile.no_dependents_note')}
               </Text>
             </View>
           </View>
@@ -746,7 +746,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.avatarModalBackdrop}>
           <View style={styles.avatarModalCard}>
             <View style={styles.avatarModalHeader}>
-              <Text style={styles.avatarModalTitle}>Đổi Ảnh Đại Diện</Text>
+              <Text style={styles.avatarModalTitle}>{t('profile.avatar_modal_title')}</Text>
               <TouchableOpacity
                 onPress={() => !isUploadingAvatar && setIsAvatarModalVisible(false)}
                 disabled={isUploadingAvatar}
@@ -766,7 +766,7 @@ export const ProfileScreen: React.FC = () => {
               {isUploadingAvatar && (
                 <View style={styles.avatarLoadingOverlay}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.avatarLoadingText}>Đang tải ảnh lên...</Text>
+                  <Text style={styles.avatarLoadingText}>{t('profile.avatar_loading')}</Text>
                 </View>
               )}
             </View>
@@ -780,7 +780,7 @@ export const ProfileScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <Camera size={18} color="#FFFFFF" />
-                <Text style={styles.avatarCameraBtnText}>Chụp Ảnh Mới</Text>
+                <Text style={styles.avatarCameraBtnText}>{t('profile.take_new_photo')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -790,22 +790,22 @@ export const ProfileScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <Images size={18} color="#0284C7" />
-                <Text style={styles.avatarLibraryBtnText}>Chọn Từ Thư Viện</Text>
+                <Text style={styles.avatarLibraryBtnText}>{t('profile.pick_library')}</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.avatarModalLabel}>Hoặc liên kết ảnh (URL):</Text>
+            <Text style={styles.avatarModalLabel}>{t('profile.avatar_url_label')}</Text>
             <TextInput
               style={styles.avatarModalInput}
               value={tempAvatarUrl}
               onChangeText={setTempAvatarUrl}
-              placeholder="https://... (dán liên kết ảnh)"
+              placeholder={t('profile.avatar_url_placeholder')}
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               editable={!isUploadingAvatar}
             />
 
-            <Text style={[styles.avatarModalLabel, { marginTop: 10 }]}>Hoặc chọn mẫu nhanh:</Text>
+            <Text style={[styles.avatarModalLabel, { marginTop: 10 }]}>{t('profile.avatar_preset_label')}</Text>
             <View style={styles.avatarModalPresetRow}>
               {AVATAR_PRESETS.map((preset, idx) => (
                 <TouchableOpacity
@@ -829,7 +829,7 @@ export const ProfileScreen: React.FC = () => {
                   onPress={handleRemoveAvatar}
                   style={styles.avatarClearBtn}
                 >
-                  <Text style={styles.avatarClearText}>Xóa Ảnh</Text>
+                  <Text style={styles.avatarClearText}>{t('profile.avatar_delete_btn')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity
@@ -837,14 +837,14 @@ export const ProfileScreen: React.FC = () => {
                 onPress={() => setIsAvatarModalVisible(false)}
                 style={styles.avatarCancelBtn}
               >
-                <Text style={styles.avatarCancelText}>Hủy</Text>
+                <Text style={styles.avatarCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 disabled={isUploadingAvatar}
                 onPress={handleSaveAvatar}
                 style={styles.avatarSaveBtn}
               >
-                <Text style={styles.avatarSaveText}>Lưu</Text>
+                <Text style={styles.avatarSaveText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

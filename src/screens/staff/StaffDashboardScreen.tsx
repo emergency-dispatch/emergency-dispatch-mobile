@@ -91,7 +91,7 @@ const MOCK_NOTIFICATIONS: DispatchNotification[] = [
   {
     id: 'n1',
     title: 'Lệnh điều động dự bị ưu tiên Vùng 2',
-    message: 'Trung tâm 115 chuyển mức sẵn sàng lên cấp 1 do thời tiết mưa lớn giờ cao điểm.',
+    message: 'Trung tâm điều phối chuyển mức sẵn sàng lên cấp 1 do thời tiết mưa lớn giờ cao điểm.',
     type: 'urgent',
     timestamp: '11:45',
     isRead: false,
@@ -189,8 +189,8 @@ export const StaffDashboardScreen: React.FC = () => {
   // SOS Emergency Hotline Call
   const handleConfirmSosCall = () => {
     setIsSosModalVisible(false);
-    Linking.openURL('tel:115').catch(() => {
-      Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ 115...');
+    Linking.openURL('tel:112').catch(() => {
+      Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ cứu hộ...');
     });
   };
 
@@ -359,10 +359,10 @@ export const StaffDashboardScreen: React.FC = () => {
         <ConfirmationModal
           visible={isSosModalVisible}
           type="danger"
-          title="Gọi Trực Ban Điều Phối 115"
-          description="Bạn đang yêu cầu kết nối thoại khẩn cấp đến Trung tâm Chỉ huy Điều phối Cứu hộ 115 TP.HCM."
-          highlightBadge="ĐÀM THOẠI TRỰC BAN 115"
-          confirmText="Gọi Ngay (115)"
+          title="Gọi Trực Ban Điều Phối Cứu Hộ"
+          description="Bạn đang yêu cầu kết nối thoại khẩn cấp đến Trung tâm Chỉ huy Điều phối Cứu hộ TP.HCM."
+          highlightBadge="ĐÀM THOẠI TRỰC BAN CỨU HỘ"
+          confirmText="Gọi Ngay"
           cancelText="Hủy Bỏ"
           onConfirm={handleConfirmSosCall}
           onCancel={() => setIsSosModalVisible(false)}

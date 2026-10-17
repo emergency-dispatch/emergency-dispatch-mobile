@@ -35,7 +35,7 @@ export const DutyStatusSelector: React.FC<DutyStatusSelectorProps> = ({
   onStatusChange,
   gpsStatusText = 'GPS: Tốt (±3m)',
   serverStatusText = 'Máy chủ: Đã kết nối',
-  radioChannelText = 'Kênh 04 (115 TT)',
+  radioChannelText = 'Kênh 04 (Cứu Hộ TT)',
 }) => {
   // Pulsing animation for online/active status
   const pulseAnim = useRef(new Animated.Value(1)).current;

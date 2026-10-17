@@ -20,7 +20,7 @@ export type CitizenTabParamList = {
   ProfileTab: undefined;
 };
 
-// Staff (Đội cứu hộ / Nhân viên điều phối 115) Bottom Tabs
+// Staff (Đội cứu hộ khẩn cấp) Bottom Tabs
 export type StaffTabParamList = {
   StaffDashboardTab: undefined;
   TacticalMapTab: undefined;

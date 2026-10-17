@@ -175,7 +175,7 @@ export const MedicalEquipmentModal: React.FC<MedicalEquipmentModalProps> = ({
   const handleSave = () => {
     Alert.alert(
       'Xác Nhận Biên Bản Kiểm Tra',
-      `Đã kiểm tra thành công ${checkedItems}/${totalItems} hạng mục thiết bị trên xe cấp cứu 51A-999.99. Dữ liệu đã đồng bộ về máy chủ 115.`,
+      `Đã kiểm tra thành công ${checkedItems}/${totalItems} hạng mục thiết bị trên xe cấp cứu 51A-999.99. Dữ liệu đã đồng bộ về máy chủ điều phối cứu hộ.`,
       [
         {
           text: 'Hoàn Tất',

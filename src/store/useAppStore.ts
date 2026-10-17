@@ -18,8 +18,8 @@ export const mapBackendUser = (dto: UserDto): User => {
     role: isStaff ? 'staff' : 'citizen',
     phone: dto.phoneNumber || undefined,
     avatarUrl: dto.avatarUrl || undefined,
-    staffId: isStaff ? (dto.stationName ? `ST-${dto.role}` : 'ST-115') : undefined,
-    teamName: isStaff ? dto.stationName || 'Đội Cứu Hộ Cơ Động 115' : undefined,
+    staffId: isStaff ? (dto.stationName ? `ST-${dto.role}` : 'ST-RESCUE') : undefined,
+    teamName: isStaff ? dto.stationName || 'Đội Cứu Hộ Khẩn Cấp' : undefined,
   };
 };
 

@@ -31,7 +31,7 @@ const DEFAULT_POIS: MapMarkerItem[] = [
   {
     id: 'hosp-1',
     title: 'Bệnh Viện Đa Khoa Sài Gòn',
-    description: '125 Lê Lợi, P. Bến Thành, Q.1 - Trực cấp cứu 24/7 (Hotline: 115)',
+    description: '125 Lê Lợi, P. Bến Thành, Q.1 - Trực cấp cứu 24/7 (Hotline Cứu Hộ 24/7)',
     latitude: 10.7719,
     longitude: 106.6993,
     type: 'hospital',

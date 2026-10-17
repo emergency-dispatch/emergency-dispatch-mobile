@@ -24,6 +24,7 @@ import {
   Languages,
   Users,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { UserEmergencyProfile } from '../../types/profile';
 import { BloodTypeBadge } from './BloodTypeBadge';
 import { EmergencyBadge } from './EmergencyBadge';
@@ -39,6 +40,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
   onClose,
   profile,
 }) => {
+  const { t, i18n } = useTranslation();
   const { medicalId, ice, specialInfo } = profile;
 
   return (
@@ -54,13 +56,13 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
           <View style={styles.topHeader}>
             <View style={styles.headerTitleRow}>
               <HeartPulse size={20} color="#FFFFFF" />
-              <Text style={styles.headerTitle}>THẺ Y TẾ CẤP CỨU (MEDICAL ID)</Text>
+              <Text style={styles.headerTitle}>{t('profile.medical_banner_title')}</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
               style={styles.closeButton}
               accessible={true}
-              accessibilityLabel="Đóng thẻ y tế"
+              accessibilityLabel={t('common.close')}
             >
               <X size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -69,7 +71,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
           {/* Subheader Alert */}
           <View style={styles.alertBanner}>
             <Text style={styles.alertText}>
-              DÀNH CHO ĐỘI CỨU HỘ & NHÂN VIÊN Y TẾ 114/115 TẠI HIỆN TRƯỜNG
+              {t('profile.modal_alert_for_rescue')}
             </Text>
           </View>
 
@@ -97,15 +99,15 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               </View>
 
               <View style={styles.nameBlock}>
-                <Text style={styles.fullName}>{profile.fullName || 'Chưa cập nhật họ tên'}</Text>
+                <Text style={styles.fullName}>{profile.fullName || t('profile.no_name')}</Text>
                 <Text style={styles.subInfo}>
-                  {profile.gender || 'Chưa rõ'} • {profile.dateOfBirth || '--'}
+                  {profile.gender || t('profile.unknown')} • {profile.dateOfBirth || '--'}
                   {profile.phoneNumber ? ` (${profile.phoneNumber})` : ''}
                 </Text>
                 <View style={styles.addressRow}>
                   <MapPin size={12} color="#94A3B8" />
                   <Text style={styles.addressText} numberOfLines={2}>
-                    {profile.address || 'Chưa cập nhật địa chỉ'}
+                    {profile.address || t('profile.no_address')}
                   </Text>
                 </View>
               </View>
@@ -119,9 +121,9 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                 showLabel={true}
               />
               <View style={styles.bloodNote}>
-                <Text style={styles.bloodNoteTitle}>LƯU Ý TRUYỀN MÁU</Text>
+                <Text style={styles.bloodNoteTitle}>{t('profile.transfusion_note')}</Text>
                 <Text style={styles.bloodNoteDesc}>
-                  Đối chiếu nhóm máu và phản ứng chéo trước khi thực hiện truyền chế phẩm máu tại chỗ.
+                  {t('profile.transfusion_desc')}
                 </Text>
               </View>
             </View>
@@ -131,7 +133,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <AlertTriangle size={18} color="#EF4444" />
                 <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>
-                  DỊ ỨNG & CẢNH BÁO SỐC PHẢN VỆ
+                  {t('profile.allergies_modal_title')}
                 </Text>
               </View>
               {medicalId.allergies && medicalId.allergies.length > 0 ? (
@@ -145,7 +147,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyText}>Chưa ghi nhận tiền sử dị ứng</Text>
+                <Text style={styles.emptyText}>{t('profile.no_allergies')}</Text>
               )}
             </View>
 
@@ -154,7 +156,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <HeartPulse size={18} color="#F59E0B" />
                 <Text style={[styles.sectionTitle, { color: '#F59E0B' }]}>
-                  TIỀN SỬ BỆNH NỀN MÃN TÍNH
+                  {t('profile.conditions_modal_title')}
                 </Text>
               </View>
               {medicalId.chronicConditions &&
@@ -169,7 +171,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyText}>Không có bệnh nền mãn tính</Text>
+                <Text style={styles.emptyText}>{t('profile.no_conditions')}</Text>
               )}
             </View>
 
@@ -178,7 +180,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <Pill size={18} color="#38BDF8" />
                 <Text style={[styles.sectionTitle, { color: '#38BDF8' }]}>
-                  THUỐC ĐANG ĐIỀU TRỊ THƯỜNG XUYÊN
+                  {t('profile.medications_modal_title')}
                 </Text>
               </View>
               {medicalId.currentMedications &&
@@ -193,7 +195,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyText}>Không sử dụng thuốc thường xuyên</Text>
+                <Text style={styles.emptyText}>{t('profile.no_medications')}</Text>
               )}
             </View>
 
@@ -202,7 +204,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <Accessibility size={18} color="#A855F7" />
                 <Text style={[styles.sectionTitle, { color: '#A855F7' }]}>
-                  TÌNH TRẠNG KHUYẾT TẬT / VẬN ĐỘNG
+                  {t('profile.mobility_modal_title')}
                 </Text>
               </View>
               {medicalId.mobilityLimitations &&
@@ -217,7 +219,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyText}>Khả năng vận động bình thường</Text>
+                <Text style={styles.emptyText}>{t('profile.normal_mobility')}</Text>
               )}
             </View>
 
@@ -226,7 +228,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <Phone size={18} color="#10B981" />
                 <Text style={[styles.sectionTitle, { color: '#10B981' }]}>
-                  NGƯỜI THÂN KHẨN CẤP (ICE)
+                  {t('profile.ice_modal_title')}
                 </Text>
               </View>
               {ice.contacts && ice.contacts.length > 0 ? (
@@ -241,7 +243,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptyText}>Chưa cấu hình người thân ICE</Text>
+                <Text style={styles.emptyText}>{t('profile.no_ice_contacts')}</Text>
               )}
             </View>
 
@@ -250,13 +252,13 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               <View style={styles.sectionHeader}>
                 <Users size={18} color="#E2E8F0" />
                 <Text style={[styles.sectionTitle, { color: '#E2E8F0' }]}>
-                  THÔNG TIN ĐẶC THÙ & HỘ GIA ĐÌNH
+                  {t('profile.special_modal_title')}
                 </Text>
               </View>
               <View style={styles.specialRow}>
                 <Languages size={15} color="#94A3B8" />
                 <Text style={styles.specialText}>
-                  Ngôn ngữ ưu tiên: <Text style={styles.boldText}>{specialInfo.preferredLanguage || 'Tiếng Việt'}</Text>
+                  {t('language.preferred_lang')}: <Text style={styles.boldText}>{specialInfo.preferredLanguage || (i18n.language?.startsWith('vi') ? 'Tiếng Việt' : 'English')}</Text>
                 </Text>
               </View>
               {specialInfo.dependentsNote ? (
@@ -277,7 +279,7 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
               onPress={onClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.doneBtnText}>Hoàn tất</Text>
+              <Text style={styles.doneBtnText}>{t('common.understood')}</Text>
             </TouchableOpacity>
           </View>
         </View>

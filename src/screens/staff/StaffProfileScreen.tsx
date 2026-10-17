@@ -69,7 +69,7 @@ export const StaffProfileScreen: React.FC = () => {
     setIsHandoverModalVisible(false);
     Alert.alert(
       'Bàn Giao Ca Thành Công',
-      'Biên bản bàn giao xe 51A-999.99 và trang thiết bị đã được gửi về Trung tâm Điều phối 115.'
+      'Biên bản bàn giao xe 51A-999.99 và trang thiết bị đã được gửi về Trung tâm Điều phối Cứu hộ.'
     );
   };
 
@@ -412,7 +412,7 @@ export const StaffProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isHandoverModalVisible}
         type="warning"
-        title="Bàn Giao Ca Trực 115"
+        title="Bàn Giao Ca Trực Cứu Hộ"
         description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu thương 51A-999.99 cùng trang thiết bị cho kíp trực tiếp theo."
         highlightBadge="BÀN GIAO XE 51A-999.99"
         highlightText="Vui lòng đảm bảo bình Oxy đạt trên 180 Bar và vệ sinh khử trùng khoang cấp cứu."
@@ -427,7 +427,7 @@ export const StaffProfileScreen: React.FC = () => {
         visible={isLogoutModalVisible}
         type="danger"
         title="Đăng Xuất Khỏi Ca Trực"
-        description="Bạn có chắc chắn muốn đăng xuất? Vị trí GPS của xe cứu thương sẽ tạm thời ngắt kết nối với Trung tâm Điều phối 115."
+        description="Bạn có chắc chắn muốn đăng xuất? Vị trí GPS của xe cứu thương sẽ tạm thời ngắt kết nối với Trung tâm Điều phối Cứu hộ."
         confirmText="Đăng Xuất"
         cancelText="Ở Lại Trực"
         onConfirm={handleConfirmLogout}
@@ -438,7 +438,7 @@ export const StaffProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isRadioModalVisible}
         type="info"
-        title="Tần Số Vô Tuyến 115"
+        title="Tần Số Vô Tuyến Cứu Hộ"
         description="Kênh vô tuyến chỉ huy trực ban Cứu hộ TP.HCM:"
         highlightBadge="TẦN SỐ: 154.250 MHZ"
         highlightText="Kênh 04 (Chỉ huy Vùng 2 - Quận 10 / Quận 3 / Quận 5). Bộ đàm luôn ở chế độ mở khi xe lăn bánh."

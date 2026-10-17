@@ -61,7 +61,7 @@ export const StaffNotificationsModal: React.FC<StaffNotificationsModalProps> = (
                 <Bell size={moderateScale(20)} color="#DC2626" />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Thông Báo Điều Phối 115</Text>
+                <Text style={styles.modalTitle}>Thông Báo Điều Phối Cứu Hộ</Text>
                 <Text style={styles.modalSubtitle}>Kênh phát thanh khẩn cấp</Text>
               </View>
             </View>

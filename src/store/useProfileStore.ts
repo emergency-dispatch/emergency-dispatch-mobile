@@ -41,7 +41,7 @@ export const INITIAL_PROFILE: UserEmergencyProfile = {
   ice: {
     autoSendSmsOnSos: true,
     contacts: [],
-    smsTemplate: 'KHẨN CẤP: Tôi đang kích hoạt tín hiệu SOS tại toạ độ {GPS_COORDS}. Hãy liên hệ lực lượng cứu hộ 114/115 hỗ trợ tôi ngay!',
+    smsTemplate: 'KHẨN CẤP: Tôi đang kích hoạt tín hiệu SOS tại toạ độ {GPS_COORDS}. Hãy liên hệ lực lượng cứu hộ khẩn cấp hỗ trợ tôi ngay!',
   },
 
   specialInfo: {

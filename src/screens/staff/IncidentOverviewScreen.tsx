@@ -76,8 +76,8 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   // Quick Dispatcher Hotline Call
   const handleConfirmCallDispatcher = () => {
     setIsCallDispatcherModalVisible(false);
-    Linking.openURL('tel:115').catch(() => {
-      Alert.alert('Đàm Thoại', 'Đang kết nối qua kênh vô tuyến số 115...');
+    Linking.openURL('tel:112').catch(() => {
+      Alert.alert('Đàm Thoại', 'Đang kết nối qua kênh vô tuyến cứu hộ...');
     });
   };
 
@@ -323,7 +323,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           type="danger"
           title={t('staff.call_dispatcher')}
           description={`Kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ cho Ca trực ${incident.code}?`}
-          highlightBadge="KÊNH KHẨN CẤP 115"
+          highlightBadge="KÊNH KHẨN CẤP ĐIỀU PHỐI"
           confirmText={t('staff.call_dispatcher')}
           cancelText={t('common.cancel')}
           onConfirm={handleConfirmCallDispatcher}
@@ -365,9 +365,9 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           title="Hoàn Thành Ca Cấp Cứu 🎉"
           description="Đã bàn giao 3 nạn nhân an toàn cho Bệnh viện Cấp Cứu Trưng Vương."
           highlightBadge="CA TRỰC HOÀN TẤT XUẤT SẮC"
-          highlightText="Báo cáo ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm 115."
+          highlightText="Báo cáo ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm Cứu hộ."
           singleButton
-          confirmText="Về Bảng Trực 115"
+          confirmText="Về Bảng Trực Cứu Hộ"
           onConfirm={() => {
             setIsCompleteModalVisible(false);
             if (navigation?.canGoBack()) {

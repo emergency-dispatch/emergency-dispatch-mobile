@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Droplet } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { BloodType } from '../../types/profile';
 
 interface BloodTypeBadgeProps {
@@ -14,6 +15,7 @@ export const BloodTypeBadge: React.FC<BloodTypeBadgeProps> = ({
   size = 'medium',
   showLabel = true,
 }) => {
+  const { t } = useTranslation();
   const isLarge = size === 'large';
   const isSmall = size === 'small';
 
@@ -35,7 +37,7 @@ export const BloodTypeBadge: React.FC<BloodTypeBadgeProps> = ({
       <View style={styles.textColumn}>
         {showLabel && (
           <Text style={[styles.label, isLarge && styles.labelLarge]}>
-            NHÓM MÁU
+            {t('profile.blood_group')}
           </Text>
         )}
         <Text
@@ -45,7 +47,7 @@ export const BloodTypeBadge: React.FC<BloodTypeBadgeProps> = ({
             isSmall && styles.valueSmall,
           ]}
         >
-          {bloodType || 'Chưa rõ'}
+          {bloodType || t('profile.unknown')}
         </Text>
       </View>
     </View>

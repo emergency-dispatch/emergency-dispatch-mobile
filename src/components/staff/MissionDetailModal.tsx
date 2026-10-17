@@ -124,7 +124,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                   <View style={[styles.timelineDot, styles.dotCompleted]} />
                   <View style={styles.timelineInfo}>
                     <Text style={styles.timelineStepTitle}>Tiếp nhận lệnh điều phối</Text>
-                    <Text style={styles.timelineTime}>Trung tâm 115 phát lệnh báo động</Text>
+                    <Text style={styles.timelineTime}>Trung tâm điều phối phát lệnh báo động</Text>
                   </View>
                 </View>
                 <View style={styles.timelineLine} />

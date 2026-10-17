@@ -115,7 +115,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             </View>
             <View style={styles.statusRow}>
               <CheckCircle2 size={16} color="#16A34A" />
-              <Text style={styles.statusText}>{t('sos_modal.connected_115')}</Text>
+              <Text style={styles.statusText}>{t('sos_modal.connected_rescue')}</Text>
             </View>
             {incident?.aiClassification && (
               <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
@@ -141,7 +141,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               style={styles.callButton}
               onPress={onClose}
               accessible={true}
-              accessibilityLabel="Gọi trực tiếp 114 hoặc 115"
+              accessibilityLabel="Gọi trực tiếp tổng đài điều phối cứu hộ"
             >
               <PhoneCall size={18} color="#FFFFFF" />
               <Text style={styles.callButtonText}>{t('sos_modal.call_hotline_btn')}</Text>

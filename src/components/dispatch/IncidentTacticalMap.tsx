@@ -247,7 +247,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
                 { color: sirenActive ? '#16A34A' : '#64748B' },
               ]}
             >
-              {sirenActive ? 'BẬT (115)' : 'TẮT'}
+              {sirenActive ? 'BẬT (ƯU TIÊN)' : 'TẮT'}
             </Text>
           </View>
         </View>

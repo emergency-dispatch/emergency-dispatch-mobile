@@ -205,7 +205,7 @@ export const HomeScreen: React.FC = () => {
   const handleSosSendWithoutMedia = async () => {
     try {
       setIsSendingSos(true);
-      setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm 114/115...');
+      setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...');
       const loc = await useLocationStore.getState().refreshLocation(false);
       const created = await incidentService.createIncident({
         title: 'Báo động SOS Khẩn cấp',
@@ -267,7 +267,7 @@ export const HomeScreen: React.FC = () => {
 
       Alert.alert(
         'Báo Cáo Đã Gửi Thành Công!',
-        `Đã chuyển thông tin tới trung tâm điều phối cứu hộ 114/115. Mã sự cố: #${created.id.slice(0, 8).toUpperCase()}.${aiText}`,
+        `Đã chuyển thông tin tới trung tâm điều phối cứu hộ khẩn cấp. Mã sự cố: #${created.id.slice(0, 8).toUpperCase()}.${aiText}`,
         [{ text: 'Đồng ý' }]
       );
     } catch (err: any) {

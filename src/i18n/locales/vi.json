@@ -1,0 +1,78 @@
+{
+  "common": {
+    "app_name": "Emergency Dispatch",
+    "online_status": "HỆ THỐNG CỨU HỘ ĐANG TRỰC TUYẾN (24/7)",
+    "cancel": "Hủy Bỏ",
+    "confirm": "Xác Nhận",
+    "save": "Lưu thay đổi",
+    "loading": "Đang xử lý...",
+    "success": "Thành công",
+    "error": "Lỗi",
+    "warning": "Cảnh báo",
+    "understood": "Đã Hiểu",
+    "retry": "Thử lại",
+    "search": "Tìm kiếm...",
+    "close": "Đóng"
+  },
+  "nav": {
+    "home": "SOS Cấp Cứu",
+    "map": "Bản Đồ An Toàn",
+    "reports": "Báo Cáo Cứu Trợ",
+    "profile": "Hồ Sơ Y Tế & ICE",
+    "staff": "Điều Phối Cứu Hộ"
+  },
+  "sos": {
+    "pulse_title": "GỬI YÊU CẦU CỨU HỘ",
+    "hold_hint": "GIỮ 2 GIÂY ĐỂ PHÁT SOS",
+    "holding_progress": "GIỮ... {{percent}}%",
+    "auto_gps_hint": "Tự động gửi GPS + Camera",
+    "releasing_cancel": "Thả tay để hủy",
+    "sending": "Đang phát tín hiệu cứu hộ khẩn cấp...",
+    "transmitting_gps": "Đang truyền tọa độ GPS chính xác...",
+    "locating": "Đang xác định vị trí...",
+    "accuracy_prefix": "Chính xác ±3m",
+    "refresh_gps": "Làm mới vị trí GPS",
+    "quick_media_title": "ĐÍNH KÈM HIỆN TRƯỜNG NHANH",
+    "take_photo": "Chụp ảnh",
+    "record_video": "Video 5s",
+    "record_voice": "Mô tả / Voice",
+    "history_tooltip": "Xem lịch sử sự cố đã gửi",
+    "medical_id_tooltip": "Xem hồ sơ y tế cứu hộ"
+  },
+  "hazards": {
+    "title": "BÁO CÁO NHANH THEO LOẠI SỰ CỐ",
+    "fire": "Hỏa Hoạn",
+    "fire_desc": "Cháy nổ & cứu hỏa",
+    "crash": "Tai Nạn Giao Thông",
+    "crash_desc": "Va chạm & lật xe",
+    "chemical": "Tràn Dầu / Hóa Chất",
+    "chemical_desc": "Rò rỉ độc hại",
+    "medical": "Cấp Cứu Y Tế",
+    "medical_desc": "Bệnh nặng & chấn thương"
+  },
+  "map": {
+    "title": "Bản đồ cứu hộ an toàn",
+    "current_location": "Vị trí của bạn",
+    "recenter": "Về vị trí của tôi",
+    "incident_marker": "Điểm cứu hộ",
+    "filter_all": "Tất cả sự cố",
+    "radius_hint": "Bán kính an toàn 5km",
+    "safe_zones": "Khu vực an toàn",
+    "navigating_to_incident": "Chỉ đường tới hiện trường"
+  },
+  "language": {
+    "select_title": "Chọn ngôn ngữ / Select Language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "change_success": "Đã chuyển sang Tiếng Việt",
+    "preferred_lang": "Ngôn ngữ hiển thị"
+  },
+  "profile": {
+    "medical_card_title": "HỒ SƠ Y TẾ KHẨN CẤP (ICE)",
+    "blood_type": "Nhóm máu",
+    "allergies": "Dị ứng & Bệnh nền",
+    "emergency_contacts": "Người liên hệ khẩn cấp",
+    "settings": "Cài đặt ứng dụng",
+    "logout": "Đăng xuất"
+  }
+}

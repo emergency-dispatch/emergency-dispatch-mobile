@@ -8,11 +8,13 @@ import { HomeScreen } from '../screens/home/HomeScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { MyReportsScreen } from '../screens/reports/MyReportsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../utils/responsive';
 
 const Tab = createBottomTabNavigator<CitizenTabParamList>();
 
 export const CitizenNavigator: React.FC = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isSmallDevice, fontScale, moderateScale } = useResponsive();
   const bottomInset = insets.bottom;
@@ -54,7 +56,7 @@ export const CitizenNavigator: React.FC = () => {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'SOS Cấp Cứu',
+          tabBarLabel: t('nav.home'),
           tabBarIcon: ({ color }) => (
             <ShieldAlert color={color} size={iconSize} strokeWidth={2.4} />
           ),
@@ -64,7 +66,7 @@ export const CitizenNavigator: React.FC = () => {
         name="SafetyMapTab"
         component={SafetyMapScreen}
         options={{
-          tabBarLabel: 'Bản Đồ An Toàn',
+          tabBarLabel: t('nav.map'),
           tabBarIcon: ({ color }) => <Map color={color} size={iconSize} />,
         }}
       />
@@ -72,7 +74,7 @@ export const CitizenNavigator: React.FC = () => {
         name="ReportsTab"
         component={MyReportsScreen}
         options={{
-          tabBarLabel: 'Báo Cáo Cứu Trợ',
+          tabBarLabel: t('nav.reports'),
           tabBarIcon: ({ color }) => <FileText color={color} size={iconSize} />,
         }}
       />
@@ -80,7 +82,7 @@ export const CitizenNavigator: React.FC = () => {
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Hồ Sơ Y Tế & ICE',
+          tabBarLabel: t('nav.profile'),
           tabBarIcon: ({ color }) => <UserCheck color={color} size={iconSize} />,
         }}
       />

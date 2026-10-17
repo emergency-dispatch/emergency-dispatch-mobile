@@ -9,6 +9,7 @@ import {
   Vibration,
 } from 'react-native';
 import { ShieldAlert, Radio } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../../utils/responsive';
 
 interface SosPulseButtonProps {
@@ -22,6 +23,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   holdDuration = 2000,
   onPressStateChange,
 }) => {
+  const { t } = useTranslation();
   const { width, isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
   // Dynamic responsive sizing
@@ -288,7 +290,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
                     { fontSize: fontScale(isSmallDevice ? 10.5 : 12) },
                   ]}
                 >
-                  GIỮ... {progressPercent}%
+                  {t('sos.holding_progress', { percent: progressPercent })}
                 </Text>
               ) : (
                 <Text
@@ -297,7 +299,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
                     { fontSize: fontScale(isSmallDevice ? 9.5 : 11) },
                   ]}
                 >
-                  GIỮ 2 GIÂY ĐỂ PHÁT SOS
+                  {t('sos.hold_hint')}
                 </Text>
               )}
             </View>
@@ -309,7 +311,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
                 { fontSize: fontScale(isSmallDevice ? 8.5 : 9.5) },
               ]}
             >
-              Tự động gửi GPS + Camera
+              {t('sos.auto_gps_hint')}
             </Text>
           </View>
         </Pressable>

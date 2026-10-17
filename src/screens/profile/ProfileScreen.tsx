@@ -51,8 +51,9 @@ const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
 ];
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { ConfirmationModal } from '../../components/common';
+import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 
@@ -80,11 +81,13 @@ export const ProfileScreen: React.FC = () => {
     removeIceContact,
   } = useProfileStore();
 
+  const { t, i18n } = useTranslation();
   const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isAvatarModalVisible, setIsAvatarModalVisible] = useState(false);
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [tempAvatarUrl, setTempAvatarUrl] = useState('');
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
@@ -636,15 +639,24 @@ export const ProfileScreen: React.FC = () => {
           onQuickEdit={() => handleOpenEditTab('special')}
         >
           <View style={styles.cardContent}>
-            <View style={styles.infoRow}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsLanguageModalVisible(true)}
+              style={styles.infoRow}
+            >
               <View style={styles.infoLabelRow}>
-                <Languages size={14} color="#64748B" />
-                <Text style={styles.infoLabel}>Ngôn ngữ ưu tiên giao tiếp</Text>
+                <Languages size={14} color="#DC2626" />
+                <Text style={[styles.infoLabel, { color: '#0F172A', fontWeight: '700' }]}>
+                  {t('language.preferred_lang')}
+                </Text>
               </View>
-              <Text style={[styles.infoValue, { fontWeight: '700' }]}>
-                {specialInfo.preferredLanguage || 'Tiếng Việt'}
-              </Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.infoValue, { fontWeight: '700', color: '#DC2626' }]}>
+                  {i18n.language?.startsWith('vi') ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+                </Text>
+                <ChevronRight size={14} color="#94A3B8" />
+              </View>
+            </TouchableOpacity>
 
             <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
               <View style={styles.infoLabelRow}>
@@ -826,6 +838,12 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Language Selector Bottom Sheet Modal */}
+      <LanguageSelectorModal
+        visible={isLanguageModalVisible}
+        onClose={() => setIsLanguageModalVisible(false)}
+      />
     </ScreenContainer>
   );
 };

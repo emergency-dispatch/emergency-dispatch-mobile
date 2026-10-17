@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { useTranslation } from 'react-i18next';
 import {
   MapPin,
   Navigation,
@@ -62,6 +63,7 @@ const DEFAULT_POIS: MapMarkerItem[] = [
 ];
 
 export const SafetyMapScreen: React.FC = () => {
+  const { t } = useTranslation();
   const mapRef = useRef<MapboxViewRef>(null);
 
   const {
@@ -142,7 +144,7 @@ export const SafetyMapScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View>
-            <Text style={styles.title}>Bản Đồ An Toàn</Text>
+            <Text style={styles.title}>{t('map.title')}</Text>
             <Text style={styles.subtitle}>Mạng lưới cứu hộ, bệnh viện & cảnh báo sự cố 24/7</Text>
           </View>
           <TouchableOpacity
@@ -290,7 +292,7 @@ export const SafetyMapScreen: React.FC = () => {
           onPress={handleRecenter}
         >
           <Navigation size={18} color="#FFFFFF" />
-          <Text style={styles.recenterText}> VỊ TRÍ CỦA TÔI</Text>
+          <Text style={styles.recenterText}>{t('map.recenter').toUpperCase()}</Text>
         </TouchableOpacity>
       )}
     </ScreenContainer>

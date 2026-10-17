@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { AppConfig } from '../constants/config';
 import { storage } from '../services/storage';
+import i18n from '../i18n';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: AppConfig.API_BASE_URL,
@@ -11,13 +12,22 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Attach Auth Token if exists
+// Request Interceptor: Attach Auth Token and Accept-Language if exists
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
       const token = await storage.getItem<string>(AppConfig.STORAGE_KEYS.AUTH_TOKEN);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Automatically attach user display language preference to backend
+      const lang = i18n.language || 'vi';
+      const acceptLanguage = lang.startsWith('vi')
+        ? 'vi-VN,vi;q=0.9,en;q=0.8'
+        : 'en-US,en;q=0.9,vi;q=0.8';
+      if (config.headers) {
+        config.headers['Accept-Language'] = acceptLanguage;
       }
     } catch {
       // Ignore token read errors during request

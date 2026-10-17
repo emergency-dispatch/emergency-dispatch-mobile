@@ -1,0 +1,78 @@
+{
+  "common": {
+    "app_name": "Emergency Dispatch",
+    "online_status": "DISPATCH SYSTEM ONLINE (24/7)",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save Changes",
+    "loading": "Processing...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "understood": "Understood",
+    "retry": "Retry",
+    "search": "Search...",
+    "close": "Close"
+  },
+  "nav": {
+    "home": "SOS Emergency",
+    "map": "Safety Map",
+    "reports": "My Reports",
+    "profile": "Medical ID & ICE",
+    "staff": "Dispatch"
+  },
+  "sos": {
+    "pulse_title": "REQUEST EMERGENCY SOS",
+    "hold_hint": "HOLD 2 SECONDS TO TRIGGER SOS",
+    "holding_progress": "HOLDING... {{percent}}%",
+    "auto_gps_hint": "Auto transmit GPS & Media",
+    "releasing_cancel": "Release to cancel",
+    "sending": "Transmitting emergency distress signal...",
+    "transmitting_gps": "Transmitting high-precision GPS coordinates...",
+    "locating": "Determining location...",
+    "accuracy_prefix": "Accuracy ±3m",
+    "refresh_gps": "Refresh GPS Location",
+    "quick_media_title": "QUICK SCENE ATTACHMENTS",
+    "take_photo": "Take Photo",
+    "record_video": "5s Video",
+    "record_voice": "Voice / Note",
+    "history_tooltip": "View incident history",
+    "medical_id_tooltip": "View Emergency Medical ID"
+  },
+  "hazards": {
+    "title": "QUICK REPORT BY INCIDENT TYPE",
+    "fire": "Fire Incident",
+    "fire_desc": "Structure fire & rescue",
+    "crash": "Traffic Collision",
+    "crash_desc": "Vehicle collision & rollover",
+    "chemical": "Hazmat / Spill",
+    "chemical_desc": "Toxic leak & hazard",
+    "medical": "Medical Emergency",
+    "medical_desc": "Severe illness & trauma"
+  },
+  "map": {
+    "title": "Safety Rescue Map",
+    "current_location": "Your Location",
+    "recenter": "Back to My Location",
+    "incident_marker": "Rescue Incident",
+    "filter_all": "All Incidents",
+    "radius_hint": "5km Safe Radius",
+    "safe_zones": "Safe Zones",
+    "navigating_to_incident": "Navigate to Incident"
+  },
+  "language": {
+    "select_title": "Select Language / Chọn ngôn ngữ",
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "change_success": "Switched to English",
+    "preferred_lang": "Display Language"
+  },
+  "profile": {
+    "medical_card_title": "EMERGENCY MEDICAL PROFILE (ICE)",
+    "blood_type": "Blood Type",
+    "allergies": "Allergies & Medical Conditions",
+    "emergency_contacts": "Emergency Contacts",
+    "settings": "App Settings",
+    "logout": "Log Out"
+  }
+}

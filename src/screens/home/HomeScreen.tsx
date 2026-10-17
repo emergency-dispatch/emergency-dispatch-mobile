@@ -22,11 +22,13 @@ import {
   RefreshCw,
   HeartPulse,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { SosPulseButton } from '../../components/sos/SosPulseButton';
 import { QuickHazardGrid, HazardItem } from '../../components/sos/QuickHazardGrid';
 import { MediaReportModal } from '../../components/sos/MediaReportModal';
 import { SosSuccessModal } from '../../components/sos/SosSuccessModal';
+import { LanguageSelectorModal } from '../../components/common';
 import { MainTabParamList } from '../../navigation/types';
 import { useResponsive } from '../../utils/responsive';
 import { incidentService } from '../../services/incident.service';
@@ -43,6 +45,8 @@ type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeT
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
   const headerIconSize = isSmallDevice ? 18 : 20;
 
@@ -61,6 +65,7 @@ export const HomeScreen: React.FC = () => {
   const [selectedHazard, setSelectedHazard] = useState<HazardItem | null>(null);
   const [isMediaModalVisible, setIsMediaModalVisible] = useState(false);
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [activeIncident, setActiveIncident] = useState<IncidentResponseDto | null>(null);
   const [isSendingSos, setIsSendingSos] = useState(false);
   const [sosSendingLoadingText, setSosSendingLoadingText] = useState('');
@@ -307,7 +312,7 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.addressTitleRow}>
               <MapPin size={12} color="#DC2626" />
               <Text style={[styles.accuracyTag, { fontSize: fontScale(9) }]}>
-                Chính xác ±3m
+                {t('sos.accuracy_prefix')}
               </Text>
             </View>
             <Text
@@ -325,6 +330,28 @@ export const HomeScreen: React.FC = () => {
           />
         </TouchableOpacity>
 
+        {/* Language Switch Quick Button */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setIsLanguageModalVisible(true)}
+          style={[
+            styles.historyButton,
+            styles.languageButton,
+            {
+              width: moderateScale(isSmallDevice ? 38 : 42),
+              height: moderateScale(isSmallDevice ? 38 : 42),
+              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
+            },
+          ]}
+          accessible={true}
+          accessibilityLabel={t('language.preferred_lang')}
+          accessibilityRole="button"
+        >
+          <Text style={{ fontSize: moderateScale(isSmallDevice ? 16 : 18) }}>
+            {currentLang === 'vi' ? '🇻🇳' : '🇬🇧'}
+          </Text>
+        </TouchableOpacity>
+
         {/* Incident History Button */}
         <TouchableOpacity
           activeOpacity={0.7}
@@ -338,7 +365,7 @@ export const HomeScreen: React.FC = () => {
             },
           ]}
           accessible={true}
-          accessibilityLabel="Xem lịch sử sự cố đã gửi"
+          accessibilityLabel={t('sos.history_tooltip')}
           accessibilityRole="button"
         >
           <Clock size={headerIconSize} color="#475569" />
@@ -358,7 +385,7 @@ export const HomeScreen: React.FC = () => {
             },
           ]}
           accessible={true}
-          accessibilityLabel="Xem hồ sơ y tế cứu hộ"
+          accessibilityLabel={t('sos.medical_id_tooltip')}
           accessibilityRole="button"
         >
           <HeartPulse size={headerIconSize} color="#DC2626" />
@@ -378,7 +405,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.systemBanner}>
           <Sparkles size={13} color="#DC2626" />
           <Text style={[styles.systemBannerText, { fontSize: fontScale(9.5) }]}>
-            HỆ THỐNG CỨU HỘ ĐANG TRỰC TUYẾN (24/7)
+            {t('common.online_status')}
           </Text>
         </View>
 
@@ -397,7 +424,7 @@ export const HomeScreen: React.FC = () => {
         {/* 4. Camera / Media Quick Bar Trigger */}
         <View style={styles.mediaQuickBar}>
           <Text style={[styles.quickBarTitle, { fontSize: fontScale(10.5) }]}>
-            ĐÍNH KÈM HIỆN TRƯỜNG NHANH
+            {t('sos.quick_media_title')}
           </Text>
           <View style={styles.quickBarButtonsRow}>
             {/* Quick Photo */}
@@ -406,7 +433,7 @@ export const HomeScreen: React.FC = () => {
               onPress={handleOpenGeneralMediaReport}
               style={[styles.quickBarBtn, styles.photoBtn]}
               accessible={true}
-              accessibilityLabel="Chụp ảnh hiện trường nhanh"
+              accessibilityLabel={t('sos.take_photo')}
             >
               <Camera size={isSmallDevice ? 16 : 18} color="#2563EB" />
               <Text
@@ -415,7 +442,7 @@ export const HomeScreen: React.FC = () => {
                   { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
                 ]}
               >
-                Chụp ảnh
+                {t('sos.take_photo')}
               </Text>
             </TouchableOpacity>
 
@@ -425,7 +452,7 @@ export const HomeScreen: React.FC = () => {
               onPress={handleOpenGeneralMediaReport}
               style={[styles.quickBarBtn, styles.videoBtn]}
               accessible={true}
-              accessibilityLabel="Quay clip 5 giây hiện trường"
+              accessibilityLabel={t('sos.record_video')}
             >
               <Video size={isSmallDevice ? 16 : 18} color="#DC2626" />
               <Text
@@ -434,7 +461,7 @@ export const HomeScreen: React.FC = () => {
                   { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
                 ]}
               >
-                Video 5s
+                {t('sos.record_video')}
               </Text>
             </TouchableOpacity>
 
@@ -444,7 +471,7 @@ export const HomeScreen: React.FC = () => {
               onPress={handleOpenGeneralMediaReport}
               style={[styles.quickBarBtn, styles.noteBtn]}
               accessible={true}
-              accessibilityLabel="Ghi chú mô tả hiện trường"
+              accessibilityLabel={t('sos.record_voice')}
             >
               <FileEdit size={isSmallDevice ? 16 : 18} color="#7C3AED" />
               <Text
@@ -453,7 +480,7 @@ export const HomeScreen: React.FC = () => {
                   { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
                 ]}
               >
-                Ghi chú
+                {t('sos.record_voice')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -490,6 +517,12 @@ export const HomeScreen: React.FC = () => {
         onCancelIncident={handleCancelIncident}
         address={address}
         incident={activeIncident}
+      />
+
+      {/* Language Selector Bottom Sheet Modal */}
+      <LanguageSelectorModal
+        visible={isLanguageModalVisible}
+        onClose={() => setIsLanguageModalVisible(false)}
       />
     </ScreenContainer>
   );
@@ -581,6 +614,10 @@ const styles = StyleSheet.create({
   profileButton: {
     backgroundColor: 'rgba(220, 38, 38, 0.06)',
     borderColor: 'rgba(220, 38, 38, 0.2)',
+  },
+  languageButton: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
   },
   scrollContent: {
     paddingBottom: 24,

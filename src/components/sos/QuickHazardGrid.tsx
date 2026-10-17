@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Flame, Car, Droplet, HeartPulse } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../../utils/responsive';
 
 export interface HazardItem {
@@ -62,6 +63,7 @@ interface QuickHazardGridProps {
 }
 
 export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard }) => {
+  const { t } = useTranslation();
   const { isSmallDevice, moderateScale, fontScale } = useResponsive();
 
   const iconCircleSize = moderateScale(isSmallDevice ? 32 : 36);
@@ -72,16 +74,19 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { fontSize: fontScale(10.5) }]}>
-          BÁO CÁO NHANH SỰ CỐ
+          {t('hazards.title')}
         </Text>
         <Text style={[styles.sectionBadge, { fontSize: fontScale(10) }]}>
-          Chạm 1 chạm
+          1-Tap
         </Text>
       </View>
 
       <View style={styles.grid}>
         {HAZARD_DATA.map((item) => {
           const IconComponent = item.icon;
+          const translatedTitle = t(`hazards.${item.id}`, { defaultValue: item.title });
+          const translatedSubtitle = t(`hazards.${item.id}_desc`, { defaultValue: item.subtitle });
+
           return (
             <TouchableOpacity
               key={item.id}
@@ -96,7 +101,7 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard
                 },
               ]}
               accessible={true}
-              accessibilityLabel={`Báo cáo ${item.title}. ${item.subtitle}`}
+              accessibilityLabel={`${translatedTitle}. ${translatedSubtitle}`}
               accessibilityRole="button"
             >
               <View style={styles.cardHeader}>
@@ -133,7 +138,7 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard
                 ]}
                 numberOfLines={1}
               >
-                {item.title}
+                {translatedTitle}
               </Text>
               <Text
                 style={[
@@ -142,7 +147,7 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({ onSelectHazard
                 ]}
                 numberOfLines={1}
               >
-                {item.subtitle}
+                {translatedSubtitle}
               </Text>
             </TouchableOpacity>
           );

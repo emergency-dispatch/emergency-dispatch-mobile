@@ -1,4 +1,5 @@
 import React from 'react';
+import './src/i18n';
 import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

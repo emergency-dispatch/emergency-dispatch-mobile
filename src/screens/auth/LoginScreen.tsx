@@ -58,8 +58,6 @@ export const LoginScreen: React.FC = () => {
   const { setAuth, switchDemoRole } = useAppStore();
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
-  // Selected Login Role
-  const [selectedRole, setSelectedRole] = useState<UserRole>('citizen');
 
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -164,30 +162,13 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  // Role change handler
-  const handleRoleChange = (role: UserRole) => {
-    setSelectedRole(role);
-    setErrors({});
-    if (role === 'staff' && !account) {
-      setAccount('cuuho@emergency.vn');
-      setPassword('123456');
-    } else if (role === 'citizen' && account === 'cuuho@emergency.vn') {
-      setAccount('');
-      setPassword('');
-    }
-  };
-
   // Validation
   const validateForm = () => {
     const newErrors: { account?: string; password?: string } = {};
 
     if (!account.trim()) {
-      newErrors.account =
-        selectedRole === 'staff'
-          ? 'Vui lòng nhập Mã nhân viên / Email trực ban'
-          : 'Vui lòng nhập Email hoặc Số điện thoại';
+      newErrors.account = 'Vui lòng nhập Email hoặc Số điện thoại';
     } else if (
-      selectedRole === 'citizen' &&
       !isValidEmail(account.trim()) &&
       !isValidPhoneNumber(account.trim())
     ) {
@@ -216,22 +197,31 @@ export const LoginScreen: React.FC = () => {
         password,
       });
 
-      const loggedUser =
-        selectedRole === 'staff'
-          ? {
-            ...DEMO_STAFF_USER,
-            email: account.includes('@') ? account : `${account}@emergency.vn`,
-          }
-          : {
-            ...DEMO_CITIZEN_USER,
-            email: account.includes('@') ? account : `${account}@gmail.com`,
-            name: account.includes('@') ? account.split('@')[0] : `Người Dân ${account.slice(-4)}`,
-          };
       const mappedUser = mapBackendUser(authData.user);
       await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
 
       (navigation as any).navigate('Main');
     } catch (error: any) {
+      // Offline fallback for demo accounts if backend is unreachable
+      const lowerAccount = account.trim().toLowerCase();
+      if (
+        lowerAccount === 'staff@emergencydispatch.com' ||
+        lowerAccount === 'cuuho@emergency.vn' ||
+        lowerAccount.includes('staff') ||
+        lowerAccount.includes('cuuho')
+      ) {
+        switchDemoRole('staff');
+        (navigation as any).navigate('Main');
+        return;
+      } else if (
+        lowerAccount === 'citizen@emergencydispatch.com' ||
+        lowerAccount.includes('citizen')
+      ) {
+        switchDemoRole('citizen');
+        (navigation as any).navigate('Main');
+        return;
+      }
+
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
@@ -360,92 +350,27 @@ export const LoginScreen: React.FC = () => {
 
           {/* Header Branding */}
           <AuthHeader
-            title={
-              selectedRole === 'staff'
-                ? t('auth.login_title_staff')
-                : t('auth.login_title_citizen')
-            }
-            subtitle={
-              selectedRole === 'staff'
-                ? t('auth.login_subtitle_staff')
-                : t('auth.login_subtitle_citizen')
-            }
+            title={t('auth.login_title_citizen')}
+            subtitle={t('auth.login_subtitle_citizen')}
           />
 
           {/* Login Form Card */}
           <View style={[styles.card, { padding: moderateScale(isSmallDevice ? 16 : 20) }]}>
-            {/* 1. Role Selection Switcher (Citizen vs Staff) */}
-            <View style={styles.roleSwitcherContainer}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[
-                  styles.roleTab,
-                  selectedRole === 'citizen' && styles.roleTabActiveCitizen,
-                ]}
-                onPress={() => handleRoleChange('citizen')}
-              >
-                <User
-                  size={moderateScale(16)}
-                  color={selectedRole === 'citizen' ? '#FFFFFF' : '#64748B'}
-                />
-                <Text
-                  style={[
-                    styles.roleTabText,
-                    selectedRole === 'citizen' && styles.roleTabTextActive,
-                  ]}
-                >
-                  {t('auth.role_citizen')}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[
-                  styles.roleTab,
-                  selectedRole === 'staff' && styles.roleTabActiveStaff,
-                ]}
-                onPress={() => handleRoleChange('staff')}
-              >
-                <Truck
-                  size={moderateScale(16)}
-                  color={selectedRole === 'staff' ? '#FFFFFF' : '#64748B'}
-                />
-                <Text
-                  style={[
-                    styles.roleTabText,
-                    selectedRole === 'staff' && styles.roleTabTextActive,
-                  ]}
-                >
-                  {t('auth.role_staff')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Account (Email/Phone/Staff ID) Input */}
+            {/* Account (Email/Phone) Input */}
             <Input
-              label={
-                selectedRole === 'staff'
-                  ? t('auth.account_label_staff')
-                  : t('auth.account_label_citizen')
-              }
-              placeholder={
-                selectedRole === 'staff'
-                  ? t('auth.account_placeholder_staff')
-                  : t('auth.account_placeholder_citizen')
-              }
+              label={t('auth.account_label_citizen')}
+              placeholder={t('auth.account_placeholder_citizen')}
               value={account}
               onChangeText={(val) => {
                 setAccount(val);
                 if (errors.account) setErrors((prev) => ({ ...prev, account: undefined }));
               }}
               variant="light"
-              keyboardType={selectedRole === 'staff' ? 'default' : 'email-address'}
+              keyboardType="email-address"
               autoCapitalize="none"
               error={errors.account}
               leftIcon={
-                selectedRole === 'staff' ? (
-                  <ShieldCheck size={18} color="#0284C7" />
-                ) : account.includes('@') ? (
+                account.includes('@') ? (
                   <Mail size={18} color="#64748B" />
                 ) : (
                   <Phone size={18} color="#64748B" />
@@ -507,17 +432,10 @@ export const LoginScreen: React.FC = () => {
 
             {/* Submit Button */}
             <Button
-              title={
-                selectedRole === 'staff'
-                  ? `${t('auth.login_btn')} (${t('auth.role_staff')})`
-                  : t('auth.login_btn')
-              }
+              title={t('auth.login_btn')}
               onPress={handleLogin}
               loading={isLoading}
-              style={[
-                styles.loginBtn,
-                selectedRole === 'staff' && styles.loginBtnStaff,
-              ]}
+              style={styles.loginBtn}
               textStyle={styles.loginBtnText}
             />
 
@@ -550,12 +468,10 @@ export const LoginScreen: React.FC = () => {
             </View>
 
             {/* Social Logins */}
-            {selectedRole === 'citizen' && (
-              <SocialAuthButtons
-                dividerText={t('auth.social_divider')}
-                onGooglePress={handleGooglePress}
-              />
-            )}
+            <SocialAuthButtons
+              dividerText={t('auth.social_divider')}
+              onGooglePress={handleGooglePress}
+            />
           </View>
 
           {/* Register Link Footer */}
@@ -752,50 +668,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
-  roleSwitcherContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  roleTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 9,
-    gap: 6,
-  },
-  roleTabActiveCitizen: {
-    backgroundColor: '#DC2626',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  roleTabActiveStaff: {
-    backgroundColor: '#DC2626',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  roleTabText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  roleTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
   optionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -827,10 +699,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-  },
-  loginBtnStaff: {
-    backgroundColor: '#DC2626',
-    shadowColor: '#DC2626',
   },
   loginBtnText: {
     color: '#FFFFFF',

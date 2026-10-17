@@ -6,10 +6,18 @@ import { AppConfig } from '../constants/config';
 import { authService } from '../services/auth.service';
 
 export const mapBackendUser = (dto: UserDto): User => {
+  const roleStr = (dto.role || '').toString().toLowerCase();
   const isStaff =
     dto.role === 'RescueStaff' ||
     dto.role === 'Operator' ||
-    dto.role === 'Admin';
+    dto.role === 'Admin' ||
+    roleStr === 'staff' ||
+    roleStr.includes('staff') ||
+    roleStr.includes('rescue') ||
+    roleStr.includes('operator') ||
+    roleStr.includes('admin') ||
+    roleStr.includes('cuuho') ||
+    roleStr.includes('dispatcher');
 
   return {
     id: dto.id,

@@ -28,12 +28,15 @@ import {
   Truck,
   ShieldCheck,
   Zap,
+  Languages,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { LanguageSelectorModal } from '../../components/common/LanguageSelectorModal';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore, mapBackendUser } from '../../store/useAppStore';
 import { UserRole, DEMO_CITIZEN_USER, DEMO_STAFF_USER } from '../../types/models';
@@ -50,6 +53,7 @@ WebBrowser.maybeCompleteAuthSession();
 type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<LoginNavProp>();
   const { setAuth, switchDemoRole } = useAppStore();
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
@@ -62,6 +66,7 @@ export const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({});
 
   // SOS Logo & SOS Badge Gentle Pulse / Blink (nhấp nháy êm dịu, không phóng to/thu nhỏ)
@@ -291,7 +296,26 @@ export const LoginScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Guest Emergency SOS Quick Banner with Live Beacon, Heartbeat & Strobe */}
+          {/* Top Utility Row with Live Status & Quick Language Switcher */}
+          <View style={styles.topUtilityRow}>
+            <View style={styles.systemStatusWrap}>
+              <View style={styles.systemPulseDot} />
+              <Text style={styles.systemStatusText} numberOfLines={1}>
+                {t('common.online_status')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.langPillBtn}
+              onPress={() => setIsLanguageModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Languages size={13} color="#DC2626" />
+              <Text style={styles.langPillText}>
+                {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Guest Emergency SOS Quick Banner */}
           <View style={styles.sosBannerContainer}>
             <TouchableOpacity
@@ -311,7 +335,7 @@ export const LoginScreen: React.FC = () => {
                       numberOfLines={1}
                       style={[styles.guestSosTitle, { fontSize: fontScale(12) }]}
                     >
-                      CẦN CỨU HỘ KHẨN CẤP?
+                      {t('auth.guest_sos_title')}
                     </Text>
                     {/* Gently Blinking SOS 24/7 Tag */}
                     <Animated.View style={[styles.sosUrgentTag, { opacity: strobeOpacity }]}>
@@ -323,7 +347,7 @@ export const LoginScreen: React.FC = () => {
                     numberOfLines={1}
                     style={[styles.guestSosSub, { fontSize: fontScale(10.5) }]}
                   >
-                    Bỏ qua đăng nhập • Báo nạn ngay tức thì
+                    {t('auth.guest_sos_sub')}
                   </Text>
                 </View>
               </View>
@@ -336,11 +360,15 @@ export const LoginScreen: React.FC = () => {
 
           {/* Header Branding */}
           <AuthHeader
-            title={selectedRole === 'staff' ? 'Cổng Điều Phối 115' : 'Đăng Nhập Cứu Hộ'}
+            title={
+              selectedRole === 'staff'
+                ? t('auth.login_title_staff')
+                : t('auth.login_title_citizen')
+            }
             subtitle={
               selectedRole === 'staff'
-                ? 'Đăng nhập ca trực 115 để nhận lệnh điều động xe cứu thương, GPS tác chiến & quản lý thiết bị y tế'
-                : 'Đăng nhập để liên kết hồ sơ y tế, tọa độ GPS thời gian thực và nhận điều phối 24/7'
+                ? t('auth.login_subtitle_staff')
+                : t('auth.login_subtitle_citizen')
             }
           />
 
@@ -366,7 +394,7 @@ export const LoginScreen: React.FC = () => {
                     selectedRole === 'citizen' && styles.roleTabTextActive,
                   ]}
                 >
-                  Người Dân
+                  {t('auth.role_citizen')}
                 </Text>
               </TouchableOpacity>
 
@@ -388,7 +416,7 @@ export const LoginScreen: React.FC = () => {
                     selectedRole === 'staff' && styles.roleTabTextActive,
                   ]}
                 >
-                  Đội Cứu Hộ 115
+                  {t('auth.role_staff')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -397,13 +425,13 @@ export const LoginScreen: React.FC = () => {
             <Input
               label={
                 selectedRole === 'staff'
-                  ? 'Mã nhân viên / Email trực ban 115'
-                  : 'Email hoặc Số điện thoại'
+                  ? t('auth.account_label_staff')
+                  : t('auth.account_label_citizen')
               }
               placeholder={
                 selectedRole === 'staff'
-                  ? 'Nhập mã nhân viên hoặc email 115'
-                  : 'Nhập email hoặc số điện thoại'
+                  ? t('auth.account_placeholder_staff')
+                  : t('auth.account_placeholder_citizen')
               }
               value={account}
               onChangeText={(val) => {
@@ -427,8 +455,8 @@ export const LoginScreen: React.FC = () => {
 
             {/* Password Input */}
             <Input
-              label="Mật khẩu"
-              placeholder="Nhập mật khẩu của bạn"
+              label={t('auth.password_label')}
+              placeholder={t('auth.password_placeholder')}
               value={password}
               onChangeText={(val) => {
                 setPassword(val);
@@ -466,14 +494,14 @@ export const LoginScreen: React.FC = () => {
                   trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
                   style={Platform.OS === 'ios' ? { transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] } : {}}
                 />
-                <Text style={styles.rememberMeText}>Ghi nhớ tôi</Text>
+                <Text style={styles.rememberMeText}>{t('auth.remember_me')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate('ForgotPassword', { emailOrPhone: account })}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                <Text style={styles.forgotPasswordText}>{t('auth.forgot_password')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -481,8 +509,8 @@ export const LoginScreen: React.FC = () => {
             <Button
               title={
                 selectedRole === 'staff'
-                  ? 'Đăng Nhập Kíp Trực 115'
-                  : 'Đăng Nhập Cứu Hộ'
+                  ? `${t('auth.login_btn')} (115)`
+                  : t('auth.login_btn')
               }
               onPress={handleLogin}
               loading={isLoading}
@@ -497,7 +525,7 @@ export const LoginScreen: React.FC = () => {
             <View style={styles.demoBox}>
               <View style={styles.demoHeader}>
                 <Zap size={moderateScale(13)} color="#F59E0B" />
-                <Text style={styles.demoHeaderText}>ĐĂNG NHẬP NHANH BẰNG TÀI KHOẢN MẪU</Text>
+                <Text style={styles.demoHeaderText}>{t('auth.demo_header')}</Text>
               </View>
 
               <View style={styles.demoButtonsRow}>
@@ -507,7 +535,7 @@ export const LoginScreen: React.FC = () => {
                   onPress={() => handleFastLogin('citizen')}
                 >
                   <User size={moderateScale(14)} color="#DC2626" />
-                  <Text style={styles.demoBtnCitizenText}>Vào vai Người Dân</Text>
+                  <Text style={styles.demoBtnCitizenText}>{t('auth.demo_citizen_btn')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -516,7 +544,7 @@ export const LoginScreen: React.FC = () => {
                   onPress={() => handleFastLogin('staff')}
                 >
                   <Truck size={moderateScale(14)} color="#DC2626" />
-                  <Text style={styles.demoBtnStaffText}>Vào vai Đội Cứu Hộ</Text>
+                  <Text style={styles.demoBtnStaffText}>{t('auth.demo_staff_btn')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -524,7 +552,7 @@ export const LoginScreen: React.FC = () => {
             {/* Social Logins */}
             {selectedRole === 'citizen' && (
               <SocialAuthButtons
-                dividerText="HOẶC ĐĂNG NHẬP VỚI"
+                dividerText={t('auth.social_divider')}
                 onGooglePress={handleGooglePress}
               />
             )}
@@ -532,16 +560,22 @@ export const LoginScreen: React.FC = () => {
 
           {/* Register Link Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Chưa có tài khoản cứu hộ? </Text>
+            <Text style={styles.footerText}>{t('auth.no_account')} </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
               activeOpacity={0.7}
             >
-              <Text style={styles.registerLink}>Đăng ký ngay</Text>
+              <Text style={styles.registerLink}>{t('auth.register_now')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Language Selector Modal */}
+      <LanguageSelectorModal
+        visible={isLanguageModalVisible}
+        onClose={() => setIsLanguageModalVisible(false)}
+      />
     </ScreenContainer>
   );
 };
@@ -555,8 +589,56 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 8,
     paddingBottom: 36,
+  },
+  topUtilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  systemStatusWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  systemPulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  systemStatusText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  langPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 9,
+    paddingVertical: 4.5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    elevation: 1,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  langPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#DC2626',
   },
   sosBannerContainer: {
     width: '100%',

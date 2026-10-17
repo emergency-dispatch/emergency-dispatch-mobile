@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { ShieldAlert, CheckCircle2, PhoneCall, XCircle, Sparkles, X } from 'lucide-react-native';
 import { IncidentResponseDto } from '../../types/incident';
+import { useTranslation } from 'react-i18next';
 
 interface SosSuccessModalProps {
   visible: boolean;
@@ -27,6 +28,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
   address,
   incident,
 }) => {
+  const { t } = useTranslation();
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -47,12 +49,12 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 
   const handlePressCancel = () => {
     Alert.alert(
-      'Hủy Báo Động SOS?',
-      'Bạn có chắc chắn muốn hủy tín hiệu SOS vừa gửi vì bấm nhầm không?',
+      t('sos_modal.confirm_cancel_title'),
+      t('sos_modal.confirm_cancel_desc'),
       [
-        { text: 'Không, giữ lại', style: 'cancel' },
+        { text: t('sos_modal.keep_signal'), style: 'cancel' },
         {
-          text: 'Xác nhận hủy',
+          text: t('sos_modal.confirm_cancel_btn'),
           style: 'destructive',
           onPress: async () => {
             if (incident?.id && onCancelIncident) {
@@ -60,7 +62,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               try {
                 await onCancelIncident(incident.id);
               } catch (err: any) {
-                Alert.alert('Lỗi hủy báo động', err.message || 'Không thể hủy báo động lúc này.');
+                Alert.alert(t('common.error'), err.message || 'Không thể hủy báo động lúc này.');
               } finally {
                 setIsCancelling(false);
               }
@@ -102,18 +104,18 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             <ShieldAlert size={44} color="#DC2626" strokeWidth={2.5} />
           </View>
 
-          <Text style={styles.alertHeader}>TÍN HIỆU SOS ĐÃ TIẾP NHẬN</Text>
-          <Text style={styles.alertCode}>MÃ SỰ CỐ: {incidentCode}</Text>
+          <Text style={styles.alertHeader}>{t('sos_modal.sos_success_title')}</Text>
+          <Text style={styles.alertCode}>{incidentCode}</Text>
 
           {/* Status checklist */}
           <View style={styles.statusBox}>
             <View style={styles.statusRow}>
               <CheckCircle2 size={16} color="#16A34A" />
-              <Text style={styles.statusText}>Đã gửi toạ độ GPS chính xác</Text>
+              <Text style={styles.statusText}>{t('sos_modal.gps_sent_success')}</Text>
             </View>
             <View style={styles.statusRow}>
               <CheckCircle2 size={16} color="#16A34A" />
-              <Text style={styles.statusText}>Đã kết nối trung tâm điều phối 114/115</Text>
+              <Text style={styles.statusText}>{t('sos_modal.connected_115')}</Text>
             </View>
             {incident?.aiClassification && (
               <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
@@ -127,9 +129,9 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 
           {/* Location box */}
           <View style={styles.locationBox}>
-            <Text style={styles.locationLabel}>VỊ TRÍ HIỆN TRƯỜNG:</Text>
+            <Text style={styles.locationLabel}>{t('sos_modal.scene_location')}</Text>
             <Text style={styles.locationAddress}>{address}</Text>
-            <Text style={styles.timerText}>Thời gian phát tín hiệu: {secondsElapsed}s trước</Text>
+            <Text style={styles.timerText}>{t('sos_modal.signal_time', { time: secondsElapsed })}</Text>
           </View>
 
           {/* Action Buttons */}
@@ -142,7 +144,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               accessibilityLabel="Gọi trực tiếp 114 hoặc 115"
             >
               <PhoneCall size={18} color="#FFFFFF" />
-              <Text style={styles.callButtonText}>GỌI TRỰC TIẾP TỔNG ĐÀI</Text>
+              <Text style={styles.callButtonText}>{t('sos_modal.call_hotline_btn')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -152,7 +154,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               accessible={true}
               accessibilityLabel="Đóng cửa sổ và theo dõi trên bản đồ"
             >
-              <Text style={styles.dismissButtonText}>Đóng & Theo Dõi Ca Cứu Hộ</Text>
+              <Text style={styles.dismissButtonText}>{t('sos_modal.dismiss_follow_btn')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -168,7 +170,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               ) : (
                 <>
                   <XCircle size={16} color="#DC2626" />
-                  <Text style={styles.cancelButtonText}>Hủy báo động (Bấm nhầm)</Text>
+                  <Text style={styles.cancelButtonText}>{t('sos_modal.cancel_accident')}</Text>
                 </>
               )}
             </TouchableOpacity>

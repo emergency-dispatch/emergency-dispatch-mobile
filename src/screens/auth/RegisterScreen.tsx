@@ -35,12 +35,14 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { BloodType } from '../../types/profile';
 import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
+import { useTranslation } from 'react-i18next';
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 const BLOOD_TYPES: BloodType[] = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-', 'Chưa rõ'];
 
 export const RegisterScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<RegisterNavProp>();
   const { setAuth } = useAppStore();
   const { profile, updateProfile } = useProfileStore();
@@ -190,21 +192,21 @@ export const RegisterScreen: React.FC = () => {
         >
           {/* Header */}
           <AuthHeader
-            title="Đăng Ký Tài Khoản"
-            subtitle="Tạo hồ sơ công dân để phát tín hiệu cứu hộ khẩn cấp chính xác và liên kết mạng lưới cứu nạn"
+            title={t('auth.register_title')}
+            subtitle={t('auth.register_subtitle')}
             showBack
             onBack={() => navigation.goBack()}
-            badgeText="ĐĂNG KÝ HỒ SƠ CÔNG DÂN"
+            badgeText={t('auth.register_badge')}
           />
 
           {/* Form Card */}
           <View style={styles.card}>
-            <Text style={styles.sectionHeader}>1. Thông tin cá nhân cơ bản</Text>
+            <Text style={styles.sectionHeader}>1. {t('auth.fullname_label')}</Text>
 
             {/* Full Name */}
             <Input
-              label="Họ và tên *"
-              placeholder="Nhập họ và tên đầy đủ"
+              label={`${t('auth.fullname_label')} *`}
+              placeholder={t('auth.fullname_placeholder')}
               value={fullName}
               onChangeText={(val) => {
                 setFullName(val);
@@ -217,8 +219,8 @@ export const RegisterScreen: React.FC = () => {
 
             {/* Phone */}
             <Input
-              label="Số điện thoại di động *"
-              placeholder="Nhập số điện thoại liên hệ"
+              label={`${t('auth.phone_label')} *`}
+              placeholder={t('auth.phone_placeholder')}
               value={phone}
               onChangeText={(val) => {
                 setPhone(val);
@@ -232,8 +234,8 @@ export const RegisterScreen: React.FC = () => {
 
             {/* Email */}
             <Input
-              label="Địa chỉ Email *"
-              placeholder="Nhập địa chỉ email"
+              label={`${t('auth.email_label')} *`}
+              placeholder={t('auth.email_placeholder')}
               value={email}
               onChangeText={(val) => {
                 setEmail(val);
@@ -248,8 +250,8 @@ export const RegisterScreen: React.FC = () => {
 
             {/* Password */}
             <Input
-              label="Mật khẩu *"
-              placeholder="Tối thiểu 8 ký tự"
+              label={`${t('auth.password_label')} *`}
+              placeholder={t('auth.new_password_placeholder')}
               value={password}
               onChangeText={(val) => {
                 setPassword(val);
@@ -278,8 +280,8 @@ export const RegisterScreen: React.FC = () => {
 
             {/* Confirm Password */}
             <Input
-              label="Xác nhận mật khẩu *"
-              placeholder="Nhập lại mật khẩu vừa đặt"
+              label={`${t('auth.confirm_password_label')} *`}
+              placeholder={t('auth.confirm_password_placeholder')}
               value={confirmPassword}
               onChangeText={(val) => {
                 setConfirmPassword(val);
@@ -393,17 +395,14 @@ export const RegisterScreen: React.FC = () => {
                 {agreedTerms && <CheckCircle2 color="#FFFFFF" size={14} />}
               </View>
               <Text style={styles.termsText}>
-                Tôi đồng ý với{' '}
-                <Text style={styles.termsHighlight}>Điều khoản sử dụng</Text> &{' '}
-                <Text style={styles.termsHighlight}>Chính sách cứu nạn khẩn cấp</Text>, cam kết
-                thông tin báo nạn là chính xác.
+                {t('auth.terms_agree')}
               </Text>
             </TouchableOpacity>
             {errors.terms && <Text style={styles.termsError}>{errors.terms}</Text>}
 
             {/* Submit Button */}
             <Button
-              title="Đăng Ký Tài Khoản"
+              title={t('auth.register_btn')}
               onPress={handleRegister}
               loading={isLoading}
               style={styles.submitBtn}
@@ -413,9 +412,9 @@ export const RegisterScreen: React.FC = () => {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Đã có tài khoản cứu hộ? </Text>
+            <Text style={styles.footerText}>{t('auth.already_account')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')} activeOpacity={0.7}>
-              <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+              <Text style={styles.loginLink}>{t('auth.login_link')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

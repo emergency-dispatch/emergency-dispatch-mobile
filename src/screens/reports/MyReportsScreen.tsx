@@ -24,8 +24,10 @@ import { IncidentResponseDto, IncidentStatus, SeverityLevel } from '../../types/
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { storage } from '../../services/storage';
+import { useTranslation } from 'react-i18next';
 
 export const MyReportsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAppStore();
   const { profile } = useProfileStore();
 
@@ -85,7 +87,7 @@ export const MyReportsScreen: React.FC = () => {
         return (
           <View style={[styles.statusBadge, styles.statusResolved]}>
             <ShieldCheck size={13} color="#10B981" />
-            <Text style={[styles.statusText, { color: '#10B981' }]}>Đã hoàn thành</Text>
+            <Text style={[styles.statusText, { color: '#10B981' }]}>{t('reports.status_completed')}</Text>
           </View>
         );
       case IncidentStatus.Dispatched:
@@ -93,21 +95,21 @@ export const MyReportsScreen: React.FC = () => {
         return (
           <View style={[styles.statusBadge, styles.statusDispatched]}>
             <AlertTriangle size={13} color="#F59E0B" />
-            <Text style={[styles.statusText, { color: '#F59E0B' }]}>Đội cứu hộ đang đến</Text>
+            <Text style={[styles.statusText, { color: '#F59E0B' }]}>{t('reports.status_dispatched')}</Text>
           </View>
         );
       case IncidentStatus.Verified:
         return (
           <View style={[styles.statusBadge, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
             <CheckCircle2 size={13} color="#0284C7" />
-            <Text style={[styles.statusText, { color: '#0284C7' }]}>Đã xác minh</Text>
+            <Text style={[styles.statusText, { color: '#0284C7' }]}>{t('reports.status_verified')}</Text>
           </View>
         );
       default:
         return (
           <View style={[styles.statusBadge, styles.statusPending]}>
             <Clock size={13} color="#64748B" />
-            <Text style={[styles.statusText, { color: '#64748B' }]}>Đang xử lý</Text>
+            <Text style={[styles.statusText, { color: '#64748B' }]}>{t('reports.status_pending')}</Text>
           </View>
         );
     }
@@ -122,27 +124,27 @@ export const MyReportsScreen: React.FC = () => {
       case SeverityLevel.Level5:
         color = '#DC2626';
         bg = 'rgba(220, 38, 38, 0.12)';
-        label = 'Level 5 (Thảm họa)';
+        label = t('reports.severity_catastrophic');
         break;
       case SeverityLevel.Level4:
         color = '#EA580C';
         bg = 'rgba(234, 88, 12, 0.12)';
-        label = 'Level 4 (Rất cao)';
+        label = t('reports.severity_critical');
         break;
       case SeverityLevel.Level3:
         color = '#D97706';
         bg = 'rgba(217, 119, 6, 0.12)';
-        label = 'Level 3 (Trung bình)';
+        label = t('reports.severity_moderate');
         break;
       case SeverityLevel.Level2:
         color = '#2563EB';
         bg = 'rgba(37, 99, 235, 0.12)';
-        label = 'Level 2 (Thấp)';
+        label = t('reports.severity_minor');
         break;
       case SeverityLevel.Level1:
         color = '#10B981';
         bg = 'rgba(16, 185, 129, 0.12)';
-        label = 'Level 1 (Nhẹ)';
+        label = t('reports.severity_minimal');
         break;
     }
 
@@ -169,14 +171,14 @@ export const MyReportsScreen: React.FC = () => {
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Lịch Sử Báo Cáo Cứu Hộ</Text>
-        <Text style={styles.subtitle}>Danh sách các sự cố khẩn cấp tiếp nhận từ hiện trường</Text>
+        <Text style={styles.title}>{t('reports.title')}</Text>
+        <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
       </View>
 
       {isLoading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#DC2626" />
-          <Text style={styles.loadingText}>Đang tải danh sách sự cố...</Text>
+          <Text style={styles.loadingText}>{t('reports.loading')}</Text>
         </View>
       ) : (
         <FlatList
@@ -193,9 +195,9 @@ export const MyReportsScreen: React.FC = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>Chưa có báo cáo sự cố nào</Text>
+              <Text style={styles.emptyTitle}>{t('reports.empty_title')}</Text>
               <Text style={styles.emptySubtitle}>
-                Khi bạn gửi tín hiệu SOS hoặc báo cáo hiện trường, các sự cố sẽ hiển thị tại đây kèm kết quả AI phân loại.
+                {t('reports.empty_sub')}
               </Text>
             </View>
           }
@@ -221,7 +223,7 @@ export const MyReportsScreen: React.FC = () => {
                 <View style={styles.aiBox}>
                   <View style={styles.aiHeader}>
                     <Sparkles size={13} color="#0284C7" />
-                    <Text style={styles.aiTitle}>AI Phân Tích Hiện Trường</Text>
+                    <Text style={styles.aiTitle}>{t('reports.ai_insight')}</Text>
                   </View>
                   <Text style={styles.aiSummary}>{item.aiClassification.summary}</Text>
                 </View>
@@ -244,7 +246,7 @@ export const MyReportsScreen: React.FC = () => {
                     <View style={styles.metaItem}>
                       <ImageIcon size={12} color="#0284C7" />
                       <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
-                        {item.mediaItems.length} ảnh
+                        {t('reports.images_count', { count: item.mediaItems.length })}
                       </Text>
                     </View>
                   )}

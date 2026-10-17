@@ -16,6 +16,7 @@ import {
   MapPin,
   Sparkles,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface SosActionModalProps {
   visible: boolean;
@@ -38,6 +39,7 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
   isLoading,
   loadingMessage,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -52,7 +54,7 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <View style={styles.alertDot} />
-              <Text style={styles.title}>PHÁT TÍN HIỆU SOS KHẨN CẤP</Text>
+              <Text style={styles.title}>{t('sos_modal.title_sos_action')}</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -72,14 +74,14 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
           </View>
 
           <Text style={styles.promptText}>
-            Đính kèm ảnh hiện trường để mô hình AI Vision tự động nhận diện nguy cơ và điều phối xe cứu hộ nhanh nhất:
+            {t('sos_modal.action_prompt')}
           </Text>
 
           {/* Loading State Overlay */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#DC2626" />
-              <Text style={styles.loadingTitle}>Đang kết nối trung tâm cứu hộ...</Text>
+              <Text style={styles.loadingTitle}>{t('sos_modal.connecting_dispatch')}</Text>
               <Text style={styles.loadingSubtitle}>
                 {loadingMessage || 'Đang tải dữ liệu hiện trường và kích hoạt AI phân tích'}
               </Text>
@@ -97,14 +99,14 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
                 </View>
                 <View style={styles.btnTextWrap}>
                   <View style={styles.btnTitleRow}>
-                    <Text style={styles.btnTitleLight}>Chụp Ảnh Hiện Trường</Text>
+                    <Text style={styles.btnTitleLight}>{t('sos_modal.take_photo_ai')}</Text>
                     <View style={styles.aiTag}>
                       <Sparkles size={10} color="#FDE047" />
-                      <Text style={styles.aiTagText}>Khuyên dùng cho AI</Text>
+                      <Text style={styles.aiTagText}>{t('sos_modal.ai_recommended')}</Text>
                     </View>
                   </View>
                   <Text style={styles.btnDescLight}>
-                    Mở camera chụp và gửi báo cáo khẩn cấp ngay lập tức
+                    {t('sos_modal.take_photo_ai_sub')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -119,9 +121,9 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
                   <Images size={20} color="#0284C7" />
                 </View>
                 <View style={styles.btnTextWrap}>
-                  <Text style={styles.btnTitleDark}>Chọn Ảnh Từ Thư Viện</Text>
+                  <Text style={styles.btnTitleDark}>{t('sos_modal.pick_library_btn')}</Text>
                   <Text style={styles.btnDescDark}>
-                    Chọn ảnh hiện trường đã chụp sẵn trong máy
+                    {t('sos_modal.pick_library_sub')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -136,9 +138,9 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
                   <Zap size={20} color="#D97706" />
                 </View>
                 <View style={styles.btnTextWrap}>
-                  <Text style={styles.btnTitleDark}>Gửi SOS Ngay (Không Kèm Ảnh)</Text>
+                  <Text style={styles.btnTitleDark}>{t('sos_modal.direct_sos_btn')}</Text>
                   <Text style={styles.btnDescDark}>
-                    Phát tín hiệu cứu hộ tức thời dựa trên toạ độ GPS
+                    {t('sos_modal.direct_sos_sub')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -152,7 +154,7 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelText}>Hủy Bỏ</Text>
+              <Text style={styles.cancelText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           )}
         </View>

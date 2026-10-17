@@ -33,6 +33,7 @@ import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
+import { useTranslation } from 'react-i18next';
 
 type ForgotPasswordNavProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
@@ -40,6 +41,7 @@ type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
 type Step = 'REQUEST' | 'VERIFY_OTP' | 'RESET_PASSWORD' | 'SUCCESS';
 
 export const ForgotPasswordScreen: React.FC = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ForgotPasswordNavProp>();
   const route = useRoute<ForgotPasswordRouteProp>();
@@ -172,21 +174,21 @@ export const ForgotPasswordScreen: React.FC = () => {
             <AuthHeader
               title={
                 currentStep === 'REQUEST'
-                  ? 'Quên Mật Khẩu'
+                  ? t('auth.forgot_password_title')
                   : currentStep === 'VERIFY_OTP'
-                  ? 'Xác Thực OTP'
+                  ? t('auth.verify_otp_title')
                   : currentStep === 'RESET_PASSWORD'
-                  ? 'Mật Khẩu Mới'
-                  : 'Thành Công'
+                  ? t('auth.new_password_label')
+                  : t('common.success')
               }
               subtitle={
                 currentStep === 'REQUEST'
-                  ? 'Nhập Email hoặc Số điện thoại để nhận mã OTP khôi phục quyền truy cập'
+                  ? t('auth.forgot_password_sub')
                   : currentStep === 'VERIFY_OTP'
-                  ? `Mã xác thực 6 số đã được gửi đến ${account}`
+                  ? t('auth.verify_otp_sub', { target: account })
                   : currentStep === 'RESET_PASSWORD'
-                  ? 'Tạo mật khẩu an toàn mới cho tài khoản cứu hộ của bạn'
-                  : 'Mật khẩu của bạn đã được cập nhật thành công!'
+                  ? t('auth.register_subtitle')
+                  : t('common.success')
               }
               showBack={currentStep !== 'SUCCESS'}
               onBack={() => {
@@ -267,7 +269,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                   />
 
                   <Button
-                    title="Gửi Mã Xác Thực OTP"
+                    title={t('auth.request_otp_btn')}
                     onPress={handleRequestOtp}
                     loading={isLoading}
                     style={styles.primaryBtn}
@@ -323,7 +325,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                   )}
 
                   <Button
-                    title="Xác Thực Mã OTP"
+                    title={t('auth.verify_otp_btn')}
                     onPress={handleVerifyOtp}
                     loading={isLoading}
                     style={styles.primaryBtn}
@@ -411,7 +413,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                   />
 
                   <Button
-                    title="Cập Nhật Mật Khẩu"
+                    title={t('auth.reset_password_btn')}
                     onPress={handleResetPassword}
                     loading={isLoading}
                     style={styles.primaryBtn}

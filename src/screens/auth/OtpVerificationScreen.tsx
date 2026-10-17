@@ -19,11 +19,13 @@ import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/auth.service';
+import { useTranslation } from 'react-i18next';
 
 type OtpNavProp = NativeStackNavigationProp<AuthStackParamList, 'OtpVerification'>;
 type OtpRouteProp = RouteProp<AuthStackParamList, 'OtpVerification'>;
 
 export const OtpVerificationScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<OtpNavProp>();
   const route = useRoute<OtpRouteProp>();
   const { setAuth } = useAppStore();
@@ -104,8 +106,8 @@ export const OtpVerificationScreen: React.FC = () => {
         >
           {/* Header */}
           <AuthHeader
-            title="Xác Thực Mã OTP"
-            subtitle={`Hệ thống đã gửi mã bảo mật 6 số tới ${emailOrPhone}`}
+            title={t('auth.verify_otp_title')}
+            subtitle={t('auth.verify_otp_sub', { target: emailOrPhone })}
             showBack
             onBack={() => navigation.goBack()}
             badgeText="XÁC THỰC BẢO MẬT 2 LỚP"
@@ -138,7 +140,7 @@ export const OtpVerificationScreen: React.FC = () => {
             {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Button
-              title="Xác Thực & Tiếp Tục"
+              title={t('auth.verify_otp_btn')}
               onPress={() => handleVerify()}
               loading={isLoading}
               style={styles.submitBtn}

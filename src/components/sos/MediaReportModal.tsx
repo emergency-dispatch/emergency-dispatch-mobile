@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, Video, X, Send, CheckCircle2, AlertCircle, Images, Trash2 } from 'lucide-react-native';
 import { HazardItem } from './QuickHazardGrid';
 import { mediaService } from '../../services/media.service';
+import { useTranslation } from 'react-i18next';
 
 interface MediaReportModalProps {
   visible: boolean;
@@ -37,6 +38,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
   currentAddress,
   onSubmitReport,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'video' | 'none'>('none');
   const [uploadedMediaUrls, setUploadedMediaUrls] = useState<string[]>([]);
@@ -126,7 +128,9 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
               <View style={styles.header}>
                 <View>
                   <Text style={styles.title}>
-                    {selectedHazard ? `Báo Cáo: ${selectedHazard.title}` : 'Báo Cáo Sự Cố Có Đính Kèm'}
+                    {selectedHazard
+                      ? t('sos_modal.title_prefix', { title: selectedHazard.title })
+                      : t('sos_modal.default_title')}
                   </Text>
                   <Text style={styles.addressText} numberOfLines={1}>
                     📍 {currentAddress}
@@ -152,13 +156,13 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                 >
                   <AlertCircle size={16} color={selectedHazard.color} />
                   <Text style={[styles.hazardBadgeText, { color: selectedHazard.color }]}>
-                    Mã sự cố: {selectedHazard.code}
+                    {t('sos_modal.hazard_code', { code: selectedHazard.code })}
                   </Text>
                 </View>
               )}
 
               {/* Quick Media Action Row */}
-              <Text style={styles.label}>ĐÍNH KÈM HÌNH ẢNH HIỆN TRƯỜNG (AI PHÂN TÍCH)</Text>
+              <Text style={styles.label}>{t('sos_modal.attach_media_label')}</Text>
               <View style={styles.mediaRow}>
                 {/* Take Photo */}
                 <TouchableOpacity
@@ -173,7 +177,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                 >
                   <Camera size={20} color="#0284C7" />
                   <Text style={[styles.mediaButtonText, styles.mediaButtonTextActive]}>
-                    Chụp ảnh ngay
+                    {t('sos_modal.take_photo')}
                   </Text>
                 </TouchableOpacity>
 
@@ -190,7 +194,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                 >
                   <Images size={20} color="#059669" />
                   <Text style={[styles.mediaButtonText, { color: '#059669' }]}>
-                    Chọn từ thư viện
+                    {t('sos_modal.pick_library')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -199,7 +203,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
               {isUploadingMedia && (
                 <View style={styles.uploadingBox}>
                   <ActivityIndicator size="small" color="#0284C7" />
-                  <Text style={styles.uploadingText}>Đang tải ảnh lên Cloudinary...</Text>
+                  <Text style={styles.uploadingText}>{t('sos_modal.uploading_media')}</Text>
                 </View>
               )}
 
@@ -221,11 +225,11 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
               )}
 
               {/* Short Note Input */}
-              <Text style={styles.label}>GHI CHÚ BỔ SUNG (TÙY CHỌN)</Text>
+              <Text style={styles.label}>{t('sos_modal.note_label')}</Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder="Ví dụ: Có người mắc kẹt tầng 2, đám cháy lan nhanh..."
+                placeholder={t('sos_modal.note_placeholder')}
                 placeholderTextColor="#64748B"
                 style={styles.textInput}
                 multiline={true}
@@ -248,7 +252,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                 ) : (
                   <View style={styles.submitContent}>
                     <Send size={18} color="#FFFFFF" />
-                    <Text style={styles.submitText}>GỬI BÁO CÁO CỨU HỘ NGAY</Text>
+                    <Text style={styles.submitText}>{t('sos_modal.send_report_btn')}</Text>
                   </View>
                 )}
               </TouchableOpacity>

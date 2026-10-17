@@ -145,7 +145,7 @@ export const SafetyMapScreen: React.FC = () => {
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.title}>{t('map.title')}</Text>
-            <Text style={styles.subtitle}>Mạng lưới cứu hộ, bệnh viện & cảnh báo sự cố 24/7</Text>
+            <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
           </View>
           <TouchableOpacity
             style={styles.refreshBtn}
@@ -177,7 +177,7 @@ export const SafetyMapScreen: React.FC = () => {
           >
             <Layers size={13} color={activeFilter === 'all' ? '#FFFFFF' : '#64748B'} />
             <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
-              Tất Cả ({markers.length})
+              {t('map.filter_all')} ({markers.length})
             </Text>
           </TouchableOpacity>
 
@@ -187,7 +187,7 @@ export const SafetyMapScreen: React.FC = () => {
           >
             <Hospital size={13} color={activeFilter === 'hospital' ? '#FFFFFF' : '#10B981'} />
             <Text style={[styles.filterChipText, activeFilter === 'hospital' && styles.filterChipTextActive]}>
-              Bệnh Viện & PCCC
+              {t('map.filter_hospital')}
             </Text>
           </TouchableOpacity>
 
@@ -197,7 +197,7 @@ export const SafetyMapScreen: React.FC = () => {
           >
             <Flame size={13} color={activeFilter === 'incident' ? '#FFFFFF' : '#DC2626'} />
             <Text style={[styles.filterChipText, activeFilter === 'incident' && styles.filterChipTextActive]}>
-              Sự Cố Hiện Trường
+              {t('map.filter_incident')}
             </Text>
           </TouchableOpacity>
 
@@ -207,7 +207,7 @@ export const SafetyMapScreen: React.FC = () => {
           >
             <Shield size={13} color={activeFilter === 'shelter' ? '#FFFFFF' : '#2563EB'} />
             <Text style={[styles.filterChipText, activeFilter === 'shelter' && styles.filterChipTextActive]}>
-              Trú Ẩn An Toàn
+              {t('map.filter_shelter')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -251,10 +251,10 @@ export const SafetyMapScreen: React.FC = () => {
               >
                 <Text style={styles.typeBadgeText}>
                   {selectedMarker.type === 'hospital'
-                    ? 'Y TẾ KHẨN CẤP'
+                    ? t('map.badge_medical')
                     : selectedMarker.type === 'incident'
-                      ? 'SỰ CỐ NGUY CƠ'
-                      : 'ĐIỂM TRÚ ẨN'}
+                      ? t('map.badge_hazard')
+                      : t('map.badge_shelter')}
                 </Text>
               </View>
               {selectedMarker.severity && (
@@ -264,7 +264,7 @@ export const SafetyMapScreen: React.FC = () => {
               )}
             </View>
             <TouchableOpacity onPress={() => setSelectedMarker(null)}>
-              <Text style={styles.closeText}>Đóng</Text>
+              <Text style={styles.closeText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -275,14 +275,14 @@ export const SafetyMapScreen: React.FC = () => {
             style={styles.actionBtn}
             onPress={() => {
               Alert.alert(
-                'Chỉ Dẫn Cứu Hộ',
-                `Đã kích hoạt tuyến đường an toàn tới: ${selectedMarker.title}`,
-                [{ text: 'Đồng ý' }]
+                t('map.navigating_to_incident'),
+                t('map.safe_route_active', { destination: selectedMarker.title }),
+                [{ text: t('common.understood') }]
               );
             }}
           >
             <Navigation size={15} color="#FFFFFF" />
-            <Text style={styles.actionBtnText}>DẪN ĐƯỜNG AN TOÀN TỚI ĐÂY</Text>
+            <Text style={styles.actionBtnText}>{t('map.navigate_btn')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

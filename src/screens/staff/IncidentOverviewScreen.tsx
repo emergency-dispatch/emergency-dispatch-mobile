@@ -202,7 +202,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 onPress={handleToggleMapExpand}
               >
                 <Minimize2 size={moderateScale(14)} color="#DC2626" />
-                <Text style={styles.floatingExitMapText}>Thu Nhỏ</Text>
+                <Text style={styles.floatingExitMapText}>{t('staff.minimize_map')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -217,7 +217,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 accessibilityLabel="Xem chi tiết ca trực"
               >
                 <ChevronUp size={moderateScale(14)} color="#DC2626" />
-                <Text style={styles.compactDetailsChipText}>Chi Tiết</Text>
+                <Text style={styles.compactDetailsChipText}>{t('staff.details')}</Text>
               </TouchableOpacity>
 
               {/* Action Area */}
@@ -225,8 +225,8 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 {currentStage === 'accepted' && (
                   <SwipeToAction
                     onSwipeSuccess={handleSwipeEnRoute}
-                    title="VUỐT XUẤT PHÁT"
-                    successTitle="ĐÃ XÁC NHẬN XUẤT PHÁT!"
+                    title={t('staff.swipe_en_route')}
+                    successTitle={t('staff.en_route_confirmed')}
                     sliderColor="#10B981"
                     activeTrackColor="rgba(16, 185, 129, 0.3)"
                   />
@@ -240,7 +240,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   >
                     <Flame size={moderateScale(15)} color="#FFFFFF" />
                     <Text style={styles.compactAdvanceBtnText}>
-                      ĐÃ ĐẾN HIỆN TRƯỜNG
+                      {t('staff.arrived_on_scene')}
                     </Text>
                     <ArrowRight size={moderateScale(15)} color="#FFFFFF" />
                   </TouchableOpacity>
@@ -254,7 +254,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   >
                     <ShieldCheck size={moderateScale(15)} color="#FFFFFF" />
                     <Text style={styles.compactAdvanceBtnText}>
-                      HOÀN THÀNH CA
+                      {t('staff.complete_mission')}
                     </Text>
                     <CheckCircle2 size={moderateScale(14)} color="#FFFFFF" />
                   </TouchableOpacity>
@@ -264,7 +264,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   <View style={styles.compactCompletedBox}>
                     <CheckCircle2 size={moderateScale(14)} color="#10B981" />
                     <Text style={styles.compactCompletedText}>
-                      ĐÃ HOÀN TẤT
+                      {t('staff.stage_completed').toUpperCase()}
                     </Text>
                   </View>
                 )}
@@ -321,11 +321,11 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         <ConfirmationModal
           visible={isCallDispatcherModalVisible}
           type="danger"
-          title="Gọi Trực Ban Điều Phối 115"
-          description={`Kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ TP.HCM cho Ca trực ${incident.code}?`}
+          title={t('staff.call_dispatcher')}
+          description={`Kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ cho Ca trực ${incident.code}?`}
           highlightBadge="KÊNH KHẨN CẤP 115"
-          confirmText="Gọi Ngay (115)"
-          cancelText="Hủy"
+          confirmText={t('staff.call_dispatcher')}
+          cancelText={t('common.cancel')}
           onConfirm={handleConfirmCallDispatcher}
           onCancel={() => setIsCallDispatcherModalVisible(false)}
         />

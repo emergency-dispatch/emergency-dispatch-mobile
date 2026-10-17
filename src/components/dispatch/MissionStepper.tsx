@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { MissionStage, MISSION_STEPS } from '../../types/dispatch';
+import { useTranslation } from 'react-i18next';
 
 interface MissionStepperProps {
   currentStage: MissionStage;
@@ -36,6 +37,7 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
   onSelectStage,
   interactive = false,
 }) => {
+  const { t } = useTranslation();
   const currentIndex = STAGE_ORDER.indexOf(currentStage);
 
   // Pulse animation for active node ring
@@ -166,7 +168,7 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={1.15}
                 >
-                  {step.label}
+                  {t(`staff.stage_${step.key}`, { defaultValue: step.label })}
                 </Text>
 
                 <Text
@@ -178,7 +180,7 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={1.15}
                 >
-                  {step.sublabel}
+                  {t(`staff.stage_sub_${step.key}`, { defaultValue: step.sublabel })}
                 </Text>
               </TouchableOpacity>
 

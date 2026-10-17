@@ -241,7 +241,7 @@ export const ProfileScreen: React.FC = () => {
             allowFontScaling={false}
             maxFontSizeMultiplier={1.2}
           >
-            Hồ Sơ Cứu Hộ
+            {t('profile.header_title')}
           </Text>
           <Text
             style={styles.headerSubtitle}
@@ -249,9 +249,21 @@ export const ProfileScreen: React.FC = () => {
             allowFontScaling={false}
             maxFontSizeMultiplier={1.2}
           >
-            Medical ID & Thông Tin Định Danh
+            {t('profile.header_subtitle')}
           </Text>
         </View>
+
+        {/* Quick Language Toggle Flag Button */}
+        <TouchableOpacity
+          style={styles.headerLangBtn}
+          onPress={() => setIsLanguageModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Languages size={14} color="#DC2626" />
+          <Text style={styles.headerLangText}>
+            {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -680,7 +692,7 @@ export const ProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <Edit3 size={18} color="#FFFFFF" />
-          <Text style={styles.fullEditBtnText}>Cập Nhật Toàn Bộ Hồ Sơ</Text>
+          <Text style={styles.fullEditBtnText}>{t('profile.update_full_profile')}</Text>
         </TouchableOpacity>
 
         {/* Logout / Switch Account Button */}
@@ -690,7 +702,7 @@ export const ProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <LogOut size={18} color="#DC2626" />
-          <Text style={styles.logoutBtnText}>Đăng Xuất / Đổi Tài Khoản</Text>
+          <Text style={styles.logoutBtnText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
         <View style={styles.footerSpace} />
@@ -700,10 +712,10 @@ export const ProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isLogoutModalVisible}
         type="danger"
-        title="Đăng Xuất Tài Khoản"
-        description="Bạn có chắc chắn muốn đăng xuất khỏi Hệ thống Cứu hộ Khẩn cấp?"
-        confirmText="Đăng Xuất"
-        cancelText="Ở Lại"
+        title={t('profile.confirm_logout_title')}
+        description={t('profile.confirm_logout_desc')}
+        confirmText={t('profile.logout')}
+        cancelText={t('profile.stay')}
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutModalVisible(false)}
       />
@@ -886,6 +898,22 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(11.5),
     color: '#64748B',
     marginTop: verticalScale(2),
+  },
+  headerLangBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  headerLangText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#DC2626',
   },
   editHeaderBtn: {
     flexDirection: 'row',

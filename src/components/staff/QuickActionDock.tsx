@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 
 interface QuickActionDockProps {
   onPressCheckSupplies: () => void;
@@ -29,6 +30,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
   onPressSosCall,
   onPressHistory,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, verticalScale(12));
 
@@ -74,7 +76,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Kiểm tra vật tư
+            {t('staff.check_gear')}
           </Text>
           <Text
             style={styles.buttonSublabel}
@@ -82,7 +84,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Oxy • AED • Thuốc
+            {t('staff.gear_subtitle')}
           </Text>
         </TouchableOpacity>
 
@@ -106,7 +108,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              GỌI ĐIỀU PHỐI
+              {t('staff.call_dispatch')}
             </Text>
             <Text
               style={styles.sosSubText}
@@ -114,7 +116,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              Hotline 115 TT
+              {t('staff.call_dispatch_sub')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -134,7 +136,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Lịch sử ca trực
+            {t('staff.shift_history')}
           </Text>
           <Text
             style={styles.buttonSublabel}
@@ -142,7 +144,7 @@ export const QuickActionDock: React.FC<QuickActionDockProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Biên bản • Báo cáo
+            {t('staff.shift_history_sub')}
           </Text>
         </TouchableOpacity>
       </View>

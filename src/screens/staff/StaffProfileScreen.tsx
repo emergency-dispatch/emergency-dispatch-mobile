@@ -33,14 +33,17 @@ import {
   FileText,
   BadgeAlert,
   Sliders,
+  Languages,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { ConfirmationModal } from '../../components/common';
+import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
 
 export const StaffProfileScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAppStore();
 
   // Settings states
@@ -52,6 +55,7 @@ export const StaffProfileScreen: React.FC = () => {
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isHandoverModalVisible, setIsHandoverModalVisible] = useState(false);
   const [isRadioModalVisible, setIsRadioModalVisible] = useState(false);
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
   // Crew member call
   const handleCallCrew = (name: string, phone: string) => {
@@ -86,13 +90,25 @@ export const StaffProfileScreen: React.FC = () => {
       {/* 1. Header Bar */}
       <View style={styles.headerBar}>
         <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerTitle}>HỒ SƠ KÍP TRỰC CỨU HỘ</Text>
-          <Text style={styles.headerSubtitle}>Trung Tâm Điều Phối Cấp Cứu 115 TP.HCM</Text>
+          <Text style={styles.headerTitle}>{t('staff.header_title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('staff.center_name')}</Text>
         </View>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.langHeaderBtn}
+          onPress={() => setIsLanguageModalVisible(true)}
+          accessible={true}
+          accessibilityLabel="Đổi ngôn ngữ / Change Language"
+        >
+          <Text style={{ fontSize: moderateScale(15) }}>
+            {i18n.language?.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.dutyBadge}>
           <View style={styles.dutyGreenDot} />
-          <Text style={styles.dutyBadgeText}>ĐANG TRỰC CA</Text>
+          <Text style={styles.dutyBadgeText}>{t('staff.duty_on')}</Text>
         </View>
       </View>
 
@@ -294,10 +310,28 @@ export const StaffProfileScreen: React.FC = () => {
               <Sliders size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Cài Đặt Vận Hành Kíp Trực</Text>
-              <Text style={styles.sectionSub}>Tùy chỉnh thông báo và kết nối bộ đàm</Text>
+              <Text style={styles.sectionTitle}>{t('staff.settings_title')}</Text>
+              <Text style={styles.sectionSub}>Tùy chỉnh thông báo, ngôn ngữ và kết nối bộ đàm</Text>
             </View>
           </View>
+
+          {/* Language Setting */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.settingItemRow}
+            onPress={() => setIsLanguageModalVisible(true)}
+          >
+            <View style={styles.settingItemLeft}>
+              <Languages size={moderateScale(16)} color="#DC2626" />
+              <View>
+                <Text style={styles.settingItemTitle}>{t('staff.app_language')}</Text>
+                <Text style={styles.settingItemSub}>
+                  {i18n.language?.startsWith('vi') ? '🇻🇳 Tiếng Việt (Mặc định)' : '🇬🇧 English'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={moderateScale(16)} color="#64748B" />
+          </TouchableOpacity>
 
           {/* Radio Channel Setting */}
           <TouchableOpacity
@@ -308,7 +342,7 @@ export const StaffProfileScreen: React.FC = () => {
             <View style={styles.settingItemLeft}>
               <Radio size={moderateScale(16)} color="#DC2626" />
               <View>
-                <Text style={styles.settingItemTitle}>Kênh Bộ Đàm Nội Bộ</Text>
+                <Text style={styles.settingItemTitle}>{t('staff.radio_channel')}</Text>
                 <Text style={styles.settingItemSub}>{radioChannel}</Text>
               </View>
             </View>
@@ -320,8 +354,8 @@ export const StaffProfileScreen: React.FC = () => {
             <View style={styles.settingItemLeft}>
               <Flame size={moderateScale(16)} color="#EF4444" />
               <View style={styles.settingTextCol}>
-                <Text style={styles.settingItemTitle}>Tự động bật còi ưu tiên khi nhận Code Red</Text>
-                <Text style={styles.settingItemSub}>Kích hoạt đèn còi ngay khi nhận lệnh điều động</Text>
+                <Text style={styles.settingItemTitle}>{t('staff.auto_siren')}</Text>
+                <Text style={styles.settingItemSub}>{t('staff.auto_siren_desc')}</Text>
               </View>
             </View>
             <Switch
@@ -337,8 +371,8 @@ export const StaffProfileScreen: React.FC = () => {
             <View style={styles.settingItemLeft}>
               <Zap size={moderateScale(16)} color="#10B981" />
               <View style={styles.settingTextCol}>
-                <Text style={styles.settingItemTitle}>Đồng bộ GPS tần suất cao (Telemetry 1s)</Text>
-                <Text style={styles.settingItemSub}>Tăng độ chính xác vị trí cho Trung tâm 115</Text>
+                <Text style={styles.settingItemTitle}>{t('staff.high_gps')}</Text>
+                <Text style={styles.settingItemSub}>{t('staff.high_gps_desc')}</Text>
               </View>
             </View>
             <Switch
@@ -358,7 +392,7 @@ export const StaffProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <FileCheck2 size={moderateScale(18)} color="#FFFFFF" />
-          <Text style={styles.handoverBtnText}>Bàn Giao Ca Trực & Xe Cứu Thương</Text>
+          <Text style={styles.handoverBtnText}>{t('staff.handover_shift')}</Text>
         </TouchableOpacity>
 
         {/* Logout Button */}
@@ -368,7 +402,7 @@ export const StaffProfileScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <LogOut size={moderateScale(18)} color="#EF4444" />
-          <Text style={styles.logoutBtnText}>Đăng Xuất</Text>
+          <Text style={styles.logoutBtnText}>{t('staff.logout')}</Text>
         </TouchableOpacity>
 
         <View style={styles.footerSpace} />
@@ -413,6 +447,12 @@ export const StaffProfileScreen: React.FC = () => {
         onConfirm={() => setIsRadioModalVisible(false)}
         onCancel={() => setIsRadioModalVisible(false)}
       />
+
+      {/* Language Selector Modal */}
+      <LanguageSelectorModal
+        visible={isLanguageModalVisible}
+        onClose={() => setIsLanguageModalVisible(false)}
+      />
     </ScreenContainer>
   );
 };
@@ -441,6 +481,17 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(10.5),
     color: '#64748B',
     marginTop: verticalScale(1),
+  },
+  langHeaderBtn: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: scale(10),
   },
   dutyBadge: {
     flexDirection: 'row',

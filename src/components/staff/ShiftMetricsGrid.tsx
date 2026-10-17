@@ -9,6 +9,7 @@ import {
   ShieldAlert,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 
 interface ShiftMetricsGridProps {
   completedMissions: number;
@@ -27,6 +28,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
   totalShiftHours = 12,
   onTimeRate = 100,
 }) => {
+  const { t } = useTranslation();
   const shiftProgressPercent = Math.min(
     Math.round((shiftHoursElapsed / totalShiftHours) * 100),
     100
@@ -44,7 +46,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            THỐNG KÊ CA TRỰC HÔM NAY
+            {t('staff.metrics_title')}
           </Text>
         </View>
         <Text
@@ -79,7 +81,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
               {completedMissions}
             </Text>
             <Text style={styles.metricUnit} numberOfLines={1}>
-              ca
+              {t('staff.unit_mission')}
             </Text>
           </View>
           <Text
@@ -88,7 +90,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Số ca hoàn tất
+            {t('staff.completed_missions')}
           </Text>
           <View style={styles.subBadge}>
             <Text
@@ -97,7 +99,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              {onTimeRate}% đúng hạn
+              {onTimeRate}% {t('staff.on_time')}
             </Text>
           </View>
         </View>
@@ -121,7 +123,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Quãng đường
+            {t('staff.total_distance')}
           </Text>
           <View style={styles.subBadge}>
             <Text
@@ -130,7 +132,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              Nhiên liệu 85%
+              {t('staff.fuel_status')}
             </Text>
           </View>
         </View>
@@ -145,7 +147,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
               {avgEtaMinutes}
             </Text>
             <Text style={styles.metricUnit} numberOfLines={1}>
-              phút
+              {t('staff.unit_minute')}
             </Text>
           </View>
           <Text
@@ -154,7 +156,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            ETA Trung bình
+            {t('staff.avg_eta')}
           </Text>
           <View style={styles.subBadge}>
             <Text
@@ -163,7 +165,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              Nhanh hơn 1.2m
+              {t('staff.faster_by')}
             </Text>
           </View>
         </View>

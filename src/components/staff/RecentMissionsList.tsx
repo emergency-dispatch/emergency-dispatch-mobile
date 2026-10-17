@@ -14,6 +14,7 @@ import {
   UserCheck,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 import { MissionItem } from '../../types/staff';
 
 interface RecentMissionsListProps {
@@ -27,6 +28,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
   onPressMission,
   onPressViewAll,
 }) => {
+  const { t } = useTranslation();
   const getMissionTypeIcon = (type: MissionItem['type']) => {
     switch (type) {
       case 'traffic_accident':
@@ -65,11 +67,11 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
   const getSeverityBadge = (severity: MissionItem['severity']) => {
     switch (severity) {
       case 'critical':
-        return { label: 'BÁO ĐỘNG ĐỎ', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' };
+        return { label: t('staff.severity_red'), color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' };
       case 'urgent':
-        return { label: 'KHẨN CẤP', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' };
+        return { label: t('staff.severity_urgent'), color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' };
       default:
-        return { label: 'TIÊU CHUẨN', color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.15)' };
+        return { label: t('staff.severity_standard'), color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.15)' };
     }
   };
 
@@ -85,7 +87,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            LỊCH SỬ CA TRỰC GẦN NHẤT
+            {t('staff.recent_missions_title')}
           </Text>
         </View>
         <TouchableOpacity
@@ -98,7 +100,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
             numberOfLines={1}
             maxFontSizeMultiplier={1.15}
           >
-            Xem tất cả
+            {t('staff.view_all')}
           </Text>
           <ChevronRight size={moderateScale(13)} color="#DC2626" />
         </TouchableOpacity>

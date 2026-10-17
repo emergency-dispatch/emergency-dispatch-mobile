@@ -15,7 +15,8 @@ import { useNavigation } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ShieldAlert, Zap, Radio, BellRing, Flame } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { ConfirmationModal } from '../../components/common';
+import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
+import { useTranslation } from 'react-i18next';
 import {
   StaffProfileHeader,
   DutyStatus,
@@ -118,6 +119,7 @@ export const StaffDashboardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
 
   // State
+  const { t, i18n } = useTranslation();
   const [dutyStatus, setDutyStatus] = useState<DutyStatus>('online');
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<DispatchNotification[]>(MOCK_NOTIFICATIONS);
@@ -130,8 +132,42 @@ export const StaffDashboardScreen: React.FC = () => {
   const [isSosModalVisible, setIsSosModalVisible] = useState(false);
   const [isNavigateStationModalVisible, setIsNavigateStationModalVisible] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+  const isEnglish = !i18n.language?.startsWith('vi');
+
+  const localizedMissions: MissionItem[] = MOCK_MISSIONS.map((m) => {
+    if (!isEnglish) return m;
+    if (m.id === 'm1') {
+      return {
+        ...m,
+        title: 'Traffic Collision - Multiple Trauma Casualties',
+        completedAt: '11:20 (35 mins ago)',
+        destinationHospital: 'Trung Vuong Emergency Hospital',
+        notes: '2 victims with leg fractures, splinted & IV NaCl 0.9% administered.',
+      };
+    }
+    if (m.id === 'm2') {
+      return {
+        ...m,
+        title: 'Cardiac Emergency - Chest Pain & Dyspnea',
+        completedAt: '09:45 (2 hrs ago)',
+        destinationHospital: 'Tam Duc Heart Hospital / Cho Ray',
+        notes: '62-year-old male with history of MI, AED shocked 1 cycle, O2 mask assisted.',
+      };
+    }
+    if (m.id === 'm3') {
+      return {
+        ...m,
+        title: 'Smoke Inhalation Rescue Support',
+        completedAt: '07:50 (4 hrs ago)',
+        destinationHospital: 'Trung Vuong Hospital HCMC',
+        notes: 'Coordinated with Fire & Rescue Team Dist 10, CO inhalation treated for 3 residents.',
+      };
+    }
+    return m;
+  });
 
   // Refresh handler
   const onRefresh = useCallback(() => {
@@ -216,13 +252,15 @@ export const StaffDashboardScreen: React.FC = () => {
           {/* 1. Staff Profile Bar */}
           <StaffProfileHeader
             name="Lê Quốc Huy"
-            role="Đội Cứu Hộ 01 • Cấp Cứu 115"
+            role={t('staff.role_driver')}
             staffId="ST-8821"
             vehiclePlate="51A-999.99"
             dutyStatus={dutyStatus}
             unreadNotificationsCount={unreadNotificationsCount}
             onPressNotifications={() => setIsNotificationModalVisible(true)}
             onPressSettings={handleOpenSettings}
+            onPressLanguage={() => setIsLanguageModalVisible(true)}
+            currentLang={i18n.language}
             onPressAvatar={() =>
               Alert.alert('Nhân Viên', 'Lê Quốc Huy - Lái xe Cấp Cứu Hạng 1\nKinh nghiệm: 5 năm điều phối')
             }
@@ -237,18 +275,18 @@ export const StaffDashboardScreen: React.FC = () => {
             <View style={styles.emergencyBannerHeader}>
               <View style={styles.emergencyTag}>
                 <Flame size={moderateScale(13)} color="#FFFFFF" />
-                <Text style={styles.emergencyTagText}>CODE RED • ĐIỀU ĐỘNG KHẨN</Text>
+                <Text style={styles.emergencyTagText}>{t('staff.code_red_alert')}</Text>
               </View>
               <View style={styles.liveTimerPill}>
-                <Text style={styles.liveTimerText}>CHẠM ĐỂ XEM ⚡</Text>
+                <Text style={styles.liveTimerText}>{t('staff.tap_to_view')}</Text>
               </View>
             </View>
 
             <Text style={styles.emergencyBannerTitle}>
-              TAI NẠN GIAO THÔNG LIÊN HOÀN (3 NẠN NHÂN)
+              {t('staff.mock_incident_title')}
             </Text>
             <Text style={styles.emergencyBannerSub}>
-              📍 120 Võ Văn Tần, P.6, Q.3 • Cách 2.4 km (ETA: 6 phút)
+              {t('staff.mock_incident_sub')}
             </Text>
           </TouchableOpacity>
 
@@ -264,15 +302,27 @@ export const StaffDashboardScreen: React.FC = () => {
 
           {/* 5. Station & Vehicle Mini-Map Card */}
           <StationMiniMapCard
-            stationName="Trạm Cứu Hộ Quận 10 - BV Trưng Vương"
-            stationAddress="201 Lý Thường Kiệt, P.7, Q.10, TP.HCM"
-            vehicleModel="Xe Cứu Thương ICU Chuyên Dụng #AMB-04"
+            stationName={
+              isEnglish
+                ? 'District 10 Dispatch Station - Trung Vuong Hospital'
+                : 'Trạm Cứu Hộ Quận 10 - BV Trưng Vương'
+            }
+            stationAddress={
+              isEnglish
+                ? '201 Ly Thuong Kiet, W.7, Dist.10, HCMC'
+                : '201 Lý Thường Kiệt, P.7, Q.10, TP.HCM'
+            }
+            vehicleModel={
+              isEnglish
+                ? 'Dedicated ICU Ambulance #AMB-04'
+                : 'Xe Cứu Thương ICU Chuyên Dụng #AMB-04'
+            }
             vehicleStatus={
               dutyStatus === 'online'
-                ? 'Đang trực tại trạm • Sẵn sàng xuất kích'
+                ? (isEnglish ? 'On duty at station • Ready for dispatch' : 'Đang trực tại trạm • Sẵn sàng xuất kích')
                 : dutyStatus === 'busy'
-                ? 'Tạm nghỉ bảo dưỡng & nạp Oxy'
-                : 'Đã nghỉ ca • Bàn giao xe'
+                ? (isEnglish ? 'Maintenance & Oxygen Refill' : 'Tạm nghỉ bảo dưỡng & nạp Oxy')
+                : (isEnglish ? 'Off duty • Handed over' : 'Đã nghỉ ca • Bàn giao xe')
             }
             latitude={10.7712}
             longitude={106.6578}
@@ -282,7 +332,7 @@ export const StaffDashboardScreen: React.FC = () => {
 
           {/* 6. Recent Missions List */}
           <RecentMissionsList
-            missions={MOCK_MISSIONS}
+            missions={localizedMissions}
             onPressMission={(mission) => setSelectedMission(mission)}
             onPressViewAll={handleViewAllHistory}
           />
@@ -364,6 +414,12 @@ export const StaffDashboardScreen: React.FC = () => {
           notifications={notifications}
           onClose={() => setIsNotificationModalVisible(false)}
           onMarkAllRead={handleMarkAllRead}
+        />
+
+        {/* Language Selector Modal */}
+        <LanguageSelectorModal
+          visible={isLanguageModalVisible}
+          onClose={() => setIsLanguageModalVisible(false)}
         />
       </View>
     </ScreenContainer>

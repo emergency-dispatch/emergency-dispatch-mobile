@@ -25,6 +25,7 @@ import {
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal } from '../../components/common';
+import { useTranslation } from 'react-i18next';
 import { MissionStepper } from '../../components/dispatch/MissionStepper';
 import { IncidentTacticalMap } from '../../components/dispatch/IncidentTacticalMap';
 import { IncidentDetailCard } from '../../components/dispatch/IncidentDetailCard';
@@ -48,6 +49,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   navigation,
   route,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const incident = route?.params?.incident || MOCK_EMERGENCY_INCIDENT;
 
@@ -147,7 +149,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={1.15}
                 >
-                  Gọi Điều Phối
+                  {t('staff.call_dispatcher')}
                 </Text>
               </TouchableOpacity>
             </View>

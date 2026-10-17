@@ -18,6 +18,7 @@ import {
   ShieldAlert,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 
 interface StationMiniMapCardProps {
   stationName?: string;
@@ -34,12 +35,14 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
   stationName = 'Trạm Cứu hộ Quận 10 - BV Trưng Vương',
   stationAddress = '201 Lý Thường Kiệt, Phường 7, Quận 10, TP.HCM',
   vehicleModel = 'Xe Cứu Thương ICU Chuyên Dụng #AMB-04',
-  vehicleStatus = 'Đang đậu tại bãi đỗ trạm • Sẵn sàng',
+  vehicleStatus,
   latitude = 10.7712,
   longitude = 106.6578,
   onPressNavigateStation,
   onPressOpenFullMap,
 }) => {
+  const { t } = useTranslation();
+  const displayStatus = vehicleStatus || t('staff.default_vehicle_status');
   // Radar wave animations
   const radarWave1 = useRef(new Animated.Value(0)).current;
   const radarWave2 = useRef(new Animated.Value(0)).current;
@@ -187,7 +190,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              Đang định vị trực tiếp
+              {t('staff.live_tracking')}
             </Text>
           </View>
 
@@ -201,7 +204,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
               numberOfLines={1}
               maxFontSizeMultiplier={1.15}
             >
-              Bản Đồ
+              {t('staff.open_map')}
             </Text>
             <ExternalLink size={moderateScale(12)} color="#DC2626" />
           </TouchableOpacity>
@@ -225,7 +228,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1.15}
           >
-            {vehicleStatus}
+            {displayStatus}
           </Text>
         </View>
 
@@ -241,7 +244,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.15}
           >
-            Về Trạm
+            {t('staff.return_station')}
           </Text>
         </TouchableOpacity>
       </View>

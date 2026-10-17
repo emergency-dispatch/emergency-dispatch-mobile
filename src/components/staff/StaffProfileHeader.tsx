@@ -10,6 +10,7 @@ import {
   Flame,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 
 interface StaffProfileHeaderProps {
   name: string;
@@ -21,6 +22,8 @@ interface StaffProfileHeaderProps {
   onPressNotifications?: () => void;
   onPressSettings?: () => void;
   onPressAvatar?: () => void;
+  onPressLanguage?: () => void;
+  currentLang?: string;
 }
 
 export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
@@ -33,7 +36,10 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
   onPressNotifications,
   onPressSettings,
   onPressAvatar,
+  onPressLanguage,
+  currentLang = 'vi',
 }) => {
+  const { t } = useTranslation();
   const getStatusColor = () => {
     switch (dutyStatus) {
       case 'online':
@@ -88,8 +94,23 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
           </Text>
         </View>
 
-        {/* Actions: Notifications & Settings */}
+        {/* Actions: Language, Notifications & Settings */}
         <View style={styles.actionButtons}>
+          {onPressLanguage && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.iconButton}
+              onPress={onPressLanguage}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel="Đổi ngôn ngữ / Change Language"
+            >
+              <Text style={styles.langEmoji}>
+                {currentLang.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.iconButton}
@@ -126,7 +147,7 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
           </View>
           <View style={styles.badgeTextCol}>
             <Text style={styles.badgeLabel} numberOfLines={1}>
-              Mã nhân viên
+              {t('staff.staff_id_label')}
             </Text>
             <Text style={styles.badgeValue} numberOfLines={1}>
               #{staffId}
@@ -141,7 +162,7 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
           </View>
           <View style={styles.badgeTextCol}>
             <Text style={styles.badgeLabel} numberOfLines={1}>
-              Biển số xe trực
+              {t('staff.vehicle_plate_label')}
             </Text>
             <Text style={[styles.badgeValue, styles.plateValue]} numberOfLines={1}>
               {vehiclePlate}
@@ -248,6 +269,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  langEmoji: {
+    fontSize: moderateScale(16),
   },
   notificationBadge: {
     position: 'absolute',

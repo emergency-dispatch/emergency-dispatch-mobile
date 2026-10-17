@@ -8,12 +8,14 @@ import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
 import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
 import { StaffProfileScreen } from '../screens/staff/StaffProfileScreen';
+import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../utils/responsive';
 
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
 
 export const StaffNavigator: React.FC = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isSmallDevice, fontScale, moderateScale } = useResponsive();
   const bottomInset = insets.bottom;
@@ -55,7 +57,7 @@ export const StaffNavigator: React.FC = () => {
         name="StaffDashboardTab"
         component={StaffDashboardScreen}
         options={{
-          tabBarLabel: 'Kíp Trực 115',
+          tabBarLabel: t('staff.tab_dashboard'),
           tabBarIcon: ({ color }) => (
             <Truck color={color} size={iconSize} strokeWidth={2.4} />
           ),
@@ -65,7 +67,7 @@ export const StaffNavigator: React.FC = () => {
         name="TacticalMapTab"
         component={SafetyMapScreen}
         options={{
-          tabBarLabel: 'Bản Đồ Tác Chiến',
+          tabBarLabel: t('staff.tab_map'),
           tabBarIcon: ({ color }) => (
             <Navigation color={color} size={iconSize} strokeWidth={2.2} />
           ),
@@ -75,7 +77,7 @@ export const StaffNavigator: React.FC = () => {
         name="ActiveMissionTab"
         component={IncidentOverviewScreen}
         options={{
-          tabBarLabel: 'Ca Cứu Hộ',
+          tabBarLabel: t('staff.tab_mission'),
           tabBarIcon: ({ color }) => (
             <Flame color={color} size={iconSize} strokeWidth={2.4} />
           ),
@@ -85,7 +87,7 @@ export const StaffNavigator: React.FC = () => {
         name="StaffProfileTab"
         component={StaffProfileScreen}
         options={{
-          tabBarLabel: 'Hồ Sơ Kíp Trực',
+          tabBarLabel: t('staff.tab_profile'),
           tabBarIcon: ({ color }) => (
             <ShieldCheck color={color} size={iconSize} strokeWidth={2.2} />
           ),

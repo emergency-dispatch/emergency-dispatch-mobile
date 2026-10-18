@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
-import { ShieldAlert, Zap, Radio, BellRing, Flame } from 'lucide-react-native';
+import { ShieldAlert, Zap, Radio, BellRing, Flame, CalendarDays, ChevronRight } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
 import { useTranslation } from 'react-i18next';
@@ -38,51 +38,51 @@ import { MOCK_EMERGENCY_INCIDENT, EmergencyIncident } from '../../types/dispatch
 const MOCK_MISSIONS: MissionItem[] = [
   {
     id: 'm1',
-    code: '#EM-240901',
-    type: 'traffic_accident',
-    title: 'Tai nạn giao thông - Va chạm đa chấn thương',
+    code: '#IP-240901',
+    type: 'fire_rescue',
+    title: 'Sự cố cháy phân xưởng dệt may & chập điện',
     severity: 'critical',
-    address: 'Ngã tư CMT8 - Nguyễn Đình Chiểu, Phường 5, Quận 3',
+    address: 'Lô B4, Đường số 3, KCN Tân Bình, P. Tây Thạnh',
     completedAt: '11:20 (35 phút trước)',
     durationMinutes: 28,
-    distanceKm: 4.2,
-    etaMinutes: 6.5,
+    distanceKm: 1.8,
+    etaMinutes: 4.5,
     status: 'completed',
     patientCount: 2,
-    destinationHospital: 'Bệnh viện Cấp Cứu Trưng Vương',
-    notes: '2 nạn nhân đa chấn thương gãy cẳng chân, đã nẹp cố định & truyền dịch NaCl 0.9%.',
+    destinationHospital: 'Trạm Y Tế KCN Tân Bình & BV Đa Khoa Mỹ Đức',
+    notes: 'Đã dập tắt đám cháy cục bộ, sơ cứu 2 công nhân ngạt khói và hỗ trợ thở Oxy mask.',
   },
   {
     id: 'm2',
-    code: '#EM-240898',
-    type: 'cardiac_arrest',
-    title: 'Cấp cứu tim mạch - Đau thắt ngực khó thở',
+    code: '#IP-240898',
+    type: 'other',
+    title: 'Rò rỉ khí Amoniac NH3 tại kho lạnh phân xưởng',
     severity: 'urgent',
-    address: 'Căn hộ 12B, Chung cư Hà Đô Centrosa, P.12, Quận 10',
+    address: 'Lô C12, Đường D1, KCN Hiệp Phước, Huyện Nhà Bè',
     completedAt: '09:45 (2 giờ trước)',
     durationMinutes: 34,
-    distanceKm: 2.8,
+    distanceKm: 2.2,
     etaMinutes: 5.0,
     status: 'completed',
     patientCount: 1,
-    destinationHospital: 'Bệnh viện Tim Tâm Đức / Chợ Rẫy',
-    notes: 'Bệnh nhân nam 62 tuổi có tiền sử nhồi máu cơ tim, đã sốc tim AED 1 nhịp và hỗ trợ thở Oxy mask.',
+    destinationHospital: 'Trạm Ứng Phó Khẩn Cấp KCN Hiệp Phước',
+    notes: 'Kíp cứu hộ mang đồ Hazmat & SCBA khóa thành công van rò rỉ, thông gió phân xưởng.',
   },
   {
     id: 'm3',
-    code: '#EM-240885',
-    type: 'fire_rescue',
-    title: 'Hỗ trợ sơ cứu nạn nhân ngạt khói dân cư',
+    code: '#IP-240885',
+    type: 'traffic_accident',
+    title: 'Tai nạn lao động - Kẹt cơ khí máy dập kim loại',
     severity: 'urgent',
-    address: 'Hẻm 458 Ba Tháng Hai, Phường 14, Quận 10',
+    address: 'Xưởng dập phụ tùng, Đường số 7, KCN Vĩnh Lộc',
     completedAt: '07:50 (4 giờ trước)',
     durationMinutes: 45,
-    distanceKm: 3.5,
-    etaMinutes: 7.2,
+    distanceKm: 2.5,
+    etaMinutes: 6.2,
     status: 'completed',
-    patientCount: 3,
-    destinationHospital: 'Bệnh viện Trưng Vương TP.HCM',
-    notes: 'Phối hợp Đội PCCC & CNCH Quận 10, cấp cứu ngạt khí CO cho 3 cư dân.',
+    patientCount: 1,
+    destinationHospital: 'BV Chấn Thương Chỉnh Hình & Trạm Y Tế KCN',
+    notes: 'Sử dụng kìm thủy lực cắt giải phóng tay công nhân, garo cầm máu và chuyển viện an toàn.',
   },
 ];
 
@@ -142,28 +142,28 @@ export const StaffDashboardScreen: React.FC = () => {
     if (m.id === 'm1') {
       return {
         ...m,
-        title: 'Traffic Collision - Multiple Trauma Casualties',
+        title: 'Factory Fire & Electrical Short-Circuit',
         completedAt: '11:20 (35 mins ago)',
-        destinationHospital: 'Trung Vuong Emergency Hospital',
-        notes: '2 victims with leg fractures, splinted & IV NaCl 0.9% administered.',
+        destinationHospital: 'Tan Binh IP Medical Station & My Duc Hospital',
+        notes: 'Contained workshop blaze, smoke inhalation treated with O2 mask for 2 workers.',
       };
     }
     if (m.id === 'm2') {
       return {
         ...m,
-        title: 'Cardiac Emergency - Chest Pain & Dyspnea',
+        title: 'Toxic Ammonia (NH3) Leakage in Cold Storage',
         completedAt: '09:45 (2 hrs ago)',
-        destinationHospital: 'Tam Duc Heart Hospital / Cho Ray',
-        notes: '62-year-old male with history of MI, AED shocked 1 cycle, O2 mask assisted.',
+        destinationHospital: 'Hiep Phuoc IP Emergency Base',
+        notes: 'Hazmat Level B & SCBA equipped crew secured safety valve and vented workshop.',
       };
     }
     if (m.id === 'm3') {
       return {
         ...m,
-        title: 'Smoke Inhalation Rescue Support',
+        title: 'Industrial Entrapment - Hydraulic Stamping Machine',
         completedAt: '07:50 (4 hrs ago)',
-        destinationHospital: 'Trung Vuong Hospital HCMC',
-        notes: 'Coordinated with Fire & Rescue Team Dist 10, CO inhalation treated for 3 residents.',
+        destinationHospital: 'Orthopedic Trauma Hospital & IP Clinic',
+        notes: 'Hydraulic cutting tool used to extricate worker hand, tourniquet & splint applied.',
       };
     }
     return m;
@@ -300,32 +300,59 @@ export const StaffDashboardScreen: React.FC = () => {
             onTimeRate={100}
           />
 
+          {/* 4.5. Duty Schedule Registration Quick Access Card */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.scheduleBannerCard}
+            onPress={() => navigation.navigate('StaffScheduleTab')}
+          >
+            <View style={styles.scheduleBannerLeft}>
+              <View style={styles.scheduleBannerIconWrap}>
+                <CalendarDays size={moderateScale(20)} color="#DC2626" />
+              </View>
+              <View style={styles.scheduleBannerTextCol}>
+                <View style={styles.scheduleBannerHeaderRow}>
+                  <Text style={styles.scheduleBannerTitle}>
+                    {t('staff.banner_schedule_title')}
+                  </Text>
+                  <View style={styles.scheduleLiveBadge}>
+                    <Text style={styles.scheduleLiveBadgeText}>MỚI</Text>
+                  </View>
+                </View>
+                <Text style={styles.scheduleBannerSub} numberOfLines={2}>
+                  {t('staff.banner_schedule_sub')}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={moderateScale(18)} color="#DC2626" />
+          </TouchableOpacity>
+
           {/* 5. Station & Vehicle Mini-Map Card */}
           <StationMiniMapCard
             stationName={
               isEnglish
-                ? 'District 10 Dispatch Station - Trung Vuong Hospital'
-                : 'Trạm Cứu Hộ Quận 10 - BV Trưng Vương'
+                ? 'Tan Binh IP Rescue & Fire Base'
+                : 'Trạm Cứu Hộ & PCCC KCN Tân Bình'
             }
             stationAddress={
               isEnglish
-                ? '201 Ly Thuong Kiet, W.7, Dist.10, HCMC'
-                : '201 Lý Thường Kiệt, P.7, Q.10, TP.HCM'
+                ? 'Road CN13 & CN1, Tan Binh IP, Tan Phu, HCMC'
+                : 'Đường CN13 & CN1, KCN Tân Bình, P. Tây Thạnh, Tân Phú'
             }
             vehicleModel={
               isEnglish
-                ? 'Dedicated ICU Ambulance #AMB-04'
-                : 'Xe Cứu Thương ICU Chuyên Dụng #AMB-04'
+                ? 'IP Hazmat & Technical Rescue Unit #RESCUE-04'
+                : 'Xe Cứu Hộ & Xử Lý Hazmat KCN #RESCUE-04'
             }
             vehicleStatus={
               dutyStatus === 'online'
-                ? (isEnglish ? 'On duty at station • Ready for dispatch' : 'Đang trực tại trạm • Sẵn sàng xuất kích')
+                ? (isEnglish ? 'On duty at IP Base • Ready for emergency deployment' : 'Đang trực tại trạm KCN • Sẵn sàng xuất kích')
                 : dutyStatus === 'busy'
-                ? (isEnglish ? 'Maintenance & Oxygen Refill' : 'Tạm nghỉ bảo dưỡng & nạp Oxy')
-                : (isEnglish ? 'Off duty • Handed over' : 'Đã nghỉ ca • Bàn giao xe')
+                ? (isEnglish ? 'Refilling SCBA Cylinders & Equipment Check' : 'Nạp khí bình SCBA & kiểm tra thiết bị Hazmat')
+                : (isEnglish ? 'Off duty • Handed over' : 'Đã nghỉ ca • Bàn giao xe KCN')
             }
-            latitude={10.7712}
-            longitude={106.6578}
+            latitude={10.8145}
+            longitude={106.6268}
             onPressNavigateStation={() => setIsNavigateStationModalVisible(true)}
             onPressOpenFullMap={() => setIsNavigateStationModalVisible(true)}
           />
@@ -501,6 +528,68 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontWeight: '600',
     marginTop: verticalScale(3),
+  },
+  scheduleBannerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(14),
+    padding: moderateScale(12),
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    marginBottom: verticalScale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  scheduleBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingRight: scale(6),
+  },
+  scheduleBannerIconWrap: {
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(19),
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: scale(10),
+  },
+  scheduleBannerTextCol: {
+    flex: 1,
+  },
+  scheduleBannerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  scheduleBannerTitle: {
+    fontSize: moderateScale(11.5),
+    fontWeight: '800',
+    color: '#991B1B',
+    letterSpacing: 0.3,
+  },
+  scheduleLiveBadge: {
+    backgroundColor: '#DC2626',
+    borderRadius: moderateScale(4),
+    paddingHorizontal: scale(5),
+    paddingVertical: verticalScale(1),
+  },
+  scheduleLiveBadgeText: {
+    fontSize: moderateScale(8.5),
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  scheduleBannerSub: {
+    fontSize: moderateScale(10.5),
+    color: '#475569',
+    marginTop: verticalScale(2),
+    lineHeight: moderateScale(14),
   },
 });
 

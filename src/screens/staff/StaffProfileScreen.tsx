@@ -34,6 +34,7 @@ import {
   BadgeAlert,
   Sliders,
   Languages,
+  CalendarDays,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -132,8 +133,8 @@ export const StaffProfileScreen: React.FC = () => {
               <View style={styles.staffIdPill}>
                 <Text style={styles.staffIdText}>MÃ NV: {user?.staffId || 'ST-8821'}</Text>
               </View>
-              <Text style={styles.heroName}>{user?.name || 'BS. Lê Quốc Huy'}</Text>
-              <Text style={styles.heroRole}>Lái xe Cấp Cứu & Cứu Hộ Viên EMT-P</Text>
+              <Text style={styles.heroName}>{user?.name || 'Đội Trưởng Lê Quốc Huy'}</Text>
+              <Text style={styles.heroRole}>Chỉ Huy Kíp Cứu Hộ & Kỹ Thuật Viên Hazmat KCN</Text>
             </View>
           </View>
 
@@ -141,15 +142,15 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.credentialsRow}>
             <View style={styles.credBadge}>
               <Award size={moderateScale(12)} color="#D97706" />
-              <Text style={styles.credBadgeText}>5 Năm Cứu Hộ</Text>
+              <Text style={styles.credBadgeText}>5 Năm KCN</Text>
             </View>
             <View style={styles.credBadge}>
               <Zap size={moderateScale(12)} color="#DC2626" />
-              <Text style={styles.credBadgeText}>Code Red T1</Text>
+              <Text style={styles.credBadgeText}>Hazmat Cấp A</Text>
             </View>
             <View style={styles.credBadge}>
               <Activity size={moderateScale(12)} color="#059669" />
-              <Text style={styles.credBadgeText}>Chứng Chỉ ACLS/AED</Text>
+              <Text style={styles.credBadgeText}>Chỉ Huy PCCC Xưởng</Text>
             </View>
           </View>
 
@@ -159,26 +160,26 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.stationRow}>
             <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
-              Trạm Q.10 - Bệnh viện Cấp Cứu Trưng Vương
+              Trạm Cứu Hộ & PCCC KCN Tân Bình (TP.HCM)
             </Text>
           </View>
         </View>
 
-        {/* 3. Assigned Ambulance & Equipment Card */}
+        {/* 3. Assigned Industrial Vehicle & Equipment Card */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconWrap}>
               <Truck size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Phương Tiện & Trang Bị Quản Lý</Text>
+              <Text style={styles.sectionTitle}>Phương Tiện & Trang Bị KCN Quản Lý</Text>
               <Text style={styles.sectionSub}>Giao trách nhiệm bảo quản ca trực</Text>
             </View>
           </View>
 
           <View style={styles.vehicleDetailsBox}>
             <View style={styles.vehiclePlateRow}>
-              <Text style={styles.vehicleName}>Xe Cứu Thương ICU Chuyên Dụng #AMB-04</Text>
+              <Text style={styles.vehicleName}>Xe Cứu Hộ & Hazmat Chuyên Dụng KCN #RESCUE-04</Text>
               <View style={styles.plateBadge}>
                 <Text style={styles.plateText}>{user?.vehiclePlate || '51A-999.99'}</Text>
               </View>
@@ -190,19 +191,19 @@ export const StaffProfileScreen: React.FC = () => {
                 <Text style={[styles.vMetricValue, { color: '#059669' }]}>85% (Đầy)</Text>
               </View>
               <View style={styles.vehicleMetricItem}>
-                <Text style={styles.vMetricLabel}>Oxy Trung Tâm</Text>
-                <Text style={[styles.vMetricValue, { color: '#DC2626' }]}>200 Bar (Chuẩn)</Text>
+                <Text style={styles.vMetricLabel}>Bình Thở SCBA</Text>
+                <Text style={[styles.vMetricValue, { color: '#DC2626' }]}>300 Bar (Chuẩn)</Text>
               </View>
               <View style={styles.vehicleMetricItem}>
-                <Text style={styles.vMetricLabel}>Định Vị Telemetry</Text>
-                <Text style={[styles.vMetricValue, { color: '#D97706' }]}>Online (±2m)</Text>
+                <Text style={styles.vMetricLabel}>Đo Khí Độc</Text>
+                <Text style={[styles.vMetricValue, { color: '#D97706' }]}>4-Gas Online</Text>
               </View>
             </View>
 
             <View style={styles.gearListRow}>
               <Text style={styles.gearListLabel}>Thiết bị chính:</Text>
               <Text style={styles.gearListText}>
-                Máy sốc tim AED Zoll X • Máy thở Hamilton T1 • Kìm thủy lực Lukas
+                Đồ Hazmat Cấp A • Bình SCBA Scott 300 Bar • Máy đo khí độc 4-Gas • Kìm cắt thủy lực Lukas
               </Text>
             </View>
           </View>
@@ -215,37 +216,37 @@ export const StaffProfileScreen: React.FC = () => {
               <Users size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Thành Viên Kíp Trực Cùng Ca</Text>
-              <Text style={styles.sectionSub}>Đội Cứu Hộ 01 • Ca Trực 12 Giờ</Text>
+              <Text style={styles.sectionTitle}>Thành Viên Kíp Trực Phân Xưởng</Text>
+              <Text style={styles.sectionSub}>Đội Cứu Hộ KCN Tân Bình • Ca Trực 8 Giờ</Text>
             </View>
           </View>
 
-          {/* Member 1: Doctor */}
+          {/* Member 1: Hazmat Specialist */}
           <View style={styles.crewMemberRow}>
             <View style={styles.crewAvatarWrap}>
-              <Text style={styles.crewAvatarText}>BS</Text>
+              <Text style={styles.crewAvatarText}>KT</Text>
             </View>
             <View style={styles.crewInfoGroup}>
-              <Text style={styles.crewName}>BS. CK1 Trần Văn Minh</Text>
-              <Text style={styles.crewRole}>Bác sĩ Phụ Trách Ca • Khoa Cấp Cứu</Text>
+              <Text style={styles.crewName}>KTV. Trần Văn Minh</Text>
+              <Text style={styles.crewRole}>Chuyên Viên Xử Lý Hóa Chất Hazmat</Text>
             </View>
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.crewCallBtn}
-              onPress={() => handleCallCrew('BS. Trần Văn Minh', '0908112233')}
+              onPress={() => handleCallCrew('KTV. Trần Văn Minh', '0908112233')}
             >
               <PhoneCall size={moderateScale(14)} color="#10B981" />
             </TouchableOpacity>
           </View>
 
-          {/* Member 2: Nurse */}
+          {/* Member 2: Occupational Nurse */}
           <View style={styles.crewMemberRow}>
             <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>ĐD</Text>
+              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>YT</Text>
             </View>
             <View style={styles.crewInfoGroup}>
               <Text style={styles.crewName}>ĐD. Nguyễn Thị Lan</Text>
-              <Text style={styles.crewRole}>Điều Dưỡng Cấp Cứu Hồi Sức</Text>
+              <Text style={styles.crewRole}>Y Tế Lao Động & Cấp Cứu Phân Xưởng</Text>
             </View>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -256,20 +257,47 @@ export const StaffProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Member 3: Driver (You) */}
+          {/* Member 3: Team Lead / Driver (You) */}
           <View style={[styles.crewMemberRow, styles.crewMemberRowSelf]}>
             <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>LX</Text>
+              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>CH</Text>
             </View>
             <View style={styles.crewInfoGroup}>
               <Text style={styles.crewName}>{user?.name || 'Lê Quốc Huy'} (Chính bạn)</Text>
-              <Text style={styles.crewRole}>Lái xe Cứu Hộ & Kỹ thuật viên EMT</Text>
+              <Text style={styles.crewRole}>Chỉ Huy Kíp Trực & Lái Xe Cứu Hộ KCN</Text>
             </View>
             <View style={styles.selfBadge}>
               <Text style={styles.selfBadgeText}>BẠN</Text>
             </View>
           </View>
         </View>
+
+        {/* 4.5. Work Shift Registration Banner Card */}
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.schedulePromoCard}
+          onPress={() => (navigation as any).navigate('StaffScheduleTab')}
+        >
+          <View style={styles.schedulePromoLeft}>
+            <View style={styles.schedulePromoIconWrap}>
+              <CalendarDays size={moderateScale(22)} color="#DC2626" />
+            </View>
+            <View style={styles.schedulePromoTextGroup}>
+              <View style={styles.scheduleBadgeRow}>
+                <Text style={styles.schedulePromoTitle}>
+                  {t('staff.schedule_menu_item')}
+                </Text>
+                <View style={styles.scheduleOpenPill}>
+                  <Text style={styles.scheduleOpenPillText}>ĐANG MỞ</Text>
+                </View>
+              </View>
+              <Text style={styles.schedulePromoSub}>
+                {t('staff.schedule_menu_sub')}
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={moderateScale(18)} color="#DC2626" />
+        </TouchableOpacity>
 
         {/* 5. Performance & Shift Stats */}
         <View style={styles.sectionCard}>
@@ -412,10 +440,10 @@ export const StaffProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isHandoverModalVisible}
         type="warning"
-        title="Bàn Giao Ca Trực Cứu Hộ"
-        description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu thương 51A-999.99 cùng trang thiết bị cho kíp trực tiếp theo."
-        highlightBadge="BÀN GIAO XE 51A-999.99"
-        highlightText="Vui lòng đảm bảo bình Oxy đạt trên 180 Bar và vệ sinh khử trùng khoang cấp cứu."
+        title="Bàn Giao Ca Trực KCN"
+        description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu hộ KCN 51A-999.99 cùng trang thiết bị Hazmat & SCBA cho kíp trực tiếp theo."
+        highlightBadge="BÀN GIAO XE KCN 51A-999.99"
+        highlightText="Vui lòng đảm bảo bình thở SCBA đạt trên 280 Bar và vệ sinh khử khuẩn thiết bị bảo hộ Hazmat."
         confirmText="Xác Nhận Bàn Giao"
         cancelText="Hủy Bỏ"
         onConfirm={handleConfirmHandover}
@@ -899,5 +927,68 @@ const styles = StyleSheet.create({
   },
   footerSpace: {
     height: verticalScale(20),
+  },
+  schedulePromoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(16),
+    padding: scale(14),
+    marginBottom: verticalScale(14),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  schedulePromoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingRight: scale(8),
+  },
+  schedulePromoIconWrap: {
+    width: moderateScale(42),
+    height: moderateScale(42),
+    borderRadius: moderateScale(21),
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: scale(12),
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  schedulePromoTextGroup: {
+    flex: 1,
+  },
+  scheduleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  schedulePromoTitle: {
+    fontSize: moderateScale(12.5),
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  scheduleOpenPill: {
+    backgroundColor: '#DC2626',
+    borderRadius: moderateScale(4),
+    paddingHorizontal: scale(5),
+    paddingVertical: verticalScale(1),
+  },
+  scheduleOpenPillText: {
+    fontSize: moderateScale(8.5),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  schedulePromoSub: {
+    fontSize: moderateScale(10.5),
+    color: '#64748B',
+    marginTop: verticalScale(2),
   },
 });

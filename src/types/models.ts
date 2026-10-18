@@ -27,12 +27,12 @@ export const DEMO_CITIZEN_USER: User = {
 
 export const DEMO_STAFF_USER: User = {
   id: 'user-staff-01',
-  email: 'cuuho@emergency.vn',
+  email: 'cuuho.kcn@emergency.vn',
   name: 'Lê Quốc Huy',
   role: 'staff',
   phone: '0912345678',
   staffId: 'ST-8821',
   vehiclePlate: '51A-999.99',
-  teamName: 'Đội Phản Ứng Nhanh 01 • Cứu Hộ Khẩn Cấp',
+  teamName: 'Đội Cứu Hộ & PCCC KCN Tân Bình',
   createdAt: new Date().toISOString(),
 };

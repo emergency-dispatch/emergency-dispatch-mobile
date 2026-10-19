@@ -71,12 +71,7 @@ export const incidentService = {
     const reasonText = reason || 'Người dân bấm nhầm nút SOS';
     const response = await apiService.put<BackendApiResponse<IncidentResponseDto>>(
       Endpoints.INCIDENTS.CANCEL(id),
-      JSON.stringify(reasonText),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      { reason: reasonText }
     );
 
     if (!response.success || !response.data) {

@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import {
@@ -18,6 +19,7 @@ import {
   Image as ImageIcon,
   MapPin,
   Calendar,
+  XCircle,
 } from 'lucide-react-native';
 import { incidentService } from '../../services/incident.service';
 import { IncidentResponseDto, IncidentStatus, SeverityLevel } from '../../types/incident';
@@ -81,8 +83,38 @@ export const MyReportsScreen: React.FC = () => {
     fetchIncidents();
   };
 
+  const handleCancelReport = (incidentId: string) => {
+    Alert.alert(
+      'Hủy Báo Cáo Sự Cố',
+      'Bạn có chắc chắn muốn hủy yêu cầu cứu hộ cho sự cố này không?',
+      [
+        { text: 'Quay lại', style: 'cancel' },
+        {
+          text: 'Xác nhận hủy',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await incidentService.cancelIncident(incidentId, 'Người dân tự hủy báo cáo');
+              Alert.alert('Thành công', 'Đã hủy báo cáo sự cố thành công.');
+              fetchIncidents();
+            } catch (err: any) {
+              Alert.alert('Lỗi', err.message || 'Không thể hủy sự cố này.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getStatusBadge = (status: IncidentStatus) => {
     switch (status) {
+      case IncidentStatus.Cancelled:
+        return (
+          <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+            <XCircle size={13} color="#DC2626" />
+            <Text style={[styles.statusText, { color: '#DC2626' }]}>Đã hủy</Text>
+          </View>
+        );
       case IncidentStatus.Completed:
         return (
           <View style={[styles.statusBadge, styles.statusResolved]}>
@@ -251,6 +283,19 @@ export const MyReportsScreen: React.FC = () => {
                     </View>
                   )}
                 </View>
+
+                {item.status !== IncidentStatus.Completed && item.status !== IncidentStatus.Cancelled && (
+                  <View style={styles.cancelActionRow}>
+                    <TouchableOpacity
+                      style={styles.cancelIncidentBtn}
+                      activeOpacity={0.7}
+                      onPress={() => handleCancelReport(item.id)}
+                    >
+                      <XCircle size={14} color="#DC2626" />
+                      <Text style={styles.cancelIncidentBtnText}>Hủy báo cáo này (Bấm nhầm)</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -432,5 +477,28 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  cancelActionRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+    marginTop: 2,
+    alignItems: 'flex-end',
+  },
+  cancelIncidentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelIncidentBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#DC2626',
   },
 });

@@ -156,7 +156,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                 >
                   <AlertCircle size={16} color={selectedHazard.color} />
                   <Text style={[styles.hazardBadgeText, { color: selectedHazard.color }]}>
-                    {t('sos_modal.hazard_code', { code: selectedHazard.code })}
+                    {selectedHazard.code ? `${selectedHazard.title} ${selectedHazard.code}` : selectedHazard.title}
                   </Text>
                 </View>
               )}

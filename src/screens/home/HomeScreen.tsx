@@ -260,16 +260,8 @@ export const HomeScreen: React.FC = () => {
         mediaUrls: data.mediaUrls || [],
       });
       await recordIncidentId(created.id);
-
-      const aiText = created.aiClassification?.summary
-        ? `\n\nAI Phân tích: ${created.aiClassification.summary}\n(Mức độ: ${created.severity})`
-        : '';
-
-      Alert.alert(
-        'Báo Cáo Đã Gửi Thành Công!',
-        `Đã chuyển thông tin tới trung tâm điều phối cứu hộ khẩn cấp. Mã sự cố: #${created.id.slice(0, 8).toUpperCase()}.${aiText}`,
-        [{ text: 'Đồng ý' }]
-      );
+      setActiveIncident(created);
+      setIsSosSuccessModalVisible(true);
     } catch (err: any) {
       Alert.alert(
         'Lỗi Gửi Báo Cáo',
@@ -419,7 +411,10 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {/* 3. Quick Hazard Grid: 4 Cards */}
-        <QuickHazardGrid onSelectHazard={handleSelectHazard} />
+        <QuickHazardGrid
+          onSelectHazard={handleSelectHazard}
+          selectedHazardId={selectedHazard?.id}
+        />
 
         {/* 4. Camera / Media Quick Bar Trigger */}
         <View style={styles.mediaQuickBar}>

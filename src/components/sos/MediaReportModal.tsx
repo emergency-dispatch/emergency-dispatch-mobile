@@ -85,19 +85,22 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    const payload = {
+      hazardId: selectedHazard?.id,
+      mediaType: uploadedMediaUrls.length > 0 ? 'photo' : selectedMedia,
+      mediaUrls: [...uploadedMediaUrls],
+      note,
+    };
+    // Close modal first and reset fields to avoid modal clash
+    setUploadedMediaUrls([]);
+    setSelectedMedia('none');
+    setNote('');
+    onClose();
+
     try {
-      await onSubmitReport({
-        hazardId: selectedHazard?.id,
-        mediaType: uploadedMediaUrls.length > 0 ? 'photo' : selectedMedia,
-        mediaUrls: uploadedMediaUrls,
-        note,
-      });
-      // Reset form
-      setUploadedMediaUrls([]);
-      setSelectedMedia('none');
-      setNote('');
-      onClose();
+      await onSubmitReport(payload);
     } catch (err: any) {
       Alert.alert('Lỗi gửi báo cáo', err.message || 'Gửi báo cáo sự cố thất bại.');
     } finally {

@@ -244,6 +244,8 @@ export const HomeScreen: React.FC = () => {
     note: string;
   }) => {
     try {
+      setIsSendingSos(true);
+      setSosSendingLoadingText('Đang gửi dữ liệu báo cáo tới trung tâm cứu hộ...');
       const hazardTitle = selectedHazard?.title
         ? `Báo cáo nguy cơ: ${selectedHazard.title}`
         : 'Báo cáo sự cố hiện trường';
@@ -272,6 +274,8 @@ export const HomeScreen: React.FC = () => {
         'Lỗi Gửi Báo Cáo',
         err.message || 'Không thể gửi báo cáo hiện trường tới máy chủ.'
       );
+    } finally {
+      setIsSendingSos(false);
     }
   };
 

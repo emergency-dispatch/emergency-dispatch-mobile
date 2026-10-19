@@ -31,12 +31,14 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
   const { t } = useTranslation();
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
     if (visible) {
       setSecondsElapsed(0);
       setIsCancelling(false);
+      setShowCancelConfirm(false);
       Vibration.vibrate([0, 250, 100, 250]);
       timer = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
@@ -47,32 +49,20 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
     };
   }, [visible]);
 
-  const handlePressCancel = () => {
-    Alert.alert(
-      t('sos_modal.confirm_cancel_title'),
-      t('sos_modal.confirm_cancel_desc'),
-      [
-        { text: t('sos_modal.keep_signal'), style: 'cancel' },
-        {
-          text: t('sos_modal.confirm_cancel_btn'),
-          style: 'destructive',
-          onPress: async () => {
-            if (incident?.id && onCancelIncident) {
-              setIsCancelling(true);
-              try {
-                await onCancelIncident(incident.id);
-              } catch (err: any) {
-                Alert.alert(t('common.error'), err.message || 'Không thể hủy báo động lúc này.');
-              } finally {
-                setIsCancelling(false);
-              }
-            } else {
-              onClose();
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmCancel = async () => {
+    if (incident?.id && onCancelIncident) {
+      setIsCancelling(true);
+      try {
+        await onCancelIncident(incident.id);
+      } catch (err: any) {
+        console.warn('Cancel incident error:', err);
+      } finally {
+        setIsCancelling(false);
+        setShowCancelConfirm(false);
+      }
+    } else {
+      onClose();
+    }
   };
 
   const incidentCode = incident
@@ -157,23 +147,55 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               <Text style={styles.dismissButtonText}>{t('sos_modal.dismiss_follow_btn')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.cancelButton}
-              onPress={handlePressCancel}
-              disabled={isCancelling}
-              accessible={true}
-              accessibilityLabel="Hủy báo động SOS nếu bấm nhầm"
-            >
-              {isCancelling ? (
-                <ActivityIndicator size="small" color="#DC2626" />
-              ) : (
-                <>
-                  <XCircle size={16} color="#DC2626" />
-                  <Text style={styles.cancelButtonText}>{t('sos_modal.cancel_accident')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {showCancelConfirm ? (
+              <View style={styles.confirmBox}>
+                <Text style={styles.confirmTitle}>
+                  {t('sos_modal.confirm_cancel_title', { defaultValue: 'Hủy Báo Động SOS?' })}
+                </Text>
+                <Text style={styles.confirmDesc}>
+                  {t('sos_modal.confirm_cancel_desc', { defaultValue: 'Bạn có chắc muốn hủy tín hiệu vì bấm nhầm?' })}
+                </Text>
+                <View style={styles.confirmButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.keepButton}
+                    onPress={() => setShowCancelConfirm(false)}
+                    accessible={true}
+                    accessibilityLabel="Không hủy, tiếp tục giữ tín hiệu SOS"
+                  >
+                    <Text style={styles.keepButtonText}>
+                      {t('sos_modal.keep_signal', { defaultValue: 'Không, giữ lại' })}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.confirmCancelButton}
+                    onPress={handleConfirmCancel}
+                    disabled={isCancelling}
+                    accessible={true}
+                    accessibilityLabel="Xác nhận hủy tín hiệu SOS"
+                  >
+                    {isCancelling ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.confirmCancelButtonText}>
+                        {t('sos_modal.confirm_cancel_btn', { defaultValue: 'Xác nhận hủy' })}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={styles.cancelButton}
+                onPress={() => setShowCancelConfirm(true)}
+                disabled={isCancelling}
+                accessible={true}
+                accessibilityLabel="Hủy báo động SOS nếu bấm nhầm"
+              >
+                <XCircle size={16} color="#DC2626" />
+                <Text style={styles.cancelButtonText}>{t('sos_modal.cancel_accident')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -341,5 +363,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+  },
+  confirmBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    padding: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+  confirmTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  confirmDesc: {
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  confirmButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  keepButton: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keepButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  confirmCancelButton: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

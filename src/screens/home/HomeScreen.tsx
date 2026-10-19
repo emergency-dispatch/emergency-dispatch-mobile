@@ -249,9 +249,14 @@ export const HomeScreen: React.FC = () => {
         : 'Báo cáo sự cố hiện trường';
 
       const loc = await useLocationStore.getState().refreshLocation(false);
+      const hasMedia = data.mediaUrls && data.mediaUrls.length > 0;
+      const defaultDesc = hasMedia
+        ? 'Người dân gửi báo cáo nguy cơ khẩn cấp kèm ảnh hiện trường.'
+        : 'Người dân gửi cảnh báo nguy cơ khẩn cấp tức thời (không kèm hình ảnh).';
+
       const created = await incidentService.createIncident({
         title: hazardTitle,
-        description: data.note.trim() || 'Người dân gửi báo cáo nguy cơ khẩn cấp kèm ảnh hiện trường.',
+        description: data.note.trim() || defaultDesc,
         latitude: loc.latitude,
         longitude: loc.longitude,
         locationAddress: loc.address,

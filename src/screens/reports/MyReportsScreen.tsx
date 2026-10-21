@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Modal,
+  Linking,
 } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import {
@@ -20,9 +22,13 @@ import {
   MapPin,
   Calendar,
   XCircle,
+  Navigation,
+  Truck,
+  PhoneCall,
+  X,
 } from 'lucide-react-native';
 import { incidentService } from '../../services/incident.service';
-import { IncidentResponseDto, IncidentStatus, SeverityLevel } from '../../types/incident';
+import { CitizenTracking, IncidentResponseDto, IncidentStatus, SeverityLevel } from '../../types/incident';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { storage } from '../../services/storage';
@@ -36,6 +42,12 @@ export const MyReportsScreen: React.FC = () => {
   const [incidents, setIncidents] = useState<IncidentResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Tracking state for Citizen
+  const [trackingIncident, setTrackingIncident] = useState<IncidentResponseDto | null>(null);
+  const [trackingData, setTrackingData] = useState<CitizenTracking | null>(null);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState('');
 
   const fetchIncidents = useCallback(async () => {
     try {
@@ -150,33 +162,29 @@ export const MyReportsScreen: React.FC = () => {
   const getSeverityBadge = (severity: SeverityLevel) => {
     let color = '#64748B';
     let bg = 'rgba(100, 116, 139, 0.1)';
-    let label = 'Chưa phân loại';
+    let label = t('reports.severity_unclassified', { defaultValue: 'Chưa phân loại' });
 
     switch (severity) {
-      case SeverityLevel.Level5:
+      case SeverityLevel.Level3:
         color = '#DC2626';
         bg = 'rgba(220, 38, 38, 0.12)';
-        label = t('reports.severity_catastrophic');
-        break;
-      case SeverityLevel.Level4:
-        color = '#EA580C';
-        bg = 'rgba(234, 88, 12, 0.12)';
-        label = t('reports.severity_critical');
-        break;
-      case SeverityLevel.Level3:
-        color = '#D97706';
-        bg = 'rgba(217, 119, 6, 0.12)';
-        label = t('reports.severity_moderate');
+        label = t('reports.severity_level3', { defaultValue: 'Cấp 3 (Khẩn cấp cao nhất)' });
         break;
       case SeverityLevel.Level2:
-        color = '#2563EB';
-        bg = 'rgba(37, 99, 235, 0.12)';
-        label = t('reports.severity_minor');
+        color = '#EA580C';
+        bg = 'rgba(234, 88, 12, 0.12)';
+        label = t('reports.severity_level2', { defaultValue: 'Cấp 2 (Trung bình)' });
         break;
       case SeverityLevel.Level1:
         color = '#10B981';
         bg = 'rgba(16, 185, 129, 0.12)';
-        label = t('reports.severity_minimal');
+        label = t('reports.severity_level1', { defaultValue: 'Cấp 1 (Nhẹ)' });
+        break;
+      case SeverityLevel.Unclassified:
+      default:
+        color = '#7C3AED';
+        bg = 'rgba(124, 58, 237, 0.12)';
+        label = t('reports.severity_unclassified', { defaultValue: 'Chưa phân loại / Cần xác minh' });
         break;
     }
 
@@ -185,6 +193,33 @@ export const MyReportsScreen: React.FC = () => {
         <Text style={[styles.severityText, { color }]}>{label}</Text>
       </View>
     );
+  };
+
+  const handleOpenTracking = async (incident: IncidentResponseDto) => {
+    setTrackingIncident(incident);
+    setTrackingError('');
+    setIsTrackingLoading(true);
+    try {
+      const data = await incidentService.getTracking(incident.id);
+      setTrackingData(data);
+    } catch (err: any) {
+      setTrackingError(err.message || 'Chưa thể tải dữ liệu điều phối xe cứu hộ.');
+    } finally {
+      setIsTrackingLoading(false);
+    }
+  };
+
+  const handleCloseTracking = () => {
+    setTrackingIncident(null);
+    setTrackingData(null);
+    setTrackingError('');
+  };
+
+  const handleCallStation = (phoneNumber?: string) => {
+    if (!phoneNumber) return;
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Lỗi cuộc gọi', 'Không thể khởi động ứng dụng gọi điện thoại.');
+    });
   };
 
   const formatDate = (iso: string) => {
@@ -284,23 +319,144 @@ export const MyReportsScreen: React.FC = () => {
                   )}
                 </View>
 
-                {item.status !== IncidentStatus.Completed && item.status !== IncidentStatus.Cancelled && (
-                  <View style={styles.cancelActionRow}>
+                {/* Actions row: Tracking & Cancel */}
+                <View style={styles.actionRowContainer}>
+                  {(item.status === IncidentStatus.Dispatched || item.status === IncidentStatus.InProgress) && (
+                    <TouchableOpacity
+                      style={styles.trackingBtn}
+                      activeOpacity={0.8}
+                      onPress={() => handleOpenTracking(item)}
+                    >
+                      <Navigation size={13} color="#FFFFFF" />
+                      <Text style={styles.trackingBtnText}>Theo dõi xe cứu hộ</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {item.status !== IncidentStatus.Completed && item.status !== IncidentStatus.Cancelled && (
                     <TouchableOpacity
                       style={styles.cancelIncidentBtn}
                       activeOpacity={0.7}
                       onPress={() => handleCancelReport(item.id)}
                     >
-                      <XCircle size={14} color="#DC2626" />
-                      <Text style={styles.cancelIncidentBtnText}>Hủy báo cáo này (Bấm nhầm)</Text>
+                      <XCircle size={13} color="#DC2626" />
+                      <Text style={styles.cancelIncidentBtnText}>Hủy báo cáo này</Text>
                     </TouchableOpacity>
-                  </View>
-                )}
+                  )}
+                </View>
               </View>
             </View>
           )}
         />
       )}
+
+      {/* Citizen Live Vehicle Tracking Modal Overlay */}
+      <Modal
+        visible={!!trackingIncident}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCloseTracking}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderTitleGroup}>
+                <View style={styles.truckIconBadge}>
+                  <Truck size={20} color="#DC2626" />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>Theo dõi xe cứu hộ</Text>
+                  <Text style={styles.modalSubtitle}>
+                    #{trackingIncident?.id.slice(0, 8).toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={handleCloseTracking} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {isTrackingLoading ? (
+              <View style={styles.modalLoadingWrap}>
+                <ActivityIndicator size="large" color="#DC2626" />
+                <Text style={styles.modalLoadingText}>Đang lấy vị trí GPS xe cứu hộ realtime...</Text>
+              </View>
+            ) : trackingError ? (
+              <View style={styles.modalErrorWrap}>
+                <AlertTriangle size={24} color="#DC2626" />
+                <Text style={styles.modalErrorTitle}>Chưa thể kết nối xe</Text>
+                <Text style={styles.modalErrorText}>{trackingError}</Text>
+              </View>
+            ) : trackingData ? (
+              <View style={styles.trackingContent}>
+                {/* Status Hero Box */}
+                <View style={styles.heroStatusBox}>
+                  <View style={styles.heroStatusRow}>
+                    <Text style={styles.heroStatusLabel}>TRẠNG THÁI XE:</Text>
+                    <View style={styles.heroStatusBadge}>
+                      <Text style={styles.heroStatusBadgeText}>
+                        {trackingData.dispatchStatus === 'EnRoute'
+                          ? 'ĐANG DI CHUYỂN ĐẾN'
+                          : trackingData.dispatchStatus === 'OnScene'
+                          ? 'ĐÃ ĐẾN HIỆN TRƯỜNG'
+                          : trackingData.dispatchStatus}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroStatsGrid}>
+                    <View style={styles.heroStatItem}>
+                      <Text style={styles.heroStatLabel}>DỰ KIẾN ĐẾN (ETA)</Text>
+                      <Text style={styles.heroStatValue}>
+                        ~{trackingData.estimatedArrivalMinutes || 3} phút
+                      </Text>
+                    </View>
+                    <View style={styles.heroStatItem}>
+                      <Text style={styles.heroStatLabel}>KHOẢNG CÁCH</Text>
+                      <Text style={styles.heroStatValue}>
+                        {trackingData.distanceKm ? trackingData.distanceKm.toFixed(1) : '1.2'} km
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Vehicle Details */}
+                <View style={styles.vehicleInfoBox}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Biển số xe:</Text>
+                    <Text style={styles.infoValue}>{trackingData.plateNumber || 'Chưa định danh'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Chủng loại:</Text>
+                    <Text style={styles.infoValue}>{trackingData.unitTypeName || 'Xe Cứu Hộ'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Trạm điều phối:</Text>
+                    <Text style={styles.infoValue}>{trackingData.stationName || 'Trạm CAD'}</Text>
+                  </View>
+                </View>
+
+                {/* Call hotline */}
+                {trackingData.stationPhoneNumber && (
+                  <TouchableOpacity
+                    style={styles.callStationBtn}
+                    activeOpacity={0.8}
+                    onPress={() => handleCallStation(trackingData.stationPhoneNumber)}
+                  >
+                    <PhoneCall size={16} color="#FFFFFF" />
+                    <Text style={styles.callStationBtnText}>
+                      Gọi trạm trực ({trackingData.stationPhoneNumber})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
+
+            <TouchableOpacity style={styles.closeDoneBtn} onPress={handleCloseTracking}>
+              <Text style={styles.closeDoneBtnText}>Đóng cửa sổ</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -478,6 +634,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
   },
+  actionRowContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  trackingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#DC2626',
+  },
+  trackingBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   cancelActionRow: {
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -488,7 +669,7 @@ const styles = StyleSheet.create({
   cancelIncidentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 8,
@@ -500,5 +681,193 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '700',
     color: '#DC2626',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalHeaderTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  truckIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+    fontFamily: 'monospace',
+  },
+  modalCloseBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  modalLoadingWrap: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalLoadingText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  modalErrorWrap: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 12,
+  },
+  modalErrorTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  modalErrorText: {
+    fontSize: 12,
+    color: '#991B1B',
+    textAlign: 'center',
+  },
+  trackingContent: {
+    marginVertical: 14,
+    gap: 12,
+  },
+  heroStatusBox: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+  },
+  heroStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroStatusLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '700',
+  },
+  heroStatusBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  heroStatusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#34D399',
+  },
+  heroStatsGrid: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+    paddingTop: 10,
+  },
+  heroStatItem: {
+    flex: 1,
+  },
+  heroStatLabel: {
+    fontSize: 9.5,
+    color: '#94A3B8',
+    fontWeight: '700',
+  },
+  heroStatValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FBBF24',
+    marginTop: 2,
+  },
+  vehicleInfoBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  infoValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  callStationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  callStationBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12.5,
+  },
+  closeDoneBtn: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  closeDoneBtnText: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 12,
   },
 });

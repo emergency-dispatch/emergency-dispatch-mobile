@@ -29,6 +29,9 @@ export const Endpoints = {
   MEDIA: {
     UPLOAD: '/media/upload',
   },
+  DISPATCH: {
+    TRACKING: (incidentId: string) => `/dispatch/tracking/incident/${incidentId}`,
+  },
   AI: {
     ANALYZE: '/ai/analyze',
   },

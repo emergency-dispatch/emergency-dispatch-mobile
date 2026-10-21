@@ -19,8 +19,6 @@ export enum SeverityLevel {
   Level1 = 'Level1',
   Level2 = 'Level2',
   Level3 = 'Level3',
-  Level4 = 'Level4',
-  Level5 = 'Level5',
 }
 
 export interface IncidentMediaDto {
@@ -80,4 +78,36 @@ export interface PaginatedResultDto<T> {
   totalPages: number;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
+}
+
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface CitizenTracking {
+  incidentId: string;
+  incidentTitle: string;
+  incidentAddress: string;
+  incidentLat: number;
+  incidentLng: number;
+  incidentStatus: string;
+  incidentSeverity: 'Unclassified' | 'Level1' | 'Level2' | 'Level3';
+  rescueUnitId?: string;
+  plateNumber?: string;
+  unitTypeName?: string;
+  stationName?: string;
+  stationPhoneNumber?: string;
+  vehicleLat?: number;
+  vehicleLng?: number;
+  lastLocationUpdateAt?: string;
+  routeTrajectory: RoutePoint[];
+  distanceKm: number;
+  estimatedArrivalMinutes: number;
+  dispatchStatus: 'PendingDispatch' | 'Dispatched' | 'Accepted' | 'EnRoute' | 'OnScene' | 'Completed' | 'Cancelled';
+  dispatchedAt?: string;
+  acceptedAt?: string;
+  arrivedAt?: string;
+  completedAt?: string;
+  notes?: string;
 }

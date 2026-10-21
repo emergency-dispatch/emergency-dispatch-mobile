@@ -2,6 +2,7 @@ import { apiService } from '../api/client';
 import { Endpoints } from '../api/endpoints';
 import { BackendApiResponse } from '../types/auth';
 import {
+  CitizenTracking,
   CreateIncidentDto,
   IncidentResponseDto,
   PaginatedResultDto,
@@ -76,6 +77,22 @@ export const incidentService = {
 
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Không thể hủy sự cố.');
+    }
+
+    return response.data;
+  },
+
+  /**
+   * GET /api/dispatch/tracking/incident/{incidentId}
+   * Xem lộ trình, khoảng cách & thời gian dự kiến (ETA) của xe cứu hộ đang di chuyển
+   */
+  async getTracking(incidentId: string): Promise<CitizenTracking> {
+    const response = await apiService.get<BackendApiResponse<CitizenTracking>>(
+      Endpoints.DISPATCH.TRACKING(incidentId)
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Chưa có thông tin điều phối xe cho sự cố này.');
     }
 
     return response.data;

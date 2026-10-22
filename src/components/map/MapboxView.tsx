@@ -1,7 +1,7 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import { MapMarkerItem } from '../../services/mapbox.service';
+import { MapMarkerItem, MAPBOX_ACCESS_TOKEN } from '../../services/mapbox.service';
 
 export interface MapboxViewRef {
   flyTo: (latitude: number, longitude: number, zoom?: number) => void;
@@ -21,6 +21,7 @@ interface MapboxViewProps {
   routeCoordinates?: RouteCoordinate[];
   fitBounds?: boolean;
   interactive?: boolean;
+  mapStyle?: 'streets' | 'satellite' | 'dark';
   onMarkerPress?: (marker: MapMarkerItem) => void;
   onMapPress?: (coords: { latitude: number; longitude: number }) => void;
   style?: any;
@@ -35,6 +36,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       routeCoordinates = [],
       fitBounds = false,
       interactive = true,
+      mapStyle = 'streets',
       onMarkerPress,
       onMapPress,
       style,
@@ -262,10 +264,50 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     });
     window.map = map;
 
-    // High definition Google Maps road tiles - fast, clear, zero watermarks & zero API keys needed
-    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20
-    }).addTo(map);
+    // Mapbox official styles and fallback layer
+    var mapboxToken = '${MAPBOX_ACCESS_TOKEN}';
+    var selectedStyle = '${mapStyle}';
+
+    var mapboxStyleId = selectedStyle === 'satellite'
+      ? 'mapbox/satellite-streets-v12'
+      : selectedStyle === 'dark'
+      ? 'mapbox/dark-v11'
+      : 'mapbox/streets-v12';
+
+    var fallbackUrl = selectedStyle === 'satellite'
+      ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+      : selectedStyle === 'dark'
+      ? 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+      : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+
+    var mapboxLayer = L.tileLayer(
+      'https://api.mapbox.com/styles/v1/' + mapboxStyleId + '/tiles/256/{z}/{x}/{y}@2x?access_token=' + mapboxToken,
+      {
+        maxZoom: 20,
+        tileSize: 256,
+        attribution: '&copy; Mapbox &copy; OpenStreetMap'
+      }
+    );
+
+    var fallbackLayer = L.tileLayer(fallbackUrl, {
+      maxZoom: 20,
+      attribution: '&copy; OpenStreetMap'
+    });
+
+    var hasSwitched = false;
+    mapboxLayer.on('tileerror', function() {
+      if (!hasSwitched) {
+        hasSwitched = true;
+        try { map.removeLayer(mapboxLayer); } catch(e){}
+        fallbackLayer.addTo(map);
+      }
+    });
+
+    if (mapboxToken && mapboxToken.startsWith('pk.')) {
+      mapboxLayer.addTo(map);
+    } else {
+      fallbackLayer.addTo(map);
+    }
 
     // Layer group for dynamic POI markers
     window.markersLayer = L.layerGroup().addTo(map);

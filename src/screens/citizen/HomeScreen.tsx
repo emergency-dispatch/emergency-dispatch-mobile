@@ -15,16 +15,12 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   MapPin,
   Clock,
-  Bell,
   Sparkles,
   RefreshCw,
-  HeartPulse,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { SosPulseButton } from '../../components/sos/SosPulseButton';
-import { SosSuccessModal } from '../../components/sos/SosSuccessModal';
-import { LanguageSelectorModal } from '../../components/common';
+import { SosPulseButton, SosSuccessModal, SosConfirmModal } from '../../components/citizen';
 import { MainTabParamList } from '../../navigation/types';
 import { useResponsive } from '../../utils/responsive';
 import { incidentService } from '../../services/incident.service';
@@ -59,7 +55,8 @@ export const HomeScreen: React.FC = () => {
 
   // Modals & triggers state
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
-  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+  const [isSosConfirmModalVisible, setIsSosConfirmModalVisible] = useState(false);
+  const [pendingSosAsset, setPendingSosAsset] = useState<any | null>(null);
   const [activeIncident, setActiveIncident] = useState<IncidentResponseDto | null>(null);
   const [isSendingSos, setIsSendingSos] = useState(false);
   const [sosSendingLoadingText, setSosSendingLoadingText] = useState('');
@@ -137,61 +134,69 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // When SOS pulse button is held for 2s: directly open camera to snap & report
+  // When SOS pulse button is held for 2s: open camera with crop, then open confirm modal with note
   const handleSosTriggered = async () => {
-    await handleSosTakePhoto();
-  };
-
-  const handleSosTakePhoto = async () => {
     try {
       const asset = await mediaService.pickFromCamera();
-      if (!asset) return;
-      setIsSendingSos(true);
-      setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
-      const url = await mediaService.uploadMedia(asset);
-      setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
-      const loc = await useLocationStore.getState().refreshLocation(false);
-      const created = await incidentService.createIncident({
-        title: 'Báo động SOS Khẩn cấp',
-        description: 'Người dân đè nút SOS 2s kích hoạt camera chụp hiện trường khẩn cấp.',
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        locationAddress: loc.address,
-        reporterName: user?.name || profile.fullName || 'Công dân SOS',
-        reporterPhone: user?.phone || profile.phoneNumber || undefined,
-        mediaUrls: [url],
-      });
-      setActiveIncident(created);
-      await recordIncidentId(created.id, created);
-      setIsSosSuccessModalVisible(true);
-    } catch (err: any) {
-      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
-    } finally {
-      setIsSendingSos(false);
+      if (asset) {
+        setPendingSosAsset(asset);
+      }
+      setIsSosConfirmModalVisible(true);
+    } catch {
+      setIsSosConfirmModalVisible(true);
     }
   };
 
-  const handleSosPickLibrary = async () => {
+  const handleRetakePhotoInConfirm = async () => {
+    try {
+      const asset = await mediaService.pickFromCamera();
+      if (asset) setPendingSosAsset(asset);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePickLibraryInConfirm = async () => {
     try {
       const asset = await mediaService.pickFromLibrary();
-      if (!asset) return;
-      setIsSendingSos(true);
-      setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
-      const url = await mediaService.uploadMedia(asset);
+      if (asset) setPendingSosAsset(asset);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRemovePhotoInConfirm = () => {
+    setPendingSosAsset(null);
+  };
+
+  const handleConfirmSosDispatch = async (note: string) => {
+    setIsSosConfirmModalVisible(false);
+    setIsSendingSos(true);
+    setSosSendingLoadingText('Đang kết nối trung tâm cứu hộ khẩn cấp...');
+    try {
+      let mediaUrls: string[] = [];
+      if (pendingSosAsset) {
+        setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
+        const url = await mediaService.uploadMedia(pendingSosAsset);
+        if (url) mediaUrls.push(url);
+      }
+
       setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
       const loc = await useLocationStore.getState().refreshLocation(false);
       const created = await incidentService.createIncident({
-        title: 'Báo động SOS Khẩn cấp',
-        description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp kèm ảnh hiện trường.',
+        title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
+        description: note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.'),
         latitude: loc.latitude,
         longitude: loc.longitude,
         locationAddress: loc.address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
         reporterPhone: user?.phone || profile.phoneNumber || undefined,
-        mediaUrls: [url],
+        mediaUrls,
       });
+
       setActiveIncident(created);
       await recordIncidentId(created.id, created);
+      setPendingSosAsset(null);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
       Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
@@ -206,8 +211,8 @@ export const HomeScreen: React.FC = () => {
       setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...');
       const loc = await useLocationStore.getState().refreshLocation(false);
       const created = await incidentService.createIncident({
-        title: 'Báo động SOS Khẩn cấp',
-        description: 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).',
+        title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
+        description: t('sos.default_description_no_media', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).'),
         latitude: loc.latitude,
         longitude: loc.longitude,
         locationAddress: loc.address,
@@ -235,13 +240,12 @@ export const HomeScreen: React.FC = () => {
         { paddingHorizontal: moderateScale(isSmallDevice ? 12 : 16) },
       ]}
     >
-      {/* 1. Header: GPS Address Pill & History Button */}
+      {/* 1. Header: Full-Width Prominent GPS Address Bar */}
       <View style={styles.header}>
-        {/* GPS Pill */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={handleRefreshGps}
-          style={[styles.gpsPill, { paddingVertical: moderateScale(7) }]}
+          style={styles.gpsPill}
           accessible={true}
           accessibilityLabel={`Vị trí hiện tại: ${address}. Chạm để cập nhật GPS`}
           accessibilityRole="button"
@@ -256,90 +260,26 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.gpsDot} />
           </View>
 
-          <View style={styles.addressInfo}>
-            <View style={styles.addressTitleRow}>
-              <MapPin size={12} color="#DC2626" />
-              <Text style={[styles.accuracyTag, { fontSize: fontScale(9) }]}>
-                {t('sos.accuracy_prefix')}
-              </Text>
-            </View>
-            <Text
-              style={[styles.addressText, { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) }]}
-              numberOfLines={1}
-            >
-              {address}
-            </Text>
-          </View>
+          <MapPin size={moderateScale(18)} color="#DC2626" />
+
+          <Text
+            style={[
+              styles.addressText,
+              {
+                fontSize: fontScale(isSmallDevice ? 13 : 14.5),
+                lineHeight: fontScale(isSmallDevice ? 18 : 20),
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {address}
+          </Text>
 
           <RefreshCw
-            size={13}
+            size={moderateScale(16)}
             color="#94A3B8"
             style={isRefreshingGps ? styles.rotating : undefined}
           />
-        </TouchableOpacity>
-
-        {/* Language Switch Quick Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setIsLanguageModalVisible(true)}
-          style={[
-            styles.historyButton,
-            styles.languageButton,
-            {
-              width: moderateScale(isSmallDevice ? 38 : 42),
-              height: moderateScale(isSmallDevice ? 38 : 42),
-              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
-            },
-          ]}
-          accessible={true}
-          accessibilityLabel={t('language.preferred_lang')}
-          accessibilityRole="button"
-        >
-          <Text style={{ fontSize: moderateScale(isSmallDevice ? 16 : 18) }}>
-            {currentLang === 'vi' ? '🇻🇳' : '🇬🇧'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Incident History / Notifications Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate('ReportsTab')}
-          style={[
-            styles.historyButton,
-            {
-              width: moderateScale(isSmallDevice ? 38 : 42),
-              height: moderateScale(isSmallDevice ? 38 : 42),
-              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
-            },
-          ]}
-          accessible={true}
-          accessibilityLabel={t('sos.history_tooltip')}
-          accessibilityRole="button"
-        >
-          <Bell size={headerIconSize} color="#475569" />
-          <View style={styles.badgeWrapper}>
-            <Text style={styles.badgeText}>9+</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Medical ID / Profile Quick Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate('ProfileTab')}
-          style={[
-            styles.historyButton,
-            styles.profileButton,
-            {
-              width: moderateScale(isSmallDevice ? 38 : 42),
-              height: moderateScale(isSmallDevice ? 38 : 42),
-              borderRadius: moderateScale(isSmallDevice ? 19 : 21),
-            },
-          ]}
-          accessible={true}
-          accessibilityLabel={t('sos.medical_id_tooltip')}
-          accessibilityRole="button"
-        >
-          <HeartPulse size={headerIconSize} color="#DC2626" />
         </TouchableOpacity>
       </View>
 
@@ -379,7 +319,7 @@ export const HomeScreen: React.FC = () => {
                 },
               ]}
             >
-              Khi có 1 sự cố hoả hoạn / tai nạn
+              {t('home.incident_prompt_title', 'Khi có sự cố hoả hoạn hoặc tai nạn')}
             </Text>
             <Text
               style={[
@@ -390,7 +330,7 @@ export const HomeScreen: React.FC = () => {
                 },
               ]}
             >
-              Nhấn giữ “SOS” để báo cho lực lượng cứu hộ!
+              {t('home.hold_instruction', 'Nhấn giữ “SOS” để báo cho lực lượng cứu hộ!')}
             </Text>
           </View>
         </View>
@@ -407,6 +347,21 @@ export const HomeScreen: React.FC = () => {
         </View>
       )}
 
+      {/* SOS Confirm Modal with Note & Cropped Image */}
+      <SosConfirmModal
+        visible={isSosConfirmModalVisible}
+        onClose={() => {
+          setIsSosConfirmModalVisible(false);
+          setPendingSosAsset(null);
+        }}
+        photoUri={pendingSosAsset?.uri}
+        address={address}
+        onConfirm={handleConfirmSosDispatch}
+        onRetakePhoto={handleRetakePhotoInConfirm}
+        onPickLibrary={handlePickLibraryInConfirm}
+        onRemovePhoto={handleRemovePhotoInConfirm}
+      />
+
       {/* SOS Success Modal Feedback */}
       <SosSuccessModal
         visible={isSosSuccessModalVisible}
@@ -418,12 +373,6 @@ export const HomeScreen: React.FC = () => {
         address={address}
         incident={activeIncident}
       />
-
-      {/* Language Selector Bottom Sheet Modal */}
-      <LanguageSelectorModal
-        visible={isLanguageModalVisible}
-        onClose={() => setIsLanguageModalVisible(false)}
-      />
     </ScreenContainer>
   );
 };
@@ -434,26 +383,24 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 6,
+    width: '100%',
+    marginBottom: 8,
   },
   gpsPill: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 10,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
     elevation: 2,
   },
   gpsIndicatorWrapper: {
@@ -475,49 +422,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#10B981',
   },
-  addressInfo: {
-    flex: 1,
-  },
-  addressTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  accuracyTag: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
   addressText: {
-    fontSize: 11.5,
-    fontWeight: '600',
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '700',
     color: '#0F172A',
   },
   rotating: {
     transform: [{ rotate: '45deg' }],
-  },
-  historyButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  profileButton: {
-    backgroundColor: 'rgba(220, 38, 38, 0.06)',
-    borderColor: 'rgba(220, 38, 38, 0.2)',
-  },
-  languageButton: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
   },
   scrollContent: {
     flexGrow: 1,

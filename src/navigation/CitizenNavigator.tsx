@@ -4,10 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShieldAlert, Map, FileText, UserCheck } from 'lucide-react-native';
 import { CitizenTabParamList } from './types';
-import { HomeScreen } from '../screens/home/HomeScreen';
-import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
-import { MyReportsScreen } from '../screens/reports/MyReportsScreen';
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { HomeScreen, SafetyMapScreen, MyReportsScreen, ProfileScreen } from '../screens/citizen';
 import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../utils/responsive';
 

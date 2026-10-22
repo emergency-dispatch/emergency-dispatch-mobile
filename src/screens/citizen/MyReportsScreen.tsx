@@ -33,21 +33,17 @@ import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { storage } from '../../services/storage';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
+  const navigation = useNavigation<any>();
   const { user, isAuthenticated } = useAppStore();
   const { profile } = useProfileStore();
 
   const [incidents, setIncidents] = useState<IncidentResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Tracking state for Citizen
-  const [trackingIncident, setTrackingIncident] = useState<IncidentResponseDto | null>(null);
-  const [trackingData, setTrackingData] = useState<CitizenTracking | null>(null);
-  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
-  const [trackingError, setTrackingError] = useState('');
 
   const fetchIncidents = useCallback(async () => {
     try {
@@ -122,20 +118,20 @@ export const MyReportsScreen: React.FC = () => {
 
   const handleCancelReport = (incidentId: string) => {
     Alert.alert(
-      'Hủy Báo Cáo Sự Cố',
-      'Bạn có chắc chắn muốn hủy yêu cầu cứu hộ cho sự cố này không?',
+      t('reports.cancel_title', 'Hủy Báo Cáo Sự Cố'),
+      t('reports.cancel_confirm_message', 'Bạn có chắc chắn muốn hủy yêu cầu cứu hộ cho sự cố này không?'),
       [
-        { text: 'Quay lại', style: 'cancel' },
+        { text: t('common.cancel', 'Quay lại'), style: 'cancel' },
         {
-          text: 'Xác nhận hủy',
+          text: t('reports.cancel_confirm_btn', 'Xác nhận hủy'),
           style: 'destructive',
           onPress: async () => {
             try {
               await incidentService.cancelIncident(incidentId, 'Người dân tự hủy báo cáo');
-              Alert.alert('Thành công', 'Đã hủy báo cáo sự cố thành công.');
+              Alert.alert(t('common.success', 'Thành công'), t('reports.cancel_success', 'Đã hủy báo cáo sự cố thành công.'));
               fetchIncidents();
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể hủy sự cố này.');
+              Alert.alert(t('common.error', 'Lỗi'), err.message || t('reports.cancel_failed', 'Không thể hủy sự cố này.'));
             }
           },
         },
@@ -147,9 +143,9 @@ export const MyReportsScreen: React.FC = () => {
     switch (status) {
       case IncidentStatus.Cancelled:
         return (
-          <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-            <XCircle size={13} color="#DC2626" />
-            <Text style={[styles.statusText, { color: '#DC2626' }]}>Đã hủy</Text>
+          <View style={[styles.statusBadge, { backgroundColor: '#F1F5F9' }]}>
+            <XCircle size={13} color="#64748B" />
+            <Text style={[styles.statusText, { color: '#64748B' }]}>{t('reports.status_cancelled', 'Đã hủy')}</Text>
           </View>
         );
       case IncidentStatus.Completed:
@@ -162,9 +158,9 @@ export const MyReportsScreen: React.FC = () => {
       case IncidentStatus.Dispatched:
       case IncidentStatus.InProgress:
         return (
-          <View style={[styles.statusBadge, styles.statusDispatched]}>
-            <AlertTriangle size={13} color="#F59E0B" />
-            <Text style={[styles.statusText, { color: '#F59E0B' }]}>{t('reports.status_dispatched')}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: 'rgba(220, 38, 38, 0.12)' }]}>
+            <AlertTriangle size={13} color="#DC2626" />
+            <Text style={[styles.statusText, { color: '#DC2626' }]}>{t('reports.status_dispatched', 'Đang xử lý')}</Text>
           </View>
         );
       case IncidentStatus.Verified:
@@ -184,67 +180,71 @@ export const MyReportsScreen: React.FC = () => {
     }
   };
 
-  const getSeverityBadge = (severity: SeverityLevel) => {
-    let color = '#64748B';
-    let bg = 'rgba(100, 116, 139, 0.1)';
-    let label = t('reports.severity_unclassified', { defaultValue: 'Chưa phân loại' });
 
-    switch (severity) {
-      case SeverityLevel.Level3:
-        color = '#DC2626';
-        bg = 'rgba(220, 38, 38, 0.12)';
-        label = t('reports.severity_level3', { defaultValue: 'Cấp 3 (Khẩn cấp cao nhất)' });
-        break;
-      case SeverityLevel.Level2:
-        color = '#EA580C';
-        bg = 'rgba(234, 88, 12, 0.12)';
-        label = t('reports.severity_level2', { defaultValue: 'Cấp 2 (Trung bình)' });
-        break;
-      case SeverityLevel.Level1:
-        color = '#10B981';
-        bg = 'rgba(16, 185, 129, 0.12)';
-        label = t('reports.severity_level1', { defaultValue: 'Cấp 1 (Nhẹ)' });
-        break;
-      case SeverityLevel.Unclassified:
+  const getLocalizedTitle = (title?: string) => {
+    if (!title) return t('reports.default_title', 'Sự Cố Khẩn Cấp');
+    const lower = title.toLowerCase();
+    if (lower.includes('báo động sos') || lower.includes('sos')) {
+      return t('reports.sos_alarm', 'Báo động SOS Khẩn cấp');
+    }
+    if (lower.includes('hỏa hoạn') || lower.includes('cháy') || lower.includes('fire')) {
+      return t('reports.fire_hazard', 'Sự Cố Hỏa Hoạn');
+    }
+    if (lower.includes('tai nạn') || lower.includes('accident')) {
+      return t('reports.accident_hazard', 'Tai Nạn Khẩn Cấp');
+    }
+    if (lower.includes('y tế') || lower.includes('cấp cứu') || lower.includes('medical')) {
+      return t('reports.medical_hazard', 'Cấp Cứu Y Tế');
+    }
+    if (lower.includes('sự cố khẩn cấp') || lower.includes('khẩn cấp')) {
+      return t('reports.emergency_hazard', 'Sự Cố Khẩn Cấp');
+    }
+    return title;
+  };
+
+  const getLocalizedDescription = (desc?: string) => {
+    if (!desc) return '';
+    const lower = desc.toLowerCase();
+    if (lower.includes('không kèm ảnh') || lower.includes('tức thời')) {
+      return t('sos.default_description_no_media', 'Người dân kích hoạt báo động SOS tức thời.');
+    }
+    if (lower.includes('đè nút sos') || lower.includes('kích hoạt báo động khẩn cấp')) {
+      return t('sos.default_description', 'Người dân kích hoạt báo động khẩn cấp.');
+    }
+    return desc;
+  };
+
+  const getLocalizedUnitType = (unitType?: string) => {
+    if (!unitType) return t('reports.default_unit_type', 'Xe Cứu Hộ');
+    const lower = unitType.toLowerCase();
+    if (lower.includes('ambulance') || lower.includes('thương')) return t('reports.unit_ambulance', 'Xe Cứu Thương');
+    if (lower.includes('ladder') || lower.includes('thang')) return t('reports.unit_ladder', 'Xe Thang PCCC');
+    if (lower.includes('fire') || lower.includes('hỏa')) return t('reports.unit_fire', 'Xe Cứu Hỏa');
+    if (lower.includes('police') || lower.includes('sát')) return t('reports.unit_police', 'Xe Cảnh Sát');
+    if (lower.includes('boat') || lower.includes('xuồng') || lower.includes('thuyền')) return t('reports.unit_boat', 'Xuồng Cứu Nạn');
+    if (lower.includes('heavy') || lower.includes('nặng')) return t('reports.unit_heavy', 'Xe Cứu Hộ Hạng Nặng');
+    return unitType;
+  };
+
+  const getLocalizedDispatchStatus = (status?: string) => {
+    switch (status) {
+      case 'EnRoute':
+        return t('reports.dispatch_en_route', 'ĐANG DI CHUYỂN ĐẾN');
+      case 'OnScene':
+        return t('reports.dispatch_on_scene', 'ĐÃ ĐẾN HIỆN TRƯỜNG');
+      case 'Dispatched':
+        return t('reports.dispatch_dispatched', 'ĐÃ ĐIỀU PHỐI');
+      case 'Accepted':
+        return t('reports.dispatch_accepted', 'ĐÃ TIẾP NHẬN');
+      case 'Completed':
+        return t('reports.dispatch_completed', 'ĐÃ HOÀN THÀNH');
       default:
-        color = '#7C3AED';
-        bg = 'rgba(124, 58, 237, 0.12)';
-        label = t('reports.severity_unclassified', { defaultValue: 'Chưa phân loại / Cần xác minh' });
-        break;
-    }
-
-    return (
-      <View style={[styles.severityBadge, { backgroundColor: bg }]}>
-        <Text style={[styles.severityText, { color }]}>{label}</Text>
-      </View>
-    );
-  };
-
-  const handleOpenTracking = async (incident: IncidentResponseDto) => {
-    setTrackingIncident(incident);
-    setTrackingError('');
-    setIsTrackingLoading(true);
-    try {
-      const data = await incidentService.getTracking(incident.id);
-      setTrackingData(data);
-    } catch (err: any) {
-      setTrackingError(err.message || 'Chưa thể tải dữ liệu điều phối xe cứu hộ.');
-    } finally {
-      setIsTrackingLoading(false);
+        return status || '';
     }
   };
 
-  const handleCloseTracking = () => {
-    setTrackingIncident(null);
-    setTrackingData(null);
-    setTrackingError('');
-  };
-
-  const handleCallStation = (phoneNumber?: string) => {
-    if (!phoneNumber) return;
-    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
-      Alert.alert('Lỗi cuộc gọi', 'Không thể khởi động ứng dụng gọi điện thoại.');
-    });
+  const handleOpenTracking = (incident: IncidentResponseDto) => {
+    navigation.navigate('SafetyMapTab', { trackingIncidentId: incident.id });
   };
 
   const formatDate = (iso: string) => {
@@ -298,15 +298,14 @@ export const MyReportsScreen: React.FC = () => {
               <View style={styles.cardHeader}>
                 <Text style={styles.itemCode}>#{item.id.slice(0, 8).toUpperCase()}</Text>
                 <View style={styles.headerBadges}>
-                  {getSeverityBadge(item.severity)}
                   {getStatusBadge(item.status)}
                 </View>
               </View>
 
-              <Text style={styles.itemType}>{item.title}</Text>
+              <Text style={styles.itemType}>{getLocalizedTitle(item.title)}</Text>
               {item.description ? (
                 <Text style={styles.itemDesc} numberOfLines={2}>
-                  {item.description}
+                  {getLocalizedDescription(item.description)}
                 </Text>
               ) : null}
 
@@ -353,7 +352,7 @@ export const MyReportsScreen: React.FC = () => {
                       onPress={() => handleOpenTracking(item)}
                     >
                       <Navigation size={13} color="#FFFFFF" />
-                      <Text style={styles.trackingBtnText}>Theo dõi xe cứu hộ</Text>
+                      <Text style={styles.trackingBtnText}>{t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -364,7 +363,7 @@ export const MyReportsScreen: React.FC = () => {
                       onPress={() => handleCancelReport(item.id)}
                     >
                       <XCircle size={13} color="#DC2626" />
-                      <Text style={styles.cancelIncidentBtnText}>Hủy báo cáo này</Text>
+                      <Text style={styles.cancelIncidentBtnText}>{t('reports.cancel_report_btn', 'Hủy báo cáo này')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -374,114 +373,6 @@ export const MyReportsScreen: React.FC = () => {
         />
       )}
 
-      {/* Citizen Live Vehicle Tracking Modal Overlay */}
-      <Modal
-        visible={!!trackingIncident}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={handleCloseTracking}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderTitleGroup}>
-                <View style={styles.truckIconBadge}>
-                  <Truck size={20} color="#DC2626" />
-                </View>
-                <View>
-                  <Text style={styles.modalTitle}>Theo dõi xe cứu hộ</Text>
-                  <Text style={styles.modalSubtitle}>
-                    #{trackingIncident?.id.slice(0, 8).toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={handleCloseTracking} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            {isTrackingLoading ? (
-              <View style={styles.modalLoadingWrap}>
-                <ActivityIndicator size="large" color="#DC2626" />
-                <Text style={styles.modalLoadingText}>Đang lấy vị trí GPS xe cứu hộ realtime...</Text>
-              </View>
-            ) : trackingError ? (
-              <View style={styles.modalErrorWrap}>
-                <AlertTriangle size={24} color="#DC2626" />
-                <Text style={styles.modalErrorTitle}>Chưa thể kết nối xe</Text>
-                <Text style={styles.modalErrorText}>{trackingError}</Text>
-              </View>
-            ) : trackingData ? (
-              <View style={styles.trackingContent}>
-                {/* Status Hero Box */}
-                <View style={styles.heroStatusBox}>
-                  <View style={styles.heroStatusRow}>
-                    <Text style={styles.heroStatusLabel}>TRẠNG THÁI XE:</Text>
-                    <View style={styles.heroStatusBadge}>
-                      <Text style={styles.heroStatusBadgeText}>
-                        {trackingData.dispatchStatus === 'EnRoute'
-                          ? 'ĐANG DI CHUYỂN ĐẾN'
-                          : trackingData.dispatchStatus === 'OnScene'
-                          ? 'ĐÃ ĐẾN HIỆN TRƯỜNG'
-                          : trackingData.dispatchStatus}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.heroStatsGrid}>
-                    <View style={styles.heroStatItem}>
-                      <Text style={styles.heroStatLabel}>DỰ KIẾN ĐẾN (ETA)</Text>
-                      <Text style={styles.heroStatValue}>
-                        ~{trackingData.estimatedArrivalMinutes || 3} phút
-                      </Text>
-                    </View>
-                    <View style={styles.heroStatItem}>
-                      <Text style={styles.heroStatLabel}>KHOẢNG CÁCH</Text>
-                      <Text style={styles.heroStatValue}>
-                        {trackingData.distanceKm ? trackingData.distanceKm.toFixed(1) : '1.2'} km
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Vehicle Details */}
-                <View style={styles.vehicleInfoBox}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Biển số xe:</Text>
-                    <Text style={styles.infoValue}>{trackingData.plateNumber || 'Chưa định danh'}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Chủng loại:</Text>
-                    <Text style={styles.infoValue}>{trackingData.unitTypeName || 'Xe Cứu Hộ'}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Trạm điều phối:</Text>
-                    <Text style={styles.infoValue}>{trackingData.stationName || 'Trạm CAD'}</Text>
-                  </View>
-                </View>
-
-                {/* Call hotline */}
-                {trackingData.stationPhoneNumber && (
-                  <TouchableOpacity
-                    style={styles.callStationBtn}
-                    activeOpacity={0.8}
-                    onPress={() => handleCallStation(trackingData.stationPhoneNumber)}
-                  >
-                    <PhoneCall size={16} color="#FFFFFF" />
-                    <Text style={styles.callStationBtnText}>
-                      Gọi trạm trực ({trackingData.stationPhoneNumber})
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : null}
-
-            <TouchableOpacity style={styles.closeDoneBtn} onPress={handleCloseTracking}>
-              <Text style={styles.closeDoneBtnText}>Đóng cửa sổ</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScreenContainer>
   );
 };

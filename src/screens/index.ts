@@ -1,11 +1,3 @@
-export * from './home/HomeScreen';
-export * from './map/SafetyMapScreen';
-export * from './reports/MyReportsScreen';
+export * from './citizen';
+export * from './staff';
 export * from './auth/LoginScreen';
-export * from './profile/ProfileScreen';
-export * from './staff/StaffDashboardScreen';
-export * from './staff/IncidentOverviewScreen';
-export * from './staff/StaffProfileScreen';
-
-
-

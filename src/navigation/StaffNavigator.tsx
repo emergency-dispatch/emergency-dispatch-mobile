@@ -6,7 +6,7 @@ import { Truck, Navigation, Flame, ShieldCheck, CalendarDays } from 'lucide-reac
 import { StaffTabParamList } from './types';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
 import { StaffScheduleScreen } from '../screens/staff/StaffScheduleScreen';
-import { SafetyMapScreen } from '../screens/map/SafetyMapScreen';
+import { SafetyMapScreen } from '../screens/citizen/SafetyMapScreen';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
 import { StaffProfileScreen } from '../screens/staff/StaffProfileScreen';
 import { useTranslation } from 'react-i18next';

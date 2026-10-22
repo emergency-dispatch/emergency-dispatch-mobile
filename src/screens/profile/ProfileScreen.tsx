@@ -53,7 +53,7 @@ const AVATAR_PRESETS = [
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
+import { ConfirmationModal, LanguageSelectorModal, Avatar } from '../../components/common';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 
@@ -280,16 +280,11 @@ export const ProfileScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel={t('profile.edit_avatar')}
             >
-              {profile.avatarUrl ? (
-                <Image
-                  source={{ uri: profile.avatarUrl }}
-                  style={styles.avatarImage}
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <User size={36} color="#94A3B8" />
-                </View>
-              )}
+              <Avatar
+                url={profile.avatarUrl}
+                name={profile.fullName}
+                size={moderateScale(76)}
+              />
               {profile.isVerified ? (
                 <View style={styles.verifiedBadge}>
                   <ShieldCheck size={10} color="#FFFFFF" />

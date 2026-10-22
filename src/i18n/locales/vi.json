@@ -165,7 +165,7 @@
     "subtitle": "Danh sách các sự cố khẩn cấp tiếp nhận từ hiện trường",
     "loading": "Đang tải danh sách sự cố...",
     "empty_title": "Chưa có báo cáo sự cố nào",
-    "empty_sub": "Khi bạn gửi tín hiệu SOS hoặc báo cáo hiện trường, các sự cố sẽ hiển thị tại đây kèm kết quả AI phân loại.",
+    "empty_sub": "Khi bạn gửi tín hiệu SOS hoặc báo cáo hiện trường, các sự cố sẽ hiển thị tại đây.",
     "status_completed": "Đã hoàn thành",
     "status_dispatched": "Đội cứu hộ đang đến",
     "status_verified": "Đã xác minh",

@@ -80,6 +80,33 @@ export interface PaginatedResultDto<T> {
   hasNextPage: boolean;
 }
 
+export interface MyReportUnitDto {
+  plateNumber: string;
+  unitType: string;
+  stationName?: string;
+  status: string;
+}
+
+export interface MyReportDto {
+  id: string;
+  title: string;
+  description: string;
+  locationAddress: string;
+  latitude?: number;
+  longitude?: number;
+  status: IncidentStatus;
+  severity: SeverityLevel;
+  resolutionSummary?: string | null;
+  cancellationReason?: string | null;
+  mediaUrls: string[];
+  reportedAt: string;
+  verifiedAt?: string | null;
+  dispatchedAt?: string | null;
+  onSceneAt?: string | null;
+  completedAt?: string | null;
+  dispatchedUnits?: MyReportUnitDto[];
+}
+
 export interface RoutePoint {
   latitude: number;
   longitude: number;
@@ -110,4 +137,32 @@ export interface CitizenTracking {
   arrivedAt?: string;
   completedAt?: string;
   notes?: string;
+}
+
+export interface RescueUnitDto {
+  id: string;
+  plateNumber: string;
+  unitType: string;
+  unitTypeName?: string;
+  status: 'Available' | 'Dispatched' | 'OnScene' | 'Returning' | 'CoolDown' | 'Maintenance' | 'OutOfService' | string;
+  statusName?: string;
+  currentLat: number;
+  currentLng: number;
+  lastLocationUpdateAt?: string;
+  stationId: string;
+  stationName: string;
+}
+
+export interface StationDto {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  phoneNumber?: string;
+  isActive: boolean;
+  coverageRadiusKm?: number;
+  activeUnitsCount?: number;
+  totalUnitsCount?: number;
+  staffCount?: number;
 }

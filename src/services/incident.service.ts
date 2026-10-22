@@ -5,7 +5,10 @@ import {
   CitizenTracking,
   CreateIncidentDto,
   IncidentResponseDto,
+  MyReportDto,
   PaginatedResultDto,
+  RescueUnitDto,
+  StationDto,
 } from '../types/incident';
 
 export const incidentService = {
@@ -65,6 +68,26 @@ export const incidentService = {
   },
 
   /**
+   * GET /api/incidents/my-reports — Lịch sử báo cáo sự cố dành riêng cho Citizen (FR-CIT-05)
+   */
+  async getMyReports(params?: {
+    status?: number;
+    pageIndex?: number;
+    pageSize?: number;
+  }): Promise<PaginatedResultDto<MyReportDto>> {
+    const response = await apiService.get<BackendApiResponse<PaginatedResultDto<MyReportDto>>>(
+      Endpoints.INCIDENTS.MY_REPORTS,
+      { params }
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể lấy lịch sử báo cáo.');
+    }
+
+    return response.data;
+  },
+
+  /**
    * PUT /api/incidents/{id}/cancel — Hủy sự cố (bấm nhầm / báo sai)
    * Phù hợp với BE hiện hành: [HttpPut("{id}/cancel")] nhận [FromBody] string reason
    */
@@ -96,5 +119,33 @@ export const incidentService = {
     }
 
     return response.data;
+  },
+
+  /**
+   * GET /api/rescue-units — Lấy danh sách toàn bộ xe & phương tiện cứu hộ
+   */
+  async getRescueUnits(): Promise<RescueUnitDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<RescueUnitDto[]>>(
+        Endpoints.RESCUE_UNITS.BASE
+      );
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * GET /api/stations — Lấy danh sách toàn bộ trạm cứu hộ
+   */
+  async getStations(): Promise<StationDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<StationDto[]>>(
+        Endpoints.STATIONS.BASE
+      );
+      return response.data || [];
+    } catch {
+      return [];
+    }
   },
 };

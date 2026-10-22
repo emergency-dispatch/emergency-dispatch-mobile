@@ -36,7 +36,7 @@ import { useTranslation } from 'react-i18next';
 
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAppStore();
+  const { user, isAuthenticated } = useAppStore();
   const { profile } = useProfileStore();
 
   const [incidents, setIncidents] = useState<IncidentResponseDto[]>([]);
@@ -51,40 +51,65 @@ export const MyReportsScreen: React.FC = () => {
 
   const fetchIncidents = useCallback(async () => {
     try {
-      const [result, localIds] = await Promise.all([
-        incidentService.getIncidents({ pageSize: 50 }),
-        storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS'),
-      ]);
+      let items: IncidentResponseDto[] = [];
+      const localCachedIncidents = (await storage.getItem<IncidentResponseDto[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
 
-      const myIncidentIds = new Set(localIds || []);
-      const userPhoneClean = (user?.phone || profile?.phoneNumber || '').replace(/\s+/g, '');
-      const userIdClean = user?.id?.toLowerCase();
+      // 1. Nếu đã đăng nhập: Gọi API chuyên biệt theo quyền hạn
+      if (isAuthenticated) {
+        if (user?.role === 'staff') {
+          // Staff / Operator
+          try {
+            const result = await incidentService.getIncidents({ pageSize: 50 });
+            items = result.items || [];
+          } catch {
+            // fallback
+          }
+        } else {
+          // Citizen: Gọi endpoint GET /api/incidents/my-reports dành riêng cho công dân (tránh 403 Forbidden)
+          try {
+            const result = await incidentService.getMyReports({ pageSize: 50 });
+            items = (result.items || []).map((item) => ({
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              locationAddress: item.locationAddress,
+              latitude: item.latitude || 0,
+              longitude: item.longitude || 0,
+              status: item.status,
+              severity: item.severity,
+              createdAt: item.reportedAt,
+              updatedAt: item.reportedAt,
+              verifiedAt: item.verifiedAt,
+              mediaItems: (item.mediaUrls || []).map((url, idx) => ({
+                id: `${item.id}-media-${idx}`,
+                mediaUrl: url,
+                mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
+              })),
+            } as IncidentResponseDto));
+          } catch (err) {
+            console.warn('Lỗi tải my-reports:', err);
+          }
+        }
+      }
 
-      const myItems = (result.items || []).filter((item) => {
-        // Match by reported userId from JWT
-        if (userIdClean && item.reportedByUserId && item.reportedByUserId.toLowerCase() === userIdClean) {
-          return true;
+      // 2. Bổ sung các sự cố lưu tạm từ thiết bị này (kể cả khi báo SOS ẩn danh / chưa đăng nhập)
+      const existingIdSet = new Set(items.map((i) => i.id));
+      for (const cached of localCachedIncidents) {
+        if (!existingIdSet.has(cached.id)) {
+          items.push(cached);
+          existingIdSet.add(cached.id);
         }
-        // Match by reporter phone
-        if (userPhoneClean && item.reporterPhone) {
-          const itemPhoneClean = item.reporterPhone.replace(/\s+/g, '');
-          if (itemPhoneClean === userPhoneClean) return true;
-        }
-        // Match by locally saved incident IDs
-        if (myIncidentIds.has(item.id)) {
-          return true;
-        }
-        return false;
-      });
+      }
 
-      setIncidents(myItems);
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setIncidents(items);
     } catch (err) {
       console.warn('Không thể tải lịch sử sự cố:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id, user?.phone, profile?.phoneNumber]);
+  }, [isAuthenticated, user?.role]);
 
   useEffect(() => {
     fetchIncidents();

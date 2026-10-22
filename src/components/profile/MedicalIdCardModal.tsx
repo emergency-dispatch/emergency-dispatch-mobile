@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { UserEmergencyProfile } from '../../types/profile';
 import { BloodTypeBadge } from './BloodTypeBadge';
 import { EmergencyBadge } from './EmergencyBadge';
+import { Avatar } from '../common';
 
 interface MedicalIdCardModalProps {
   visible: boolean;
@@ -83,16 +84,11 @@ export const MedicalIdCardModal: React.FC<MedicalIdCardModalProps> = ({
             {/* Identity & Blood Type Overview */}
             <View style={styles.identityCard}>
               <View style={styles.avatarSection}>
-                {profile.avatarUrl ? (
-                  <Image
-                    source={{ uri: profile.avatarUrl }}
-                    style={styles.avatar}
-                  />
-                ) : (
-                  <View style={styles.avatarFallback}>
-                    <User size={36} color="#94A3B8" />
-                  </View>
-                )}
+                <Avatar
+                  url={profile.avatarUrl}
+                  name={profile.fullName}
+                  size={76}
+                />
                 <View style={styles.verifiedDot}>
                   <ShieldCheck size={14} color="#FFFFFF" />
                 </View>

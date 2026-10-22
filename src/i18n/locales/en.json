@@ -165,7 +165,7 @@
     "subtitle": "List of emergency distress reports received from the field",
     "loading": "Loading incidents...",
     "empty_title": "No incident reports yet",
-    "empty_sub": "When you send SOS signals or submit field reports, incidents will appear here with AI triage results.",
+    "empty_sub": "When you send SOS signals or submit field reports, incidents will appear here.",
     "status_completed": "Completed",
     "status_dispatched": "Rescue team dispatched",
     "status_verified": "Verified",

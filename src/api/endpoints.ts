@@ -60,8 +60,9 @@ export const Endpoints = {
   MEDIA: {
     UPLOAD: '/media/upload',
   },
-  DISPATCH: {
-    TRACKING: (incidentId: string) => `/dispatch/tracking/incident/${incidentId}`,
+  STATIONS: {
+    BASE: '/stations',
+    BY_ID: (id: string) => `/stations/${id}`,
   },
   AI: {
     ANALYZE: '/ai/analyze',

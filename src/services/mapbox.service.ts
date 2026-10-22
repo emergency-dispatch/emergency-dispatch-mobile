@@ -25,6 +25,8 @@ export interface MapMarkerItem {
   status?: string;
   plateNumber?: string;
   phoneNumber?: string;
+  etaMinutes?: number;
+  distanceKm?: number;
 }
 
 export interface RoutePoint {

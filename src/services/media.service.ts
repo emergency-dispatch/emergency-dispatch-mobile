@@ -32,8 +32,8 @@ export const mediaService = {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+        aspect: [4, 3],
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -64,8 +64,8 @@ export const mediaService = {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+        aspect: [4, 3],
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {

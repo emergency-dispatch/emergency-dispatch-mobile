@@ -10,6 +10,7 @@ interface LocationState {
   isFetchingLocation: boolean;
   hasLoadedInitialLocation: boolean;
   refreshLocation: (force?: boolean) => Promise<UserCurrentLocation>;
+  setLocation: (latitude: number, longitude: number, address: string) => void;
 }
 
 let inFlightLocationPromise: Promise<UserCurrentLocation> | null = null;
@@ -22,6 +23,14 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   address: 'Đang xác định vị trí...',
   isFetchingLocation: false,
   hasLoadedInitialLocation: false,
+
+  setLocation: (latitude: number, longitude: number, address: string) => {
+    set({
+      coords: { latitude, longitude },
+      address,
+      hasLoadedInitialLocation: true,
+    });
+  },
 
   refreshLocation: async (force = false) => {
     const state = get();

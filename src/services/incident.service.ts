@@ -140,10 +140,12 @@ export const incidentService = {
    */
   async getStations(): Promise<StationDto[]> {
     try {
-      const response = await apiService.get<BackendApiResponse<StationDto[]>>(
+      const response = await apiService.get<any>(
         Endpoints.STATIONS.BASE
       );
-      return response.data || [];
+      if (Array.isArray(response)) return response;
+      if (response && Array.isArray(response.data)) return response.data;
+      return [];
     } catch {
       return [];
     }

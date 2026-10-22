@@ -18,8 +18,13 @@ export interface MapMarkerItem {
   description: string;
   latitude: number;
   longitude: number;
-  type: 'hospital' | 'incident' | 'shelter' | 'fire_station' | 'ambulance';
-  severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+  type: 'hospital' | 'incident' | 'shelter' | 'fire_station' | 'ambulance' | 'rescue_unit' | 'station';
+  severity?: 'Low' | 'Medium' | 'High' | 'Critical' | 0 | 1 | 2 | 3 | 'Unclassified' | 'Level1' | 'Level2' | 'Level3' | string;
+  category?: 'fire' | 'accident' | 'medical' | 'hazard' | string;
+  unitType?: string;
+  status?: string;
+  plateNumber?: string;
+  phoneNumber?: string;
 }
 
 export interface RoutePoint {

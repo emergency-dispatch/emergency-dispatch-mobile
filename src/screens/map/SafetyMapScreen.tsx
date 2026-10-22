@@ -12,20 +12,17 @@ import { useTranslation } from 'react-i18next';
 import {
   MapPin,
   Navigation,
-  Shield,
-  Flame,
-  Hospital,
-  AlertTriangle,
   RefreshCw,
-  Layers,
-  ChevronRight,
   Crosshair,
+  Plus,
+  Minus,
 } from 'lucide-react-native';
 import { MapboxView, MapboxViewRef } from '../../components/map/MapboxView';
 import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
 import { incidentService } from '../../services/incident.service';
 import { locationService } from '../../services/location.service';
 import { useLocationStore } from '../../store/useLocationStore';
+import { useAppStore } from '../../store/useAppStore';
 
 const DEFAULT_POIS: MapMarkerItem[] = [
   {
@@ -72,34 +69,98 @@ export const SafetyMapScreen: React.FC = () => {
     refreshLocation,
   } = useLocationStore();
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'hospital' | 'incident' | 'shelter'>('all');
+  const { isAuthenticated, user } = useAppStore();
   const [markers, setMarkers] = useState<MapMarkerItem[]>(DEFAULT_POIS);
   const [selectedMarker, setSelectedMarker] = useState<MapMarkerItem | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Load real user GPS (cached from Home or freshly fetched) & incidents from backend
+  // Load real user GPS & real incidents, rescue units, stations from backend
   const loadMapData = async () => {
     setIsRefreshing(true);
     try {
       // 1. Shared GPS location
       await refreshLocation();
 
-      // 2. Load incidents from backend
-      const result = await incidentService.getIncidents();
-      const incidentList = result?.items || [];
+      // 2. Load incidents according to role/auth to avoid 401/403
+      let incidentList: Array<{
+        id: string;
+        title?: string;
+        description?: string;
+        locationAddress?: string;
+        latitude?: number;
+        longitude?: number;
+        severity?: any;
+      }> = [];
+
+      if (isAuthenticated) {
+        if (user?.role === 'staff') {
+          const res = await incidentService.getIncidents({ pageSize: 50 }).catch(() => null);
+          if (res?.items) incidentList = res.items;
+        } else {
+          const res = await incidentService.getMyReports({ pageSize: 20 }).catch(() => null);
+          if (res?.items) incidentList = res.items;
+        }
+      }
+
+      // 3. Load public rescue units and stations
+      const [rescueUnitsRes, stationsRes] = await Promise.allSettled([
+        incidentService.getRescueUnits(),
+        incidentService.getStations(),
+      ]);
+
       const incidentMarkers: MapMarkerItem[] = incidentList
         .filter((inc) => inc.latitude && inc.longitude)
-        .map((inc) => ({
-          id: inc.id,
-          title: inc.title || 'Sự Cố Khẩn Cấp',
-          description: `${inc.locationAddress || 'Hiện trường'} • Mức độ: ${inc.severity}`,
-          latitude: inc.latitude,
-          longitude: inc.longitude,
-          type: 'incident',
-          severity: inc.severity as any,
+        .map((inc) => {
+          const isAccident =
+            (inc.title && inc.title.toLowerCase().includes('tai nạn')) ||
+            (inc.description && inc.description.toLowerCase().includes('tai nạn'));
+          return {
+            id: inc.id,
+            title: inc.title || 'Sự Cố Khẩn Cấp',
+            description: `${inc.locationAddress || 'Hiện trường'} • Mức độ: ${inc.severity}`,
+            latitude: inc.latitude!,
+            longitude: inc.longitude!,
+            type: 'incident',
+            category: isAccident ? 'accident' : 'fire',
+            severity: inc.severity,
+          };
+        });
+
+      const unitList = rescueUnitsRes.status === 'fulfilled' ? rescueUnitsRes.value || [] : [];
+      const unitMarkers: MapMarkerItem[] = unitList
+        .filter((u) => u.currentLat && u.currentLng)
+        .map((u) => ({
+          id: u.id,
+          title: `${u.plateNumber || 'Xe cứu hộ'} (${u.unitTypeName || u.unitType})`,
+          description: `Thuộc: ${u.stationName || 'Trạm'} • Trạng thái: ${
+            u.status === 'Available'
+              ? 'Sẵn sàng trực chiến'
+              : u.status === 'Dispatched'
+              ? 'Đang điều phối'
+              : 'Tại hiện trường'
+          }`,
+          latitude: u.currentLat,
+          longitude: u.currentLng,
+          type: 'rescue_unit',
+          unitType: u.unitType,
+          status: u.status,
+          plateNumber: u.plateNumber,
         }));
 
-      setMarkers([...DEFAULT_POIS, ...incidentMarkers]);
+      const stationList = stationsRes.status === 'fulfilled' ? stationsRes.value || [] : [];
+      const stationMarkers: MapMarkerItem[] = stationList
+        .filter((s) => s.latitude && s.longitude)
+        .map((s) => ({
+          id: s.id,
+          title: s.name,
+          description: `${s.address} • ${s.activeUnitsCount || 0}/${s.totalUnitsCount || 0} xe trực chiến`,
+          latitude: s.latitude,
+          longitude: s.longitude,
+          type: 'station',
+          phoneNumber: s.phoneNumber,
+        }));
+
+      setMarkers([...DEFAULT_POIS, ...stationMarkers, ...unitMarkers, ...incidentMarkers]);
     } catch {
       // Keep defaults
     } finally {
@@ -110,14 +171,6 @@ export const SafetyMapScreen: React.FC = () => {
   useEffect(() => {
     loadMapData();
   }, []);
-
-  const filteredMarkers = markers.filter((m) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'incident') return m.type === 'incident';
-    if (activeFilter === 'hospital') return m.type === 'hospital' || m.type === 'fire_station';
-    if (activeFilter === 'shelter') return m.type === 'shelter';
-    return true;
-  });
 
   const handleMarkerSelect = (marker: MapMarkerItem) => {
     setSelectedMarker(marker);
@@ -164,78 +217,61 @@ export const SafetyMapScreen: React.FC = () => {
             {currentAddress}
           </Text>
         </View>
-
-        {/* Filter Chips Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'all' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('all')}
-          >
-            <Layers size={13} color={activeFilter === 'all' ? '#FFFFFF' : '#64748B'} />
-            <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
-              {t('map.filter_all')} ({markers.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'hospital' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('hospital')}
-          >
-            <Hospital size={13} color={activeFilter === 'hospital' ? '#FFFFFF' : '#10B981'} />
-            <Text style={[styles.filterChipText, activeFilter === 'hospital' && styles.filterChipTextActive]}>
-              {t('map.filter_hospital')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'incident' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('incident')}
-          >
-            <Flame size={13} color={activeFilter === 'incident' ? '#FFFFFF' : '#DC2626'} />
-            <Text style={[styles.filterChipText, activeFilter === 'incident' && styles.filterChipTextActive]}>
-              {t('map.filter_incident')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'shelter' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('shelter')}
-          >
-            <Shield size={13} color={activeFilter === 'shelter' ? '#FFFFFF' : '#2563EB'} />
-            <Text style={[styles.filterChipText, activeFilter === 'shelter' && styles.filterChipTextActive]}>
-              {t('map.filter_shelter')}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
       </View>
 
-      {/* 2. Interactive Mapbox View */}
+      {/* 2. Interactive Mapbox View with In-Map Floating Controls */}
       <View style={styles.mapContainer}>
         <MapboxView
           ref={mapRef}
           userLatitude={userCoords.latitude}
           userLongitude={userCoords.longitude}
-          markers={filteredMarkers}
+          markers={markers}
           onMarkerPress={handleMarkerSelect}
           style={styles.mapboxView}
         />
 
-        {/* Floating Recenter Button */}
-        <TouchableOpacity
-          style={styles.floatingRecenter}
-          onPress={handleRecenter}
-          activeOpacity={0.8}
-        >
-          <Crosshair size={20} color="#DC2626" />
-        </TouchableOpacity>
+        {/* Floating Zoom & Recenter Controls Stack */}
+        <View style={styles.mapControlsWrapper}>
+          {/* Zoom In & Out Stack */}
+          <View style={styles.zoomControlCard}>
+            <TouchableOpacity
+              style={styles.zoomBtn}
+              onPress={() => mapRef.current?.zoomIn()}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel="Phóng to bản đồ"
+            >
+              <Plus size={18} color="#0F172A" strokeWidth={2.4} />
+            </TouchableOpacity>
+
+            <View style={styles.zoomDivider} />
+
+            <TouchableOpacity
+              style={styles.zoomBtn}
+              onPress={() => mapRef.current?.zoomOut()}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel="Thu nhỏ bản đồ"
+            >
+              <Minus size={18} color="#0F172A" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Small Floating Recenter Icon */}
+          <TouchableOpacity
+            style={styles.floatingRecenterBtn}
+            onPress={handleRecenter}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel="Về vị trí của tôi"
+          >
+            <Crosshair size={20} color="#DC2626" strokeWidth={2.4} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* 3. Selected Point of Interest Card or Bottom Legend */}
-      {selectedMarker ? (
+      {/* 3. Selected Point of Interest Card */}
+      {selectedMarker && (
         <View style={styles.detailCard}>
           <View style={styles.detailHeader}>
             <View style={styles.detailBadgeRow}>
@@ -285,15 +321,6 @@ export const SafetyMapScreen: React.FC = () => {
             <Text style={styles.actionBtnText}>{t('map.navigate_btn')}</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.recenterButton}
-          onPress={handleRecenter}
-        >
-          <Navigation size={18} color="#FFFFFF" />
-          <Text style={styles.recenterText}>{t('map.recenter').toUpperCase()}</Text>
-        </TouchableOpacity>
       )}
     </ScreenContainer>
   );
@@ -354,34 +381,6 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     flex: 1,
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 2,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  filterChipActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
-  },
-  filterChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
   mapContainer: {
     flex: 1,
     borderRadius: 20,
@@ -398,23 +397,52 @@ const styles = StyleSheet.create({
   mapboxView: {
     flex: 1,
   },
-  floatingRecenter: {
+  mapControlsWrapper: {
     position: 'absolute',
     right: 14,
-    bottom: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    bottom: 16,
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  zoomControlCard: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  zoomBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  zoomDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    width: '100%',
+  },
+  floatingRecenterBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 5,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   detailCard: {
     backgroundColor: '#FFFFFF',
@@ -492,27 +520,6 @@ const styles = StyleSheet.create({
   actionBtnText: {
     color: '#FFFFFF',
     fontSize: 11.5,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  recenterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#DC2626',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 10,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  recenterText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
     fontWeight: '800',
     letterSpacing: 0.5,
   },

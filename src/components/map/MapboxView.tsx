@@ -7,6 +7,8 @@ export interface MapboxViewRef {
   flyTo: (latitude: number, longitude: number, zoom?: number) => void;
   recenter: () => void;
   fitBounds: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 }
 
 export interface RouteCoordinate {
@@ -106,6 +108,24 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         `;
         webViewRef.current?.injectJavaScript(js);
       },
+      zoomIn: () => {
+        const js = `
+          if (window.map) {
+            window.map.zoomIn();
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
+      zoomOut: () => {
+        const js = `
+          if (window.map) {
+            window.map.zoomOut();
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
       fitBounds: () => {
         const js = `
           if (window.fitAllBounds) {
@@ -185,7 +205,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       100% { transform: scale(1.6); opacity: 0; }
     }
 
-    /* Custom emergency marker pills */
+    /* Custom emergency marker pills & standard symbols */
     .emergency-marker {
       display: flex;
       align-items: center;
@@ -201,33 +221,121 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       cursor: pointer;
     }
     .marker-hospital { background: #10B981; }
-    .marker-incident-critical {
-      background: #DC2626;
-      animation: alertPulse 1.2s infinite alternate;
-    }
-    .marker-incident-high { background: #EA580C; }
     .marker-shelter { background: #2563EB; }
     .marker-fire { background: #D97706; }
-    .marker-ambulance {
-      background: #0284C7;
-      animation: ambPulse 1.2s infinite alternate;
+    .marker-ambulance { background: #0284C7; }
+
+    /* Standard Station Pin */
+    .station-marker-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.4));
     }
+    .station-marker-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: #1E293B;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #FFFFFF;
+    }
+    .station-marker-arrow {
+      width: 0;
+      height: 0;
+      margin-top: -1px;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid #1E293B;
+    }
+
+    /* Standard Rescue Vehicle Marker */
+    .vehicle-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 17px;
+      border: 2.5px solid #FFFFFF;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+      font-size: 16px;
+      color: #FFFFFF;
+      cursor: pointer;
+      position: relative;
+    }
+    .vehicle-status-available { background: #10B981; }
+    .vehicle-status-dispatched {
+      background: #0284C7;
+      animation: vehiclePulse 1.2s infinite alternate;
+    }
+    .vehicle-status-onscene {
+      background: #DC2626;
+      animation: vehiclePulse 1.2s infinite alternate;
+    }
+    .vehicle-status-other { background: #64748B; }
+
+    @keyframes vehiclePulse {
+      from { box-shadow: 0 0 6px rgba(2, 132, 199, 0.5); }
+      to { box-shadow: 0 0 18px rgba(2, 132, 199, 0.95); }
+    }
+
+    /* Standard Incident Marker with Severity Badge */
+    .incident-marker-wrap {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
+      border: 2.5px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      animation: alertPulse 1.2s infinite alternate;
+      box-shadow: 0 3px 12px rgba(220, 38, 38, 0.6);
+    }
+    .incident-cat-fire { background: #DC2626; }
+    .incident-cat-accident { background: #EA580C; }
+    .incident-cat-medical { background: #DC2626; }
+    .incident-cat-other { background: #7C3AED; }
+
+    .incident-sev-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 17px;
+      height: 17px;
+      border-radius: 9px;
+      border: 2px solid #FFFFFF;
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .sev-bg-3 { background: #DC2626; }
+    .sev-bg-2 { background: #EA580C; }
+    .sev-bg-1 { background: #10B981; }
+    .sev-bg-0 { background: #7C3AED; }
 
     @keyframes alertPulse {
       from { box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); }
       to { box-shadow: 0 0 20px rgba(220, 38, 38, 0.95); }
     }
 
-    @keyframes ambPulse {
-      from { box-shadow: 0 0 8px rgba(2, 132, 199, 0.5); }
-      to { box-shadow: 0 0 20px rgba(2, 132, 199, 0.95); }
-    }
-
     /* Custom popup styling */
     .leaflet-popup-content-wrapper {
       padding: 0;
       border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
       overflow: hidden;
     }
     .leaflet-popup-content {
@@ -245,8 +353,19 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     .badge-green { background: #D1FAE5; color: #059669; }
     .badge-red { background: #FEE2E2; color: #DC2626; }
     .badge-blue { background: #DBEAFE; color: #2563EB; }
+    .badge-amber { background: #FEF3C7; color: #D97706; }
+    .badge-purple { background: #F3E8FF; color: #7C3AED; }
+    .badge-navy { background: #E2E8F0; color: #0F172A; }
     .popup-title { font-size: 13.5px; font-weight: 800; color: #0F172A; margin-bottom: 3px; }
     .popup-desc { font-size: 11.5px; color: #64748B; }
+    .popup-phone-link {
+      display: inline-block;
+      margin-top: 4px;
+      color: #0284C7;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 11.5px;
+    }
   </style>
 </head>
 <body>
@@ -333,49 +452,109 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     };
 
-    // Update all POI & Incident markers dynamically without reloading
+    // Update all POI & Incident & Fleet markers dynamically without reloading
     window.setMarkers = function(markersData) {
       window.markersLayer.clearLayers();
       if (!markersData || !Array.isArray(markersData)) return;
 
       markersData.forEach(function(m) {
-        var iconClass = 'marker-shelter';
-        var iconEmoji = '🛡️';
-        var badgeText = 'ĐIỂM TRÚ ẨN';
+        var customHtml = '';
+        var iconSize = [36, 36];
+        var iconAnchor = [18, 18];
+        var badgeText = 'ĐIỂM AN TOÀN';
         var badgeClass = 'badge-blue';
 
-        if (m.type === 'hospital') {
-          iconClass = 'marker-hospital';
-          iconEmoji = '🏥';
+        if (m.type === 'station') {
+          // Standard Station Building Pin
+          customHtml = '<div class="station-marker-wrap"><div class="station-marker-box">🏢</div><div class="station-marker-arrow"></div></div>';
+          iconSize = [32, 38];
+          iconAnchor = [16, 38];
+          badgeText = 'TRẠM CỨU HỘ TRỰC CHIẾN';
+          badgeClass = 'badge-navy';
+        } else if (m.type === 'rescue_unit') {
+          // Standard Vehicle with Status color
+          var status = (m.status || '').toLowerCase();
+          var statusClass = 'vehicle-status-available';
+          var statusLabel = 'SẴN SÀNG';
+          var vehBadgeClass = 'badge-green';
+
+          if (status === 'dispatched' || status === 'enroute' || status === 'en_route') {
+            statusClass = 'vehicle-status-dispatched';
+            statusLabel = 'ĐANG ĐIỀU PHỐI';
+            vehBadgeClass = 'badge-blue';
+          } else if (status === 'onscene' || status === 'on_scene') {
+            statusClass = 'vehicle-status-onscene';
+            statusLabel = 'TẠI HIỆN TRƯỜNG';
+            vehBadgeClass = 'badge-red';
+          }
+
+          var uType = (m.unitType || '').toLowerCase();
+          var vehIcon = '🚨';
+          if (uType.indexOf('ambulance') !== -1) vehIcon = '🚑';
+          else if (uType.indexOf('fire') !== -1 || uType.indexOf('ladder') !== -1) vehIcon = '🚒';
+          else if (uType.indexOf('police') !== -1) vehIcon = '🚓';
+          else if (uType.indexOf('heavy') !== -1 || uType.indexOf('rescue') !== -1 || uType.indexOf('boat') !== -1) vehIcon = '🛠️';
+
+          customHtml = '<div class="vehicle-marker ' + statusClass + '">' + vehIcon + '</div>';
+          iconSize = [34, 34];
+          iconAnchor = [17, 17];
+          badgeText = 'XE CỨU HỘ • ' + statusLabel;
+          badgeClass = vehBadgeClass;
+        } else if (m.type === 'incident') {
+          // Standard Incident with Category icon + Severity corner badge (0-3)
+          var cat = (m.category || '').toLowerCase();
+          var catClass = 'incident-cat-fire';
+          var catEmoji = '🔥';
+          if (cat === 'accident' || (m.title && m.title.toLowerCase().indexOf('tai nạn') !== -1)) {
+            catClass = 'incident-cat-accident';
+            catEmoji = '🚗';
+          }
+
+          var sevNum = '1';
+          if (m.severity === 'Level3' || m.severity === 3 || m.severity === 'Critical') sevNum = '3';
+          else if (m.severity === 'Level2' || m.severity === 2 || m.severity === 'High') sevNum = '2';
+          else if (m.severity === 'Level1' || m.severity === 1 || m.severity === 'Low') sevNum = '1';
+          else if (m.severity === 'Unclassified' || m.severity === 0) sevNum = '0';
+
+          customHtml = '<div class="incident-marker-wrap ' + catClass + '">' + catEmoji +
+            '<div class="incident-sev-badge sev-bg-' + sevNum + '">' + sevNum + '</div></div>';
+          iconSize = [36, 36];
+          iconAnchor = [18, 18];
+          badgeText = 'SỰ CỐ HIỆN TRƯỜNG • CẤP ' + sevNum;
+          badgeClass = (sevNum === '3' ? 'badge-red' : sevNum === '2' ? 'badge-amber' : sevNum === '1' ? 'badge-green' : 'badge-purple');
+        } else if (m.type === 'hospital') {
+          customHtml = '<div class="emergency-marker marker-hospital">🏥</div>';
           badgeText = 'Y TẾ KHẨN CẤP';
           badgeClass = 'badge-green';
-        } else if (m.type === 'incident') {
-          iconClass = (m.severity === 'Critical') ? 'marker-incident-critical' : 'marker-incident-high';
-          iconEmoji = '🔥';
-          badgeText = 'SỰ CỐ HIỆN TRƯỜNG';
-          badgeClass = 'badge-red';
         } else if (m.type === 'fire_station') {
-          iconClass = 'marker-fire';
-          iconEmoji = '🚒';
+          customHtml = '<div class="emergency-marker marker-fire">🚒</div>';
           badgeText = 'TRẠM PCCC';
           badgeClass = 'badge-red';
         } else if (m.type === 'ambulance') {
-          iconClass = 'marker-ambulance';
-          iconEmoji = '🚑';
+          customHtml = '<div class="emergency-marker marker-ambulance">🚑</div>';
           badgeText = 'XE CỨU THƯƠNG';
+          badgeClass = 'badge-blue';
+        } else {
+          customHtml = '<div class="emergency-marker marker-shelter">🛡️</div>';
+          badgeText = 'ĐIỂM TRÚ ẨN';
           badgeClass = 'badge-blue';
         }
 
         var customIcon = L.divIcon({
           className: '',
-          html: '<div class="emergency-marker ' + iconClass + '">' + iconEmoji + '</div>',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
+          html: customHtml,
+          iconSize: iconSize,
+          iconAnchor: iconAnchor
         });
+
+        var phoneHtml = m.phoneNumber
+          ? '<br/><a href="tel:' + m.phoneNumber + '" class="popup-phone-link">📞 ' + m.phoneNumber + ' (Gọi ngay)</a>'
+          : '';
 
         var popupHtml = '<span class="popup-badge ' + badgeClass + '">' + badgeText + '</span>' +
           '<div class="popup-title">' + m.title + '</div>' +
-          '<div class="popup-desc">' + m.description + '</div>';
+          '<div class="popup-desc">' + m.description + '</div>' +
+          phoneHtml;
 
         var marker = L.marker([m.latitude, m.longitude], { icon: customIcon })
           .bindPopup(popupHtml);

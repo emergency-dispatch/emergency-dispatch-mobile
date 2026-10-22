@@ -15,9 +15,7 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   MapPin,
   Clock,
-  Camera,
-  Video,
-  FileEdit,
+  Bell,
   Sparkles,
   RefreshCw,
   HeartPulse,
@@ -25,8 +23,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { SosPulseButton } from '../../components/sos/SosPulseButton';
-import { QuickHazardGrid, HazardItem } from '../../components/sos/QuickHazardGrid';
-import { MediaReportModal } from '../../components/sos/MediaReportModal';
 import { SosSuccessModal } from '../../components/sos/SosSuccessModal';
 import { LanguageSelectorModal } from '../../components/common';
 import { MainTabParamList } from '../../navigation/types';
@@ -62,8 +58,6 @@ export const HomeScreen: React.FC = () => {
   } = useLocationStore();
 
   // Modals & triggers state
-  const [selectedHazard, setSelectedHazard] = useState<HazardItem | null>(null);
-  const [isMediaModalVisible, setIsMediaModalVisible] = useState(false);
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [activeIncident, setActiveIncident] = useState<IncidentResponseDto | null>(null);
@@ -103,11 +97,15 @@ export const HomeScreen: React.FC = () => {
     refreshLocation(true);
   };
 
-  const recordIncidentId = async (id: string) => {
+  const recordIncidentId = async (id: string, incident?: IncidentResponseDto) => {
     try {
       const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
       if (!existing.includes(id)) {
         await storage.setItem('MY_REPORTED_INCIDENT_IDS', [id, ...existing]);
+      }
+      if (incident) {
+        const cached = (await storage.getItem<IncidentResponseDto[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
+        await storage.setItem('MY_REPORTED_INCIDENTS_CACHE', [incident, ...cached.filter((x) => x.id !== id)]);
       }
     } catch {
       // ignore
@@ -164,7 +162,7 @@ export const HomeScreen: React.FC = () => {
         mediaUrls: [url],
       });
       setActiveIncident(created);
-      await recordIncidentId(created.id);
+      await recordIncidentId(created.id, created);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
       Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
@@ -193,7 +191,7 @@ export const HomeScreen: React.FC = () => {
         mediaUrls: [url],
       });
       setActiveIncident(created);
-      await recordIncidentId(created.id);
+      await recordIncidentId(created.id, created);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
       Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
@@ -218,7 +216,7 @@ export const HomeScreen: React.FC = () => {
         mediaUrls: [],
       });
       setActiveIncident(created);
-      await recordIncidentId(created.id);
+      await recordIncidentId(created.id, created);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
       Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
@@ -227,57 +225,6 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  const handleSelectHazard = (hazard: HazardItem) => {
-    setSelectedHazard(hazard);
-    setIsMediaModalVisible(true);
-  };
-
-  const handleOpenGeneralMediaReport = () => {
-    setSelectedHazard(null);
-    setIsMediaModalVisible(true);
-  };
-
-  const handleSubmitReport = async (data: {
-    hazardId?: string;
-    mediaType: 'photo' | 'video' | 'none';
-    mediaUrls?: string[];
-    note: string;
-  }) => {
-    try {
-      setIsSendingSos(true);
-      setSosSendingLoadingText('Đang gửi dữ liệu báo cáo tới trung tâm cứu hộ...');
-      const hazardTitle = selectedHazard?.title
-        ? `Báo cáo nguy cơ: ${selectedHazard.title}`
-        : 'Báo cáo sự cố hiện trường';
-
-      const loc = await useLocationStore.getState().refreshLocation(false);
-      const hasMedia = data.mediaUrls && data.mediaUrls.length > 0;
-      const defaultDesc = hasMedia
-        ? 'Người dân gửi báo cáo nguy cơ khẩn cấp kèm ảnh hiện trường.'
-        : 'Người dân gửi cảnh báo nguy cơ khẩn cấp tức thời (không kèm hình ảnh).';
-
-      const created = await incidentService.createIncident({
-        title: hazardTitle,
-        description: data.note.trim() || defaultDesc,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        locationAddress: loc.address,
-        reporterName: user?.name || profile.fullName || 'Công dân',
-        reporterPhone: user?.phone || profile.phoneNumber || undefined,
-        mediaUrls: data.mediaUrls || [],
-      });
-      await recordIncidentId(created.id);
-      setActiveIncident(created);
-      setIsSosSuccessModalVisible(true);
-    } catch (err: any) {
-      Alert.alert(
-        'Lỗi Gửi Báo Cáo',
-        err.message || 'Không thể gửi báo cáo hiện trường tới máy chủ.'
-      );
-    } finally {
-      setIsSendingSos(false);
-    }
-  };
 
   return (
     <ScreenContainer
@@ -353,7 +300,7 @@ export const HomeScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
 
-        {/* Incident History Button */}
+        {/* Incident History / Notifications Button */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation.navigate('ReportsTab')}
@@ -369,7 +316,10 @@ export const HomeScreen: React.FC = () => {
           accessibilityLabel={t('sos.history_tooltip')}
           accessibilityRole="button"
         >
-          <Clock size={headerIconSize} color="#475569" />
+          <Bell size={headerIconSize} color="#475569" />
+          <View style={styles.badgeWrapper}>
+            <Text style={styles.badgeText}>9+</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Medical ID / Profile Quick Button */}
@@ -417,88 +367,34 @@ export const HomeScreen: React.FC = () => {
             holdDuration={2000}
             onPressStateChange={setIsSosPressing}
           />
-        </View>
 
-        {/* 3. Quick Hazard Grid: 4 Cards */}
-        <QuickHazardGrid
-          onSelectHazard={handleSelectHazard}
-          selectedHazardId={selectedHazard?.id}
-        />
-
-        {/* 4. Camera / Media Quick Bar Trigger */}
-        <View style={styles.mediaQuickBar}>
-          <Text style={[styles.quickBarTitle, { fontSize: fontScale(10.5) }]}>
-            {t('sos.quick_media_title')}
-          </Text>
-          <View style={styles.quickBarButtonsRow}>
-            {/* Quick Photo */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleOpenGeneralMediaReport}
-              style={[styles.quickBarBtn, styles.photoBtn]}
-              accessible={true}
-              accessibilityLabel={t('sos.take_photo')}
+          {/* Reference Layout Prompt */}
+          <View style={styles.promptContainer}>
+            <Text
+              style={[
+                styles.promptTitle,
+                {
+                  fontSize: fontScale(isSmallDevice ? 18 : 20),
+                  lineHeight: fontScale(isSmallDevice ? 24 : 28),
+                },
+              ]}
             >
-              <Camera size={isSmallDevice ? 16 : 18} color="#2563EB" />
-              <Text
-                style={[
-                  styles.quickBarBtnText,
-                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
-                ]}
-              >
-                {t('sos.take_photo')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Quick 5s Video */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleOpenGeneralMediaReport}
-              style={[styles.quickBarBtn, styles.videoBtn]}
-              accessible={true}
-              accessibilityLabel={t('sos.record_video')}
+              Khi có 1 sự cố hoả hoạn / tai nạn
+            </Text>
+            <Text
+              style={[
+                styles.promptSubtitle,
+                {
+                  fontSize: fontScale(isSmallDevice ? 12 : 13.5),
+                  lineHeight: fontScale(isSmallDevice ? 17 : 20),
+                },
+              ]}
             >
-              <Video size={isSmallDevice ? 16 : 18} color="#DC2626" />
-              <Text
-                style={[
-                  styles.quickBarBtnText,
-                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
-                ]}
-              >
-                {t('sos.record_video')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Quick Note */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleOpenGeneralMediaReport}
-              style={[styles.quickBarBtn, styles.noteBtn]}
-              accessible={true}
-              accessibilityLabel={t('sos.record_voice')}
-            >
-              <FileEdit size={isSmallDevice ? 16 : 18} color="#7C3AED" />
-              <Text
-                style={[
-                  styles.quickBarBtnText,
-                  { fontSize: fontScale(isSmallDevice ? 10.5 : 11.5) },
-                ]}
-              >
-                {t('sos.record_voice')}
-              </Text>
-            </TouchableOpacity>
+              Nhấn giữ “SOS” để báo cho lực lượng cứu hộ!
+            </Text>
           </View>
         </View>
       </ScrollView>
-
-      {/* Media Report Bottom Sheet Modal */}
-      <MediaReportModal
-        visible={isMediaModalVisible}
-        onClose={() => setIsMediaModalVisible(false)}
-        selectedHazard={selectedHazard}
-        currentAddress={address}
-        onSubmitReport={handleSubmitReport}
-      />
 
       {/* Fullscreen Emergency Dispatch Loading Overlay */}
       {isSendingSos && (
@@ -624,8 +520,10 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   systemBanner: {
     flexDirection: 'row',
@@ -638,7 +536,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     marginTop: 4,
-    marginBottom: 6,
+    marginBottom: 16,
   },
   systemBannerText: {
     fontSize: 10.5,
@@ -649,60 +547,7 @@ const styles = StyleSheet.create({
   heroSosSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 4,
-  },
-  mediaQuickBar: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    marginTop: 8,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  quickBarTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 1,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  quickBarButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  quickBarBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    paddingVertical: 10,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  photoBtn: {
-    borderColor: '#E2E8F0',
-  },
-  videoBtn: {
-    borderColor: 'rgba(220, 38, 38, 0.25)',
-    backgroundColor: 'rgba(220, 38, 38, 0.04)',
-  },
-  noteBtn: {
-    borderColor: '#E2E8F0',
-  },
-  quickBarBtnText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#0F172A',
+    marginVertical: 12,
   },
   emergencyLoadingOverlay: {
     position: 'absolute',
@@ -740,5 +585,38 @@ const styles = StyleSheet.create({
     color: '#475569',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  promptContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  promptTitle: {
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  promptSubtitle: {
+    fontWeight: '500',
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  badgeWrapper: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#DC2626',
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Linking, Alert } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { MapMarkerItem, MAPBOX_ACCESS_TOKEN } from '../../services/mapbox.service';
 
@@ -9,6 +9,7 @@ export interface MapboxViewRef {
   fitBounds: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  openMarkerPopup?: (markerId: string) => void;
 }
 
 export interface RouteCoordinate {
@@ -38,7 +39,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       routeCoordinates = [],
       fitBounds = false,
       interactive = true,
-      mapStyle = 'streets',
+      mapStyle = 'satellite',
       onMarkerPress,
       onMapPress,
       style,
@@ -135,6 +136,15 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         `;
         webViewRef.current?.injectJavaScript(js);
       },
+      openMarkerPopup: (markerId: string) => {
+        const js = `
+          if (window.openMarkerPopup) {
+            window.openMarkerPopup(${JSON.stringify(markerId)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
     }));
 
     const handleMessage = (event: WebViewMessageEvent) => {
@@ -151,6 +161,10 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             true;
           `;
           webViewRef.current?.injectJavaScript(js);
+        } else if (payload.type === 'CALL_PHONE' && payload.phone) {
+          Linking.openURL(`tel:${payload.phone}`).catch(() => {
+            Alert.alert('Lỗi', 'Không thể khởi chạy cuộc gọi điện thoại.');
+          });
         } else if (payload.type === 'MARKER_CLICK') {
           const found = markers.find((m) => m.id === payload.markerId);
           if (found && onMarkerPress) {
@@ -271,18 +285,47 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     }
     .vehicle-status-available { background: #10B981; }
     .vehicle-status-dispatched {
-      background: #0284C7;
+      background: #2563EB;
       animation: vehiclePulse 1.2s infinite alternate;
     }
     .vehicle-status-onscene {
-      background: #DC2626;
+      background: #F97316;
       animation: vehiclePulse 1.2s infinite alternate;
     }
     .vehicle-status-other { background: #64748B; }
 
+    .vehicle-eta-pill {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #38BDF8;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 6px;
+      border: 1.2px solid #38BDF8;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      line-height: 12px;
+      pointer-events: none;
+    }
+
+    .popup-eta-box {
+      margin-top: 6px;
+      padding: 5px 8px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #1D4ED8;
+      font-weight: 700;
+    }
+
     @keyframes vehiclePulse {
-      from { box-shadow: 0 0 6px rgba(2, 132, 199, 0.5); }
-      to { box-shadow: 0 0 18px rgba(2, 132, 199, 0.95); }
+      from { box-shadow: 0 0 6px rgba(37, 99, 235, 0.5); }
+      to { box-shadow: 0 0 18px rgba(37, 99, 235, 0.95); }
     }
 
     /* Standard Incident Marker with Severity Badge */
@@ -300,10 +343,24 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       animation: alertPulse 1.2s infinite alternate;
       box-shadow: 0 3px 12px rgba(220, 38, 38, 0.6);
     }
-    .incident-cat-fire { background: #DC2626; }
-    .incident-cat-accident { background: #EA580C; }
-    .incident-cat-medical { background: #DC2626; }
+    .incident-cat-fire { background: #DC2626; box-shadow: 0 0 10px 2px rgba(220, 38, 38, 0.6); }
+    .incident-cat-accident { background: #F97316; box-shadow: 0 0 10px 2px rgba(249, 115, 22, 0.6); }
+    .incident-cat-medical { background: #059669; }
     .incident-cat-other { background: #7C3AED; }
+
+    .incident-ping-ring {
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      background: inherit;
+      opacity: 0.45;
+      animation: pingRing 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pingRing {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
 
     .incident-sev-badge {
       position: absolute;
@@ -360,11 +417,16 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     .popup-desc { font-size: 11.5px; color: #64748B; }
     .popup-phone-link {
       display: inline-block;
-      margin-top: 4px;
+      margin-top: 5px;
       color: #0284C7;
       text-decoration: none;
       font-weight: 700;
-      font-size: 11.5px;
+      font-size: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit;
     }
   </style>
 </head>
@@ -465,50 +527,70 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         var badgeClass = 'badge-blue';
 
         if (m.type === 'station') {
-          // Standard Station Building Pin
-          customHtml = '<div class="station-marker-wrap"><div class="station-marker-box">🏢</div><div class="station-marker-arrow"></div></div>';
-          iconSize = [32, 38];
-          iconAnchor = [16, 38];
+          // Standard Station Building Pin from web mapIcons.ts
+          var buildingSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>' +
+            '<path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>' +
+            '<path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>' +
+            '<path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>' +
+            '</svg>';
+          customHtml = '<div class="station-marker-wrap">' +
+            '<div class="station-marker-box">' + buildingSvg + '</div>' +
+            '<div class="station-marker-arrow"></div>' +
+            '</div>';
+          iconSize = [30, 36];
+          iconAnchor = [15, 36];
           badgeText = 'TRẠM CỨU HỘ TRỰC CHIẾN';
           badgeClass = 'badge-navy';
         } else if (m.type === 'rescue_unit') {
-          // Standard Vehicle with Status color
+          // Standard Vehicle with Status color matching web mapIcons.ts
           var status = (m.status || '').toLowerCase();
           var statusClass = 'vehicle-status-available';
           var statusLabel = 'SẴN SÀNG';
           var vehBadgeClass = 'badge-green';
 
-          if (status === 'dispatched' || status === 'enroute' || status === 'en_route') {
+          if (status === 'dispatched' || status === 'enroute' || status === 'en_route' || status === 'accepted') {
             statusClass = 'vehicle-status-dispatched';
-            statusLabel = 'ĐANG ĐIỀU PHỐI';
+            statusLabel = 'ĐANG ĐẾN';
             vehBadgeClass = 'badge-blue';
           } else if (status === 'onscene' || status === 'on_scene') {
             statusClass = 'vehicle-status-onscene';
             statusLabel = 'TẠI HIỆN TRƯỜNG';
-            vehBadgeClass = 'badge-red';
+            vehBadgeClass = 'badge-amber';
           }
 
           var uType = (m.unitType || '').toLowerCase();
-          var vehIcon = '🚨';
-          if (uType.indexOf('ambulance') !== -1) vehIcon = '🚑';
-          else if (uType.indexOf('fire') !== -1 || uType.indexOf('ladder') !== -1) vehIcon = '🚒';
-          else if (uType.indexOf('police') !== -1) vehIcon = '🚓';
-          else if (uType.indexOf('heavy') !== -1 || uType.indexOf('rescue') !== -1 || uType.indexOf('boat') !== -1) vehIcon = '🛠️';
+          // Rescue truck SVG default
+          var vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5h-7v6h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
+          if (uType.indexOf('ambulance') !== -1 || uType.indexOf('thương') !== -1) {
+            // Ambulance SVG
+            vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.578-.502l-1.539-3.076A1 1 0 0 0 16.382 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/><path d="M8 8v4"/></svg>';
+          } else if (uType.indexOf('fire') !== -1 || uType.indexOf('hỏa') !== -1 || uType.indexOf('cháy') !== -1) {
+            // Fire Truck SVG
+            vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 9h4l3 3v6h-2"/><path d="M6 9h4"/><path d="M8 6v5"/></svg>';
+          }
 
-          customHtml = '<div class="vehicle-marker ' + statusClass + '">' + vehIcon + '</div>';
-          iconSize = [34, 34];
-          iconAnchor = [17, 17];
-          badgeText = 'XE CỨU HỘ • ' + statusLabel;
+          var etaPill = (typeof m.etaMinutes === 'number' && m.etaMinutes > 0)
+            ? '<div class="vehicle-eta-pill">~' + m.etaMinutes + 'p</div>'
+            : '';
+          customHtml = '<div class="vehicle-marker ' + statusClass + '">' + etaPill + vehSvg + '</div>';
+          iconSize = [32, 32];
+          iconAnchor = [16, 16];
+          badgeText = 'LỰC LƯỢNG CỨU HỘ • ' + statusLabel;
           badgeClass = vehBadgeClass;
         } else if (m.type === 'incident') {
           // Standard Incident with Category icon + Severity corner badge (0-3)
           var cat = (m.category || '').toLowerCase();
-          var catClass = 'incident-cat-fire';
-          var catEmoji = '🔥';
-          if (cat === 'accident' || (m.title && m.title.toLowerCase().indexOf('tai nạn') !== -1)) {
-            catClass = 'incident-cat-accident';
-            catEmoji = '🚗';
-          }
+          var isAccident = (cat === 'accident') ||
+            (m.title && /tai nạn|accident|va chạm|giao thông/i.test(m.title)) ||
+            (m.description && /tai nạn|accident|va chạm|giao thông/i.test(m.description));
+
+          var catClass = isAccident ? 'incident-cat-accident' : 'incident-cat-fire';
+          var catSvg = isAccident
+            // CarFront Lucide SVG
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.64 5H8.36a2 2 0 0 0-1.86 1.3L5 10 3 8"/><rect width="18" height="8" x="3" y="10" rx="2"/><circle cx="7" cy="14" r="1"/><circle cx="17" cy="14" r="1"/></svg>'
+            // Flame Lucide SVG
+            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
 
           var sevNum = '1';
           if (m.severity === 'Level3' || m.severity === 3 || m.severity === 'Critical') sevNum = '3';
@@ -516,11 +598,13 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           else if (m.severity === 'Level1' || m.severity === 1 || m.severity === 'Low') sevNum = '1';
           else if (m.severity === 'Unclassified' || m.severity === 0) sevNum = '0';
 
-          customHtml = '<div class="incident-marker-wrap ' + catClass + '">' + catEmoji +
+          customHtml = '<div class="incident-marker-wrap ' + catClass + '">' +
+            '<span class="incident-ping-ring"></span>' +
+            catSvg +
             '<div class="incident-sev-badge sev-bg-' + sevNum + '">' + sevNum + '</div></div>';
           iconSize = [36, 36];
           iconAnchor = [18, 18];
-          badgeText = 'SỰ CỐ HIỆN TRƯỜNG • CẤP ' + sevNum;
+          badgeText = (isAccident ? 'TAI NẠN HIỆN TRƯỜNG' : 'HỎA HOẠN HIỆN TRƯỜNG') + ' • CẤP ' + sevNum;
           badgeClass = (sevNum === '3' ? 'badge-red' : sevNum === '2' ? 'badge-amber' : sevNum === '1' ? 'badge-green' : 'badge-purple');
         } else if (m.type === 'hospital') {
           customHtml = '<div class="emergency-marker marker-hospital">🏥</div>';
@@ -548,18 +632,34 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         });
 
         var phoneHtml = m.phoneNumber
-          ? '<br/><a href="tel:' + m.phoneNumber + '" class="popup-phone-link">📞 ' + m.phoneNumber + ' (Gọi ngay)</a>'
+          ? '<br/><button type="button" onclick="window.callPhone(\\'' + m.phoneNumber + '\\')" class="popup-phone-link">📞 ' + m.phoneNumber + ' (Gọi ngay)</button>'
+          : '';
+
+        var etaPopupHtml = (typeof m.etaMinutes === 'number' && m.etaMinutes > 0)
+          ? '<div class="popup-eta-box">⏱️ <b>Dự kiến đến (ETA):</b> ~' + m.etaMinutes + ' phút' +
+            (m.distanceKm ? ' (' + m.distanceKm.toFixed(1) + ' km)' : '') + '</div>'
           : '';
 
         var popupHtml = '<span class="popup-badge ' + badgeClass + '">' + badgeText + '</span>' +
           '<div class="popup-title">' + m.title + '</div>' +
           '<div class="popup-desc">' + m.description + '</div>' +
+          etaPopupHtml +
           phoneHtml;
 
-        var marker = L.marker([m.latitude, m.longitude], { icon: customIcon })
-          .bindPopup(popupHtml);
+        var zOffset = 500;
+        if (m.type === 'incident') zOffset = 2500;
+        else if (m.type === 'rescue_unit') zOffset = 2000;
+        else if (m.type === 'station') zOffset = 1500;
 
-        marker.on('click', function() {
+        var marker = L.marker([m.latitude, m.longitude], {
+          icon: customIcon,
+          zIndexOffset: zOffset
+        }).bindPopup(popupHtml);
+
+        marker.on('click', function(e) {
+          if (e && e.originalEvent) {
+            L.DomEvent.stopPropagation(e);
+          }
           if (window.ReactNativeWebView) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'MARKER_CLICK',
@@ -568,8 +668,27 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           }
         });
 
+        marker.markerId = m.id;
         window.markersLayer.addLayer(marker);
       });
+    };
+
+    window.openMarkerPopup = function(id) {
+      if (!window.markersLayer) return;
+      window.markersLayer.eachLayer(function(layer) {
+        if (layer.markerId === id) {
+          layer.openPopup();
+        }
+      });
+    };
+
+    window.callPhone = function(phone) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'CALL_PHONE',
+          phone: phone
+        }));
+      }
     };
 
     // Update route polyline
@@ -660,6 +779,13 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           )}
           originWhitelist={['*']}
           mixedContentMode="always"
+          onShouldStartLoadWithRequest={(request) => {
+            if (request.url.startsWith('tel:')) {
+              Linking.openURL(request.url).catch(() => {});
+              return false;
+            }
+            return true;
+          }}
         />
       </View>
     );

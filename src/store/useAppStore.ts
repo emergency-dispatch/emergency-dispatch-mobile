@@ -7,17 +7,13 @@ import { authService } from '../services/auth.service';
 
 export const mapBackendUser = (dto: UserDto): User => {
   const roleStr = (dto.role || '').toString().toLowerCase();
+  // SRS FR-AD-01, FR-CIT-01: Mobile chỉ dành cho Citizen và RescueStaff.
+  // Operator / Admin không được map thành staff trên mobile để tránh lỗi 403 do không thuộc trạm.
   const isStaff =
     dto.role === 'RescueStaff' ||
-    dto.role === 'Operator' ||
-    dto.role === 'Admin' ||
+    roleStr === 'rescuestaff' ||
     roleStr === 'staff' ||
-    roleStr.includes('staff') ||
-    roleStr.includes('rescue') ||
-    roleStr.includes('operator') ||
-    roleStr.includes('admin') ||
-    roleStr.includes('cuuho') ||
-    roleStr.includes('dispatcher');
+    roleStr.includes('cuuho');
 
   return {
     id: dto.id,
@@ -28,6 +24,8 @@ export const mapBackendUser = (dto: UserDto): User => {
     avatarUrl: dto.avatarUrl || undefined,
     staffId: isStaff ? (dto.stationName ? `ST-${dto.role}` : 'ST-RESCUE') : undefined,
     teamName: isStaff ? dto.stationName || 'Đội Cứu Hộ Khẩn Cấp' : undefined,
+    stationId: dto.stationId || undefined,
+    stationName: dto.stationName || undefined,
   };
 };
 
@@ -44,6 +42,7 @@ interface AppState {
   isLoadingAuth: boolean;
   initAuth: () => Promise<void>;
   setAuth: (user: User, token: string, refreshToken?: string) => Promise<void>;
+  updateUser: (patch: Partial<User>) => void;
   setUserRole: (role: UserRole) => void;
   switchDemoRole: (role: UserRole) => void;
   logout: () => Promise<void>;
@@ -93,6 +92,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       ]);
     } catch {
       // Ignore storage persistence failure
+    }
+  },
+
+  updateUser: (patch) => {
+    const updated = get().user ? { ...get().user!, ...patch } : null;
+    set({ user: updated });
+    if (updated) {
+      storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, updated).catch(() => {});
     }
   },
 

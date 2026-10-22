@@ -7,3 +7,5 @@ export * from './QuickActionDock';
 export * from './MedicalEquipmentModal';
 export * from './MissionDetailModal';
 export * from './StaffNotificationsModal';
+export * from './StaffRejectModal';
+export * from './StaffClosureReportModal';

@@ -106,14 +106,15 @@ export const MissionStepper: React.FC<MissionStepperProps> = ({
           const isCompleted = index < currentIndex;
           const isActive = index === currentIndex;
           const isPending = index > currentIndex;
+          const isNextStep = index === currentIndex + 1;
 
           return (
             <React.Fragment key={step.key}>
               {/* Step Node */}
               <TouchableOpacity
-                activeOpacity={interactive ? 0.7 : 1}
-                disabled={!interactive}
-                onPress={() => onSelectStage && onSelectStage(step.key)}
+                activeOpacity={interactive && isNextStep ? 0.7 : 1}
+                disabled={!interactive || !isNextStep}
+                onPress={() => isNextStep && onSelectStage && onSelectStage(step.key)}
                 style={styles.stepItem}
               >
                 <View style={styles.nodeWrapper}>

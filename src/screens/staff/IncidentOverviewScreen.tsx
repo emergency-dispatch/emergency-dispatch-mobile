@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,10 +30,15 @@ import { MissionStepper } from '../../components/dispatch/MissionStepper';
 import { IncidentTacticalMap } from '../../components/dispatch/IncidentTacticalMap';
 import { IncidentDetailCard } from '../../components/dispatch/IncidentDetailCard';
 import { SwipeToAction } from '../../components/dispatch/SwipeToAction';
+import { StaffClosureReportModal } from '../../components/staff/StaffClosureReportModal';
+import { staffDispatchService } from '../../services/staffDispatch.service';
+import { locationService } from '../../services/location.service';
+import { useAppStore } from '../../store/useAppStore';
 import {
   EmergencyIncident,
   MOCK_EMERGENCY_INCIDENT,
   MissionStage,
+  ResolveAssignmentPayload,
 } from '../../types/dispatch';
 
 interface IncidentOverviewScreenProps {
@@ -41,6 +46,7 @@ interface IncidentOverviewScreenProps {
   route?: {
     params?: {
       incident?: EmergencyIncident;
+      assignmentId?: string;
     };
   };
 }
@@ -52,9 +58,38 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const incident = route?.params?.incident || MOCK_EMERGENCY_INCIDENT;
+  const assignmentId = route?.params?.assignmentId;
 
   // Mission State Management (4 Stages)
   const [currentStage, setCurrentStage] = useState<MissionStage>('accepted');
+  const user = useAppStore((s) => s.user);
+
+  // Periodic location telemetry when en_route or on_scene (every 15s)
+  useEffect(() => {
+    const unitId = user?.rescueUnitId;
+    if (!unitId || (currentStage !== 'en_route' && currentStage !== 'on_scene')) {
+      return;
+    }
+
+    const sendTelemetry = async () => {
+      try {
+        const loc = await locationService.getCurrentLocation();
+        if (loc.latitude && loc.longitude && unitId) {
+          await staffDispatchService.updateVehicleLocation(
+            unitId,
+            loc.latitude,
+            loc.longitude
+          );
+        }
+      } catch (err: any) {
+        console.warn('Vehicle location telemetry error:', err?.message);
+      }
+    };
+
+    sendTelemetry();
+    const interval = setInterval(sendTelemetry, 15000);
+    return () => clearInterval(interval);
+  }, [user?.rescueUnitId, currentStage]);
 
   // Interactive View Modes: 'split' (default), 'map_expanded' (full map), 'details_expanded' (full details)
   const [viewMode, setViewMode] = useState<'split' | 'map_expanded' | 'details_expanded'>('split');
@@ -71,6 +106,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   const [isCallDispatcherModalVisible, setIsCallDispatcherModalVisible] = useState(false);
   const [isEnRouteModalVisible, setIsEnRouteModalVisible] = useState(false);
   const [isOnSceneModalVisible, setIsOnSceneModalVisible] = useState(false);
+  const [isClosureModalVisible, setIsClosureModalVisible] = useState(false);
   const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
   // Quick Dispatcher Hotline Call
@@ -82,24 +118,53 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   };
 
   // Handle Swipe to En Route
-  const handleSwipeEnRoute = useCallback(() => {
+  const handleSwipeEnRoute = useCallback(async () => {
+    try {
+      if (assignmentId) {
+        await staffDispatchService.updateStatus(assignmentId, 'EnRoute');
+      }
+    } catch (err: any) {
+      console.warn('Update EnRoute status failed:', err.message);
+    }
     setCurrentStage('en_route');
     setIsEnRouteModalVisible(true);
-  }, []);
+  }, [assignmentId]);
 
   // Handle Advance Stage
-  const handleAdvanceStage = useCallback((nextStage: MissionStage) => {
-    setCurrentStage(nextStage);
-    if (nextStage === 'on_scene') {
-      setIsOnSceneModalVisible(true);
-    }
+  const handleAdvanceStage = useCallback(
+    async (nextStage: MissionStage) => {
+      if (nextStage === 'on_scene') {
+        try {
+          if (assignmentId) {
+            await staffDispatchService.updateStatus(assignmentId, 'OnScene');
+          }
+        } catch (err: any) {
+          console.warn('Update OnScene status failed:', err.message);
+        }
+        setCurrentStage('on_scene');
+        setIsOnSceneModalVisible(true);
+      } else if (nextStage === 'completed') {
+        setIsClosureModalVisible(true);
+      } else {
+        setCurrentStage(nextStage);
+      }
+    },
+    [assignmentId]
+  );
+
+  // Handle Complete Mission -> Open closure modal
+  const handleCompleteMission = useCallback(() => {
+    setIsClosureModalVisible(true);
   }, []);
 
-  // Handle Complete Mission
-  const handleCompleteMission = useCallback(() => {
+  // Handle Submit Closure Report
+  const handleSubmitClosureReport = async (payload: ResolveAssignmentPayload) => {
+    if (assignmentId) {
+      await staffDispatchService.resolveAssignment(assignmentId, payload);
+    }
     setCurrentStage('completed');
     setIsCompleteModalVisible(true);
-  }, []);
+  };
 
   // Handle Back
   const handleGoBack = () => {
@@ -358,14 +423,22 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           onCancel={() => setIsOnSceneModalVisible(false)}
         />
 
-        {/* 4. Modal: Complete Mission Confirmation */}
+        {/* 4. Modal: Complete Mission Resolution Report (Required by Backend) */}
+        <StaffClosureReportModal
+          visible={isClosureModalVisible}
+          incidentCode={incident.code}
+          onClose={() => setIsClosureModalVisible(false)}
+          onSubmitResolve={handleSubmitClosureReport}
+        />
+
+        {/* 5. Modal: Complete Mission Success Notification */}
         <ConfirmationModal
           visible={isCompleteModalVisible}
           type="success"
           title="Hoàn Thành Ca Cấp Cứu 🎉"
-          description="Đã bàn giao 3 nạn nhân an toàn cho Bệnh viện Cấp Cứu Trưng Vương."
+          description="Báo cáo nghiệm thu ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm Cứu hộ thành công."
           highlightBadge="CA TRỰC HOÀN TẤT XUẤT SẮC"
-          highlightText="Báo cáo ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm Cứu hộ."
+          highlightText="Xe cứu hộ đã chuyển sang giai đoạn hạ nhiệt CoolDown trước khi sẵn sàng cho ca tiếp theo."
           singleButton
           confirmText="Về Bảng Trực Cứu Hộ"
           onConfirm={() => {

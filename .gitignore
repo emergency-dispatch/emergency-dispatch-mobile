@@ -51,4 +51,4 @@ AGENTS.md
 .gemini/
 .cursor/
 .idea/
-
+.tmp_docs/

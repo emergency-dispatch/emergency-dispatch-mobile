@@ -134,7 +134,9 @@ export const StaffProfileScreen: React.FC = () => {
                 <Text style={styles.staffIdText}>MÃ NV: {user?.staffId || 'ST-8821'}</Text>
               </View>
               <Text style={styles.heroName}>{user?.name || 'Đội Trưởng Lê Quốc Huy'}</Text>
-              <Text style={styles.heroRole}>Chỉ Huy Kíp Cứu Hộ & Kỹ Thuật Viên Hazmat KCN</Text>
+              <Text style={styles.heroRole}>
+                {user?.crewRole ? `Kíp Cứu Hộ • ${user.crewRole}` : 'Chỉ Huy Kíp Cứu Hộ & Kỹ Thuật Viên'}
+              </Text>
             </View>
           </View>
 
@@ -160,7 +162,7 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.stationRow}>
             <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
-              Trạm Cứu Hộ & PCCC KCN Tân Bình (TP.HCM)
+              {user?.stationName || 'Trạm Cứu Hộ & PCCC (TP.HCM)'}
             </Text>
           </View>
         </View>

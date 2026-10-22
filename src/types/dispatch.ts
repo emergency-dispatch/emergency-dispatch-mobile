@@ -114,3 +114,120 @@ export const MOCK_EMERGENCY_INCIDENT: EmergencyIncident = {
   },
   createdAt: '11:42:15',
 };
+
+// ==========================================
+// BACKEND CONTRACT DTOS & ENUMS (21/10/2026)
+// ==========================================
+
+export type BackendDispatchStatus =
+  | 'Dispatched'
+  | 'Accepted'
+  | 'EnRoute'
+  | 'OnScene'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Rejected';
+
+export type RejectionReason =
+  | 'VehicleBreakdown'
+  | 'AlreadyOnMission'
+  | 'TooFar'
+  | 'MedicalLeave'
+  | 'NoResponse'
+  | 'Other';
+
+export const REJECTION_REASON_LABELS: Record<RejectionReason, string> = {
+  VehicleBreakdown: 'Xe hỏng kỹ thuật / bảo trì',
+  AlreadyOnMission: 'Đang bận thực hiện nhiệm vụ khác',
+  TooFar: 'Khoảng cách quá xa so với hiện trường',
+  MedicalLeave: 'Vấn đề sức khỏe kíp trực',
+  NoResponse: 'Không phản hồi / Mất liên lạc',
+  Other: 'Lý do khác (cần ghi chú chi tiết)',
+};
+
+export interface RejectAssignmentPayload {
+  reason: RejectionReason;
+  notes?: string;
+}
+
+export interface ResolveAssignmentPayload {
+  resolutionSummary: string; // bắt buộc >= 10 ký tự
+  evidenceMediaUrls: string[]; // bắt buộc >= 1 ảnh
+  victimsAssistedCount: number; // bắt buộc >= 0
+  equipmentUsed?: string[];
+  handoverEntity?: string;
+  handoverContactName?: string;
+  handoverContactPhone?: string;
+  handoverNotes?: string;
+}
+
+export interface CompletionReportDto {
+  actionsSummary?: string;
+  victimsAssistedCount: number;
+  equipmentUsed: string[];
+  evidenceMediaUrls: string[];
+  handoverEntity?: string;
+  handoverContactName?: string;
+  handoverContactPhone?: string;
+  handoverNotes?: string;
+  submittedAt?: string;
+}
+
+export interface DispatchAssignmentResponseDto {
+  id: string;
+  incidentId: string;
+  rescueUnitId: string;
+  status: BackendDispatchStatus;
+  dispatchedAt: string;
+  acceptedAt?: string | null;
+  enRouteAt?: string | null;
+  arrivedAt?: string | null;
+  completedAt?: string | null;
+  rejectedAt?: string | null;
+  notes?: string | null;
+  rejectionReason?: string | null;
+  rejectionNotes?: string | null;
+  distanceKm?: number;
+  estimatedArrivalMinutes?: number;
+  completionReport?: CompletionReportDto | null;
+  incidentTitle?: string;
+  incidentAddress?: string;
+  incidentLatitude?: number;
+  incidentLongitude?: number;
+  incidentSeverity?: string;
+  rescueUnitPlate?: string;
+  rescueUnitType?: string;
+  stationName?: string;
+}
+
+export interface StationTeamMemberDto {
+  staffId: string;
+  fullName: string;
+  phoneNumber: string;
+  crewRole: 'Commander' | 'Driver' | 'Firefighter' | 'Rescuer' | 'Medic' | string;
+}
+
+export interface MyTeamDto {
+  stationId: string;
+  stationName: string;
+  myTeamId?: string | null;
+  myTeamName?: string | null;
+  myCrewRole?: string | null;
+  myTeamRescueUnitId?: string | null;
+  myTeamRescueUnitPlate?: string | null;
+  myTeamMembers: StationTeamMemberDto[];
+  stationVehicles?: Array<{ id: string; plateNumber: string; unitType: string; status: string }>;
+  teamMembers?: StationTeamMemberDto[];
+}
+
+export interface AppNotificationDto {
+  id: string;
+  type: 'NewIncident' | 'JobAssigned' | 'StatusUpdate' | 'Escalation' | 'System' | string;
+  title: string;
+  message: string;
+  incidentId?: string | null;
+  dataJson?: string | null;
+  isRead: boolean;
+  readAt?: string | null;
+  createdAt: string;
+}

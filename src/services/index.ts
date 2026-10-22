@@ -6,3 +6,4 @@ export * from './incident.service';
 export * from './mapbox.service';
 export * from './location.service';
 export * from './schedule.service';
+export * from './staffDispatch.service';

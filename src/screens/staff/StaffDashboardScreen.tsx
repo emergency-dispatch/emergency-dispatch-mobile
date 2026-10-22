@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
-import { ShieldAlert, Zap, Radio, BellRing, Flame, CalendarDays, ChevronRight } from 'lucide-react-native';
+import { ShieldAlert, Zap, Radio, BellRing, Flame, CalendarDays, ChevronRight, CheckCircle2, Navigation } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
 import { useTranslation } from 'react-i18next';
@@ -30,12 +30,56 @@ import {
 } from '../../components/staff';
 import { EmergencyAlertModal } from '../../components/dispatch/EmergencyAlertModal';
 import { MissionItem, DispatchNotification } from '../../types/staff';
-import { MOCK_EMERGENCY_INCIDENT, EmergencyIncident } from '../../types/dispatch';
+import {
+  MOCK_EMERGENCY_INCIDENT,
+  EmergencyIncident,
+  DispatchAssignmentResponseDto,
+  RejectAssignmentPayload,
+  MyTeamDto,
+} from '../../types/dispatch';
+import { staffDispatchService } from '../../services/staffDispatch.service';
+import { useAppStore } from '../../store/useAppStore';
 
+// Helper to convert DispatchAssignmentResponseDto into EmergencyIncident
+const mapAssignmentToIncident = (dto: DispatchAssignmentResponseDto): EmergencyIncident => {
+  return {
+    id: dto.incidentId || dto.id,
+    code: `#${(dto.incidentId || dto.id).slice(0, 8).toUpperCase()}`,
+    severity: dto.incidentSeverity === 'Level3' ? 'code_red' : dto.incidentSeverity === 'Level2' ? 'code_orange' : 'code_yellow',
+    severityLabel: `MỨC ĐỘ: ${dto.incidentSeverity || 'Level3'}`,
+    title: dto.incidentTitle || 'SỰ CỐ KHẨN CẤP ĐƯỢC ĐIỀU PHỐI',
+    category: dto.rescueUnitType || 'Cứu hộ khẩn cấp',
+    address: dto.incidentAddress || 'Hiện trường sự cố',
+    distanceKm: dto.distanceKm ?? 2.4,
+    etaMinutes: dto.estimatedArrivalMinutes ?? 5,
+    assignedUnit: dto.rescueUnitPlate || 'Xe Cứu Thương ICU',
+    vehiclePlate: dto.rescueUnitPlate || '51A-999.99',
+    patientCount: 1,
+    patientSummary: 'Nạn nhân cần cấp cứu và giải cứu khẩn cấp',
+    triageLevel: dto.incidentSeverity === 'Level3' ? 'T1' : 'T2',
+    callerName: 'Tổng Đài CAD',
+    callerRole: 'Điều Phối Viên',
+    callerPhone: '114',
+    emergencyNotes: dto.notes || 'Khẩn trương tiếp cận hiện trường và bật còi ưu tiên.',
+    requiredEquipment: ['Bình Oxy', 'Kìm cắt thủy lực', 'Bộ nẹp cổ & nẹp chi cố định'],
+    recommendedHospital: 'Bệnh viện Cấp Cứu Trưng Vương',
+    hospitalDistance: '1.8 km',
+    timeoutSeconds: 30,
+    originCoords: {
+      latitude: 10.7712,
+      longitude: 106.6578,
+      label: dto.stationName || 'Trạm Cứu Hộ',
+    },
+    targetCoords: {
+      latitude: dto.incidentLatitude ?? 10.7785,
+      longitude: dto.incidentLongitude ?? 106.6892,
+      label: dto.incidentAddress || 'Hiện trường',
+    },
+    createdAt: dto.dispatchedAt || new Date().toISOString(),
+  };
+};
 
-
-// Mock Initial Missions Data
-const MOCK_MISSIONS: MissionItem[] = [
+const DEFAULT_FALLBACK_MISSIONS: MissionItem[] = [
   {
     id: 'm1',
     code: '#IP-240901',
@@ -68,61 +112,22 @@ const MOCK_MISSIONS: MissionItem[] = [
     destinationHospital: 'Trạm Ứng Phó Khẩn Cấp KCN Hiệp Phước',
     notes: 'Kíp cứu hộ mang đồ Hazmat & SCBA khóa thành công van rò rỉ, thông gió phân xưởng.',
   },
-  {
-    id: 'm3',
-    code: '#IP-240885',
-    type: 'traffic_accident',
-    title: 'Tai nạn lao động - Kẹt cơ khí máy dập kim loại',
-    severity: 'urgent',
-    address: 'Xưởng dập phụ tùng, Đường số 7, KCN Vĩnh Lộc',
-    completedAt: '07:50 (4 giờ trước)',
-    durationMinutes: 45,
-    distanceKm: 2.5,
-    etaMinutes: 6.2,
-    status: 'completed',
-    patientCount: 1,
-    destinationHospital: 'BV Chấn Thương Chỉnh Hình & Trạm Y Tế KCN',
-    notes: 'Sử dụng kìm thủy lực cắt giải phóng tay công nhân, garo cầm máu và chuyển viện an toàn.',
-  },
-];
-
-// Mock Dispatch Notifications
-const MOCK_NOTIFICATIONS: DispatchNotification[] = [
-  {
-    id: 'n1',
-    title: 'Lệnh điều động dự bị ưu tiên Vùng 2',
-    message: 'Trung tâm điều phối chuyển mức sẵn sàng lên cấp 1 do thời tiết mưa lớn giờ cao điểm.',
-    type: 'urgent',
-    timestamp: '11:45',
-    isRead: false,
-  },
-  {
-    id: 'n2',
-    title: 'Cảnh báo kẹt xe & ngập nước cục bộ',
-    message: 'Tuyến đường Ba Tháng Hai giao Lê Đại Hành ngập sâu 30cm. Đề xuất xe cứu thương chọn hướng Lý Thường Kiệt.',
-    type: 'traffic',
-    timestamp: '10:30',
-    isRead: false,
-  },
-  {
-    id: 'n3',
-    title: 'Bệnh viện Chợ Rẫy mở thêm 4 giường ICU',
-    message: 'Khoa Cấp cứu tiếp nhận bình thường cho các ca chấn thương sọ não và tim mạch.',
-    type: 'info',
-    timestamp: '08:15',
-    isRead: true,
-  },
 ];
 
 export const StaffDashboardScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const { user, updateUser } = useAppStore();
 
   // State
   const { t, i18n } = useTranslation();
   const [dutyStatus, setDutyStatus] = useState<DutyStatus>('online');
   const [refreshing, setRefreshing] = useState(false);
-  const [notifications, setNotifications] = useState<DispatchNotification[]>(MOCK_NOTIFICATIONS);
+
+  // Backend real data
+  const [myTeam, setMyTeam] = useState<MyTeamDto | null>(null);
+  const [assignments, setAssignments] = useState<DispatchAssignmentResponseDto[]>([]);
+  const [notifications, setNotifications] = useState<DispatchNotification[]>([]);
 
   // Modals state
   const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
@@ -134,57 +139,140 @@ export const StaffDashboardScreen: React.FC = () => {
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
+  // Load Real Data from Backend
+  const loadStaffData = useCallback(async () => {
+    try {
+      const [teamRes, assignRes, notifRes] = await Promise.all([
+        staffDispatchService.getMyTeam(),
+        staffDispatchService.getMyAssignments(),
+        staffDispatchService.getNotifications(false, 1, 15),
+      ]);
+
+      if (teamRes) {
+        setMyTeam(teamRes);
+        updateUser({
+          stationId: teamRes.stationId,
+          stationName: teamRes.stationName,
+          rescueUnitId: teamRes.myTeamRescueUnitId || undefined,
+          vehiclePlate: teamRes.myTeamRescueUnitPlate || undefined,
+          teamName: teamRes.myTeamName || undefined,
+          crewRole: teamRes.myCrewRole || undefined,
+        });
+      }
+
+      if (assignRes) {
+        setAssignments(assignRes);
+      }
+
+      if (notifRes && notifRes.length > 0) {
+        const mappedNotifs: DispatchNotification[] = notifRes.map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type === 'Escalation' ? 'urgent' : n.type === 'JobAssigned' ? 'urgent' : 'info',
+          timestamp: new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          isRead: n.isRead,
+        }));
+        setNotifications(mappedNotifs);
+      }
+    } catch (err: any) {
+      console.warn('Load staff data error:', err?.message);
+    }
+  }, [updateUser]);
+
+  useEffect(() => {
+    loadStaffData();
+  }, [loadStaffData]);
+
+  // Refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadStaffData();
+    setRefreshing(false);
+  }, [loadStaffData]);
+
+  // Derived assignments
+  const dispatchedAssignment = assignments.find((a) => a.status === 'Dispatched');
+  const activeMissionAssignment = assignments.find(
+    (a) => a.status === 'Accepted' || a.status === 'EnRoute' || a.status === 'OnScene'
+  );
+  const completedAssignments = assignments.filter((a) => a.status === 'Completed');
+
+  // Convert completed assignments to RecentMissions
+  const missionsList: MissionItem[] = completedAssignments.map((a) => ({
+    id: a.id,
+    code: `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
+    type: 'traffic_accident',
+    title: a.incidentTitle || 'Nhiệm vụ cứu hộ khẩn cấp',
+    severity: a.incidentSeverity === 'Level3' ? 'critical' : 'urgent',
+    address: a.incidentAddress || 'Hiện trường',
+    completedAt: a.completedAt ? new Date(a.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Hoàn thành',
+    durationMinutes: 24,
+    distanceKm: a.distanceKm ?? 2.1,
+    etaMinutes: a.estimatedArrivalMinutes ?? 5,
+    status: 'completed',
+    patientCount: a.completionReport?.victimsAssistedCount ?? 1,
+    destinationHospital: a.completionReport?.handoverEntity || 'Bệnh viện Trưng Vương',
+    notes: a.completionReport?.actionsSummary || a.notes || 'Đã bàn giao nạn nhân an toàn.',
+  }));
+
+  const activeIncident = dispatchedAssignment
+    ? mapAssignmentToIncident(dispatchedAssignment)
+    : activeMissionAssignment
+    ? mapAssignmentToIncident(activeMissionAssignment)
+    : MOCK_EMERGENCY_INCIDENT;
+
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
   const isEnglish = !i18n.language?.startsWith('vi');
 
-  const localizedMissions: MissionItem[] = MOCK_MISSIONS.map((m) => {
-    if (!isEnglish) return m;
-    if (m.id === 'm1') {
-      return {
-        ...m,
-        title: 'Factory Fire & Electrical Short-Circuit',
-        completedAt: '11:20 (35 mins ago)',
-        destinationHospital: 'Tan Binh IP Medical Station & My Duc Hospital',
-        notes: 'Contained workshop blaze, smoke inhalation treated with O2 mask for 2 workers.',
-      };
-    }
-    if (m.id === 'm2') {
-      return {
-        ...m,
-        title: 'Toxic Ammonia (NH3) Leakage in Cold Storage',
-        completedAt: '09:45 (2 hrs ago)',
-        destinationHospital: 'Hiep Phuoc IP Emergency Base',
-        notes: 'Hazmat Level B & SCBA equipped crew secured safety valve and vented workshop.',
-      };
-    }
-    if (m.id === 'm3') {
-      return {
-        ...m,
-        title: 'Industrial Entrapment - Hydraulic Stamping Machine',
-        completedAt: '07:50 (4 hrs ago)',
-        destinationHospital: 'Orthopedic Trauma Hospital & IP Clinic',
-        notes: 'Hydraulic cutting tool used to extricate worker hand, tourniquet & splint applied.',
-      };
-    }
-    return m;
-  });
-
-  // Refresh handler
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 800);
-  }, []);
-
-  // Accept emergency incident -> Go to IncidentOverviewScreen (Chặng 2)
+  // Accept emergency incident -> Call API & Go to IncidentOverviewScreen
   const handleAcceptEmergency = useCallback(
-    (incident: EmergencyIncident) => {
+    async (incident: EmergencyIncident) => {
       setIsEmergencyAlertVisible(false);
-      navigation.navigate('IncidentOverview', { incident });
+      const targetId = dispatchedAssignment?.id;
+      if (targetId) {
+        try {
+          await staffDispatchService.updateStatus(targetId, 'Accepted');
+        } catch (err: any) {
+          console.warn('Accept assignment failed:', err.message);
+        }
+      }
+      navigation.navigate('IncidentOverview', {
+        incident,
+        assignmentId: targetId,
+      });
+      loadStaffData();
     },
-    [navigation]
+    [navigation, dispatchedAssignment, loadStaffData]
   );
+
+  // Decline emergency incident -> Call API with required reason payload
+  const handleDeclineEmergency = useCallback(
+    async (payload?: RejectAssignmentPayload) => {
+      setIsEmergencyAlertVisible(false);
+      const targetId = dispatchedAssignment?.id;
+      if (targetId && payload) {
+        try {
+          await staffDispatchService.rejectAssignment(targetId, payload);
+          Alert.alert('Đã Từ Chối', 'Lệnh điều động đã được từ chối và chuyển tiếp tới trạm dự bị.');
+          loadStaffData();
+        } catch (err: any) {
+          Alert.alert('Lỗi', err.message || 'Không thể từ chối lệnh điều động.');
+        }
+      }
+    },
+    [dispatchedAssignment, loadStaffData]
+  );
+
+  // Navigate to ongoing active mission
+  const handleResumeActiveMission = () => {
+    if (activeMissionAssignment) {
+      navigation.navigate('IncidentOverview', {
+        incident: mapAssignmentToIncident(activeMissionAssignment),
+        assignmentId: activeMissionAssignment.id,
+      });
+    }
+  };
 
   // SOS Emergency Hotline Call
   const handleConfirmSosCall = () => {
@@ -197,9 +285,10 @@ export const StaffDashboardScreen: React.FC = () => {
   // Navigate to Station
   const handleConfirmNavigateStation = () => {
     setIsNavigateStationModalVisible(false);
+    const stationQuery = encodeURIComponent(myTeam?.stationName || 'Benh Vien Trung Vuong TPHCM');
     const url = Platform.select({
-      ios: 'maps:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
-      android: 'geo:0,0?q=Benh+Vien+Trung+Vuong+TPHCM',
+      ios: `maps:0,0?q=${stationQuery}`,
+      android: `geo:0,0?q=${stationQuery}`,
     });
     if (url) Linking.openURL(url).catch(() => {});
   };
@@ -209,18 +298,18 @@ export const StaffDashboardScreen: React.FC = () => {
     setIsSettingsModalVisible(true);
   };
 
-
   // Full Mission History
   const handleViewAllHistory = () => {
     Alert.alert(
       'Nhật Ký Ca Trực',
-      'Đã hoàn thành 3 ca cấp cứu trong ngày hôm nay. Tổng quãng đường di chuyển: 42 km.',
+      `Đã hoàn thành ${completedAssignments.length} ca cấp cứu trong ngày hôm nay.`,
       [{ text: 'Đóng' }]
     );
   };
 
   // Mark all notifications read
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = async () => {
+    await staffDispatchService.markAllNotificationsRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
@@ -251,10 +340,10 @@ export const StaffDashboardScreen: React.FC = () => {
         >
           {/* 1. Staff Profile Bar */}
           <StaffProfileHeader
-            name="Lê Quốc Huy"
-            role={t('staff.role_driver')}
-            staffId="ST-8821"
-            vehiclePlate="51A-999.99"
+            name={user?.name || 'Lê Quốc Huy'}
+            role={user?.crewRole || myTeam?.myCrewRole || t('staff.role_driver')}
+            staffId={user?.staffId || (myTeam?.myTeamName ? `#${myTeam.myTeamName}` : 'ST-8821')}
+            vehiclePlate={myTeam?.myTeamRescueUnitPlate || user?.vehiclePlate || '51A-999.99'}
             dutyStatus={dutyStatus}
             unreadNotificationsCount={unreadNotificationsCount}
             onPressNotifications={() => setIsNotificationModalVisible(true)}
@@ -262,40 +351,109 @@ export const StaffDashboardScreen: React.FC = () => {
             onPressLanguage={() => setIsLanguageModalVisible(true)}
             currentLang={i18n.language}
             onPressAvatar={() =>
-              Alert.alert('Nhân Viên', 'Lê Quốc Huy - Lái xe Cấp Cứu Hạng 1\nKinh nghiệm: 5 năm điều phối')
+              Alert.alert(
+                'Kíp Trực Cứu Hộ',
+                `${user?.name || 'Lê Quốc Huy'}\nVai trò: ${user?.crewRole || myTeam?.myCrewRole || 'Cứu Hộ'}\nTrạm: ${myTeam?.stationName || 'Trạm Cứu Hộ KCN'}\nXe phụ trách: ${myTeam?.myTeamRescueUnitPlate || '51A-999.99'}`
+              )
             }
           />
 
-          {/* 2. Priority Emergency Dispatch Alert Simulation Trigger Banner */}
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.emergencyAlertBanner}
-            onPress={() => setIsEmergencyAlertVisible(true)}
-          >
-            <View style={styles.emergencyBannerHeader}>
-              <View style={styles.emergencyTag}>
-                <Flame size={moderateScale(13)} color="#FFFFFF" />
-                <Text style={styles.emergencyTagText}>{t('staff.code_red_alert')}</Text>
+          {/* 2. Priority Emergency Dispatch Alert / Active Mission Banner */}
+          {dispatchedAssignment ? (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.emergencyAlertBanner, styles.emergencyAlertBannerActive]}
+              onPress={() => setIsEmergencyAlertVisible(true)}
+            >
+              <View style={styles.emergencyBannerHeader}>
+                <View style={styles.emergencyTag}>
+                  <Flame size={moderateScale(13)} color="#FFFFFF" />
+                  <Text style={styles.emergencyTagText}>LỆNH ĐIỀU ĐỘNG MỚI</Text>
+                </View>
+                <View style={styles.liveTimerPill}>
+                  <Text style={styles.liveTimerText}>CHẠM ĐỂ XEM & TIẾP NHẬN</Text>
+                </View>
               </View>
-              <View style={styles.liveTimerPill}>
-                <Text style={styles.liveTimerText}>{t('staff.tap_to_view')}</Text>
-              </View>
-            </View>
 
-            <Text style={styles.emergencyBannerTitle}>
-              {t('staff.mock_incident_title')}
-            </Text>
-            <Text style={styles.emergencyBannerSub}>
-              {t('staff.mock_incident_sub')}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.emergencyBannerTitle}>
+                {dispatchedAssignment.incidentTitle || 'SỰ CỐ KHẨN CẤP CẦN XUẤT KÍCH'}
+              </Text>
+              <Text style={styles.emergencyBannerSub} numberOfLines={2}>
+                📍 {dispatchedAssignment.incidentAddress || 'Hiện trường sự cố'}
+              </Text>
+            </TouchableOpacity>
+          ) : activeMissionAssignment ? (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[
+                styles.emergencyAlertBanner,
+                { backgroundColor: '#F0FDF4', borderColor: '#10B981' },
+              ]}
+              onPress={handleResumeActiveMission}
+            >
+              <View style={styles.emergencyBannerHeader}>
+                <View style={[styles.emergencyTag, { backgroundColor: '#059669' }]}>
+                  <Navigation size={moderateScale(13)} color="#FFFFFF" />
+                  <Text style={styles.emergencyTagText}>
+                    ĐANG XỬ LÝ ({activeMissionAssignment.status.toUpperCase()})
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.liveTimerPill,
+                    { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+                  ]}
+                >
+                  <Text style={[styles.liveTimerText, { color: '#059669' }]}>TIẾP TỤC CA TRỰC</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.emergencyBannerTitle, { color: '#065F46' }]}>
+                {activeMissionAssignment.incidentTitle || 'Nhiệm Vụ Cứu Hộ Đang Diễn Ra'}
+              </Text>
+              <Text style={styles.emergencyBannerSub} numberOfLines={2}>
+                📍 {activeMissionAssignment.incidentAddress || 'Hiện trường sự cố'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[
+                styles.emergencyAlertBanner,
+                { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+              ]}
+              onPress={() => setIsEmergencyAlertVisible(true)}
+            >
+              <View style={styles.emergencyBannerHeader}>
+                <View style={[styles.emergencyTag, { backgroundColor: '#475569' }]}>
+                  <CheckCircle2 size={moderateScale(13)} color="#FFFFFF" />
+                  <Text style={styles.emergencyTagText}>SẴN SÀNG NHẬN LỆNH</Text>
+                </View>
+                <View
+                  style={[
+                    styles.liveTimerPill,
+                    { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                  ]}
+                >
+                  <Text style={[styles.liveTimerText, { color: '#64748B' }]}>MÔ PHỎNG TEST</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.emergencyBannerTitle, { color: '#1E293B' }]}>
+                Kíp Trực Đang Sẵn Sàng Tại Trạm
+              </Text>
+              <Text style={styles.emergencyBannerSub}>
+                Xe {myTeam?.myTeamRescueUnitPlate || user?.vehiclePlate || '51A-999.99'} sẵn sàng xuất kích khi có cảnh báo điều phối.
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* 4. Shift Summary Metrics Grid */}
           <ShiftMetricsGrid
-            completedMissions={3}
-            totalDistanceKm={42}
-            avgEtaMinutes={8.5}
-            shiftHoursElapsed={6.5}
+            completedMissions={completedAssignments.length}
+            totalDistanceKm={completedAssignments.length * 14}
+            avgEtaMinutes={6.5}
+            shiftHoursElapsed={4.5}
             totalShiftHours={12}
             onTimeRate={100}
           />
@@ -330,26 +488,31 @@ export const StaffDashboardScreen: React.FC = () => {
           {/* 5. Station & Vehicle Mini-Map Card */}
           <StationMiniMapCard
             stationName={
-              isEnglish
+              myTeam?.stationName ||
+              (isEnglish
                 ? 'Tan Binh IP Rescue & Fire Base'
-                : 'Trạm Cứu Hộ & PCCC KCN Tân Bình'
+                : 'Trạm Cứu Hộ & PCCC KCN Tân Bình')
             }
             stationAddress={
-              isEnglish
+              myTeam?.stationName
+                ? `Khu vực: ${myTeam.stationName}`
+                : isEnglish
                 ? 'Road CN13 & CN1, Tan Binh IP, Tan Phu, HCMC'
                 : 'Đường CN13 & CN1, KCN Tân Bình, P. Tây Thạnh, Tân Phú'
             }
             vehicleModel={
-              isEnglish
+              myTeam?.myTeamRescueUnitPlate
+                ? `Xe Cứu Hộ & Hazmat (#${myTeam.myTeamRescueUnitPlate})`
+                : isEnglish
                 ? 'IP Hazmat & Technical Rescue Unit #RESCUE-04'
                 : 'Xe Cứu Hộ & Xử Lý Hazmat KCN #RESCUE-04'
             }
             vehicleStatus={
               dutyStatus === 'online'
-                ? (isEnglish ? 'On duty at IP Base • Ready for emergency deployment' : 'Đang trực tại trạm KCN • Sẵn sàng xuất kích')
+                ? (isEnglish ? 'On duty at Base • Ready for emergency deployment' : 'Đang trực tại trạm • Sẵn sàng xuất kích')
                 : dutyStatus === 'busy'
                 ? (isEnglish ? 'Refilling SCBA Cylinders & Equipment Check' : 'Nạp khí bình SCBA & kiểm tra thiết bị Hazmat')
-                : (isEnglish ? 'Off duty • Handed over' : 'Đã nghỉ ca • Bàn giao xe KCN')
+                : (isEnglish ? 'Off duty • Handed over' : 'Đã nghỉ ca • Bàn giao xe')
             }
             latitude={10.8145}
             longitude={106.6268}
@@ -359,7 +522,7 @@ export const StaffDashboardScreen: React.FC = () => {
 
           {/* 6. Recent Missions List */}
           <RecentMissionsList
-            missions={localizedMissions}
+            missions={missionsList.length > 0 ? missionsList : DEFAULT_FALLBACK_MISSIONS}
             onPressMission={(mission) => setSelectedMission(mission)}
             onPressViewAll={handleViewAllHistory}
           />
@@ -376,9 +539,10 @@ export const StaffDashboardScreen: React.FC = () => {
         {/* Chặng 1: Full-screen Emergency Alert Modal */}
         <EmergencyAlertModal
           visible={isEmergencyAlertVisible}
-          incident={MOCK_EMERGENCY_INCIDENT}
+          incident={activeIncident}
+          assignmentId={dispatchedAssignment?.id}
           onAccept={handleAcceptEmergency}
-          onDecline={() => setIsEmergencyAlertVisible(false)}
+          onDecline={handleDeclineEmergency}
           onTimeout={() => setIsEmergencyAlertVisible(false)}
         />
 
@@ -479,6 +643,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 3,
+  },
+  emergencyAlertBannerActive: {
+    borderColor: '#DC2626',
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
   },
   emergencyBannerHeader: {
     flexDirection: 'row',

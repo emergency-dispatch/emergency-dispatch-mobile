@@ -27,15 +27,21 @@ import {
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ConfirmationModal } from '../common/ConfirmationModal';
-import { EmergencyIncident, MOCK_EMERGENCY_INCIDENT } from '../../types/dispatch';
+import {
+  EmergencyIncident,
+  MOCK_EMERGENCY_INCIDENT,
+  RejectAssignmentPayload,
+} from '../../types/dispatch';
+import { StaffRejectModal } from '../staff/StaffRejectModal';
 import { MapboxView } from '../map/MapboxView';
 import { mapboxService, MapMarkerItem, RoutePoint } from '../../services/mapbox.service';
 
 interface EmergencyAlertModalProps {
   visible: boolean;
   incident?: EmergencyIncident;
-  onAccept: (incident: EmergencyIncident) => void;
-  onDecline: () => void;
+  assignmentId?: string;
+  onAccept: (incident: EmergencyIncident) => Promise<void> | void;
+  onDecline: (payload?: RejectAssignmentPayload) => Promise<void> | void;
   onTimeout?: () => void;
 }
 
@@ -44,13 +50,14 @@ const TOTAL_COUNTDOWN = 30; // 30 seconds auto-decline countdown
 export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
   visible,
   incident = MOCK_EMERGENCY_INCIDENT,
+  assignmentId,
   onAccept,
   onDecline,
   onTimeout,
 }) => {
   const insets = useSafeAreaInsets();
   const [secondsRemaining, setSecondsRemaining] = useState<number>(TOTAL_COUNTDOWN);
-  const [isDeclineModalVisible, setIsDeclineModalVisible] = useState<boolean>(false);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState<boolean>(false);
   const [routeCoordinates, setRouteCoordinates] = useState<RoutePoint[]>([]);
 
   // Safe area insets calculation across Android/iOS devices
@@ -400,7 +407,7 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.declineButton}
-            onPress={() => setIsDeclineModalVisible(true)}
+            onPress={() => setIsRejectModalVisible(true)}
           >
             <X size={moderateScale(18)} color="#DC2626" />
             <Text style={styles.declineButtonText}>Từ Chối</Text>
@@ -422,21 +429,15 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Reusable Confirmation Modal: Decline Incident */}
-        <ConfirmationModal
-          visible={isDeclineModalVisible}
-          type="danger"
-          title="Từ Chối Lệnh Điều Động?"
-          description="Bạn có chắc chắn muốn từ chối nhiệm vụ cấp cứu khẩn cấp này?"
-          highlightBadge="CODE RED • T1"
-          highlightText="Lệnh điều động sẽ được chuyển sang xe cứu thương dự bị tiếp theo trong khu vực."
-          confirmText="Xác Nhận Từ Chối"
-          cancelText="Quay Lại"
-          onConfirm={() => {
-            setIsDeclineModalVisible(false);
-            onDecline();
+        {/* Modal: Decline Incident with Required Reason & Notes */}
+        <StaffRejectModal
+          visible={isRejectModalVisible}
+          incidentCode={incident.code}
+          onClose={() => setIsRejectModalVisible(false)}
+          onSubmitReject={async (payload) => {
+            setIsRejectModalVisible(false);
+            await onDecline(payload);
           }}
-          onCancel={() => setIsDeclineModalVisible(false)}
         />
       </View>
     </Modal>

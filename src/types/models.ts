@@ -12,6 +12,10 @@ export interface User {
   staffId?: string;
   vehiclePlate?: string;
   teamName?: string;
+  stationId?: string;
+  stationName?: string;
+  crewRole?: string;
+  rescueUnitId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

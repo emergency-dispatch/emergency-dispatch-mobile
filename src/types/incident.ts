@@ -112,6 +112,29 @@ export interface RoutePoint {
   longitude: number;
 }
 
+export interface TrackedUnitDto {
+  assignmentId: string;
+  rescueUnitId: string;
+  plateNumber?: string;
+  unitTypeName?: string;
+  stationName?: string;
+  stationPhoneNumber?: string;
+  vehicleLat: number;
+  vehicleLng: number;
+  lastLocationUpdateAt?: string;
+  routeTrajectory: RoutePoint[];
+  isApproximateRoute?: boolean;
+  distanceKm: number;
+  estimatedArrivalMinutes: number;
+  dispatchStatus: string;
+  dispatchedAt?: string;
+  acceptedAt?: string;
+  enRouteAt?: string;
+  arrivedAt?: string;
+  completedAt?: string;
+  notes?: string;
+}
+
 export interface CitizenTracking {
   incidentId: string;
   incidentTitle: string;
@@ -129,6 +152,7 @@ export interface CitizenTracking {
   vehicleLng?: number;
   lastLocationUpdateAt?: string;
   routeTrajectory: RoutePoint[];
+  isApproximateRoute?: boolean;
   distanceKm: number;
   estimatedArrivalMinutes: number;
   dispatchStatus: 'PendingDispatch' | 'Dispatched' | 'Accepted' | 'EnRoute' | 'OnScene' | 'Completed' | 'Cancelled';
@@ -137,6 +161,7 @@ export interface CitizenTracking {
   arrivedAt?: string;
   completedAt?: string;
   notes?: string;
+  units?: TrackedUnitDto[];
 }
 
 export interface RescueUnitDto {

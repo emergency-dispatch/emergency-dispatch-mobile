@@ -67,4 +67,7 @@ export const Endpoints = {
   AI: {
     ANALYZE: '/ai/analyze',
   },
+  SETTINGS: {
+    SERVICE_AREA: '/settings/service-area',
+  },
 } as const;

@@ -22,6 +22,7 @@ interface MapboxViewProps {
   userLongitude?: number;
   markers?: MapMarkerItem[];
   routeCoordinates?: RouteCoordinate[];
+  isApproximateRoute?: boolean;
   fitBounds?: boolean;
   interactive?: boolean;
   mapStyle?: 'streets' | 'satellite' | 'dark';
@@ -37,6 +38,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       userLongitude = 106.700806,
       markers = [],
       routeCoordinates = [],
+      isApproximateRoute = false,
       fitBounds = false,
       interactive = true,
       mapStyle = 'satellite',
@@ -68,14 +70,14 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       if (isMapReadyRef.current) {
         const js = `
           if (window.setRoute) {
-            window.setRoute(${JSON.stringify(routeCoordinates)});
+            window.setRoute(${JSON.stringify(routeCoordinates)}, ${isApproximateRoute ? 'true' : 'false'});
           }
           ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
           true;
         `;
         webViewRef.current?.injectJavaScript(js);
       }
-    }, [routeCoordinates, fitBounds, markers, userLatitude, userLongitude]);
+    }, [routeCoordinates, isApproximateRoute, fitBounds, markers, userLatitude, userLongitude]);
 
     // Sync user location marker when user coordinates update
     useEffect(() => {
@@ -156,7 +158,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           const js = `
             if (window.setUserLocation) window.setUserLocation(${userLatitude}, ${userLongitude});
             if (window.setMarkers) window.setMarkers(${JSON.stringify(markers)});
-            if (window.setRoute) window.setRoute(${JSON.stringify(routeCoordinates)});
+            if (window.setRoute) window.setRoute(${JSON.stringify(routeCoordinates)}, ${isApproximateRoute ? 'true' : 'false'});
             ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
             true;
           `;
@@ -692,7 +694,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     };
 
     // Update route polyline
-    window.setRoute = function(coords) {
+    window.setRoute = function(coords, isApproximate) {
       window.routeLayer.clearLayers();
       if (!coords || !Array.isArray(coords) || coords.length < 2) return;
       var latLngs = coords.map(function(c) { return [c.latitude, c.longitude]; });
@@ -706,15 +708,19 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         lineJoin: 'round'
       }).addTo(window.routeLayer);
 
-      // Core crisp polyline
-      L.polyline(latLngs, {
+      // Core crisp polyline - solid road line by default, dashed only when approximate
+      var polyOptions = {
         color: '#0284C7',
         weight: 3.5,
         opacity: 0.95,
-        dashArray: '8, 8',
         lineCap: 'round',
         lineJoin: 'round'
-      }).addTo(window.routeLayer);
+      };
+      if (isApproximate === true) {
+        polyOptions.dashArray = '6, 8';
+      }
+
+      L.polyline(latLngs, polyOptions).addTo(window.routeLayer);
     };
 
     // Fit bounds including markers and route

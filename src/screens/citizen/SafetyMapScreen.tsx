@@ -48,6 +48,7 @@ export const SafetyMapScreen: React.FC = () => {
   const { isAuthenticated, user } = useAppStore();
   const [markers, setMarkers] = useState<MapMarkerItem[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
+  const [isApproximateRoute, setIsApproximateRoute] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTrackingEta, setActiveTrackingEta] = useState<{
     incidentId: string;
@@ -59,6 +60,7 @@ export const SafetyMapScreen: React.FC = () => {
     status?: string;
     etaMinutes: number;
     distanceKm?: number;
+    isApproximate?: boolean;
   } | null>(null);
 
   // Manual location search & map pick state
@@ -201,6 +203,7 @@ export const SafetyMapScreen: React.FC = () => {
         status?: string;
         etaMinutes: number;
         distanceKm?: number;
+        isApproximate?: boolean;
       } | null = null;
 
       for (const inc of activeIncidents.slice(0, 5)) {
@@ -250,12 +253,14 @@ export const SafetyMapScreen: React.FC = () => {
                 status: tracking.dispatchStatus,
                 etaMinutes: etaMins,
                 distanceKm: distKm,
+                isApproximate: !!tracking.isApproximateRoute,
               };
             }
 
             // Route trajectory from backend
             if (tracking.routeTrajectory && tracking.routeTrajectory.length > 1 && calculatedRoute.length === 0) {
               calculatedRoute = tracking.routeTrajectory;
+              setIsApproximateRoute(!!tracking.isApproximateRoute);
             } else if (
               calculatedRoute.length === 0 &&
               tracking.vehicleLat &&
@@ -267,6 +272,7 @@ export const SafetyMapScreen: React.FC = () => {
                 { latitude: tracking.vehicleLat, longitude: tracking.vehicleLng },
                 { latitude: inc.latitude, longitude: inc.longitude }
               );
+              setIsApproximateRoute(false);
             }
           }
         } catch {
@@ -586,6 +592,7 @@ export const SafetyMapScreen: React.FC = () => {
           userLongitude={userCoords.longitude}
           markers={markers}
           routeCoordinates={routeCoordinates}
+          isApproximateRoute={isApproximateRoute}
           onMarkerPress={handleMarkerSelect}
           onMapPress={handleMapPress}
           mapStyle="satellite"

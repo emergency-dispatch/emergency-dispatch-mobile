@@ -20,7 +20,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { SosPulseButton, SosSuccessModal, SosConfirmModal } from '../../components/citizen';
+import { SosPulseButton, SosSuccessModal, SosConfirmModal, OutOfServiceAreaModal } from '../../components/citizen';
 import { MainTabParamList } from '../../navigation/types';
 import { useResponsive } from '../../utils/responsive';
 import { incidentService } from '../../services/incident.service';
@@ -61,6 +61,14 @@ export const HomeScreen: React.FC = () => {
   const [isSendingSos, setIsSendingSos] = useState(false);
   const [sosSendingLoadingText, setSosSendingLoadingText] = useState('');
   const [isSosPressing, setIsSosPressing] = useState(false);
+  const [outOfAreaInfo, setOutOfAreaInfo] = useState<{
+    visible: boolean;
+    areaName?: string | null;
+    radiusKm?: number;
+    distanceOutsideKm?: number;
+    latitude?: number;
+    longitude?: number;
+  }>({ visible: false });
 
   // Green GPS accuracy pulsing dot animation
   const gpsPulseAnim = useRef(new Animated.Value(1)).current;
@@ -183,6 +191,21 @@ export const HomeScreen: React.FC = () => {
 
       setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
       const loc = await useLocationStore.getState().refreshLocation(false);
+
+      const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
+      if (areaCheck.isOutside) {
+        setIsSendingSos(false);
+        setOutOfAreaInfo({
+          visible: true,
+          areaName: areaCheck.area?.name,
+          radiusKm: areaCheck.area?.radiusKm,
+          distanceOutsideKm: areaCheck.distanceOutsideKm,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        });
+        return;
+      }
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.'),
@@ -210,6 +233,21 @@ export const HomeScreen: React.FC = () => {
       setIsSendingSos(true);
       setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...');
       const loc = await useLocationStore.getState().refreshLocation(false);
+
+      const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
+      if (areaCheck.isOutside) {
+        setIsSendingSos(false);
+        setOutOfAreaInfo({
+          visible: true,
+          areaName: areaCheck.area?.name,
+          radiusKm: areaCheck.area?.radiusKm,
+          distanceOutsideKm: areaCheck.distanceOutsideKm,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        });
+        return;
+      }
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: t('sos.default_description_no_media', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).'),
@@ -372,6 +410,17 @@ export const HomeScreen: React.FC = () => {
         onCancelIncident={handleCancelIncident}
         address={address}
         incident={activeIncident}
+      />
+
+      {/* Out of Service Area Informational Modal */}
+      <OutOfServiceAreaModal
+        visible={outOfAreaInfo.visible}
+        onClose={() => setOutOfAreaInfo((prev) => ({ ...prev, visible: false }))}
+        areaName={outOfAreaInfo.areaName}
+        radiusKm={outOfAreaInfo.radiusKm}
+        distanceOutsideKm={outOfAreaInfo.distanceOutsideKm}
+        latitude={outOfAreaInfo.latitude}
+        longitude={outOfAreaInfo.longitude}
       />
     </ScreenContainer>
   );

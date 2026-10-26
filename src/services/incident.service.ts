@@ -11,6 +11,25 @@ import {
   StationDto,
 } from '../types/incident';
 
+export interface ServiceAreaDto {
+  enabled: boolean;
+  name: string | null;
+  centerLat: number;
+  centerLng: number;
+  radiusKm: number;
+}
+
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = 6371.0;
+  const rad = (deg: number) => (deg * Math.PI) / 180.0;
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export const incidentService = {
   /**
    * POST /api/incidents — Gửi báo cáo sự cố khẩn cấp SOS
@@ -150,4 +169,52 @@ export const incidentService = {
       return [];
     }
   },
+
+  /**
+   * GET /api/settings/service-area — Lấy cấu hình bán kính hoạt động nền tảng
+   */
+  async getServiceArea(): Promise<ServiceAreaDto | null> {
+    try {
+      const response = await apiService.get<BackendApiResponse<ServiceAreaDto | { values: ServiceAreaDto }>>(
+        Endpoints.SETTINGS.SERVICE_AREA
+      );
+      if (!response.data) return null;
+      const data = response.data as any;
+      return (data && data.values) ? data.values : data;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Kiểm tra toạ độ có nằm ngoài bán kính hoạt động của nền tảng hay không.
+   */
+  async checkOutsideServiceArea(lat: number, lng: number): Promise<{
+    isOutside: boolean;
+    distanceOutsideKm: number;
+    area: ServiceAreaDto | null;
+  }> {
+    try {
+      const area = await this.getServiceArea();
+      if (!area || !area.enabled || !(area.radiusKm > 0)) {
+        return { isOutside: false, distanceOutsideKm: 0, area: null };
+      }
+      const centerLat = area.centerLat ?? (area as any).CenterLat;
+      const centerLng = area.centerLng ?? (area as any).CenterLng;
+      const radiusKm = area.radiusKm ?? (area as any).RadiusKm;
+      const dist = haversineDistanceKm(lat, lng, centerLat, centerLng);
+      const outside = dist - radiusKm;
+      if (outside > 0) {
+        return {
+          isOutside: true,
+          distanceOutsideKm: Math.round(outside * 10) / 10,
+          area,
+        };
+      }
+      return { isOutside: false, distanceOutsideKm: 0, area };
+    } catch {
+      return { isOutside: false, distanceOutsideKm: 0, area: null };
+    }
+  },
 };
+

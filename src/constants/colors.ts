@@ -29,8 +29,14 @@ export const CadColors = {
   red: '#DC2626',
 };
 
-// Emergency Severity Levels (1 - Low to 5 - Critical)
+// Emergency Severity Levels (0 - Unclassified, 1 - Low, 2 - Moderate, 3 - Critical)
 export const SeverityColors = {
+  0: {
+    color: '#8B5CF6', // Purple - Unclassified / Manual Review
+    bg: 'rgba(139, 92, 246, 0.12)',
+    border: '#DDD6FE',
+    text: '#6D28D9',
+  },
   1: {
     color: '#10B981', // Emerald - Low
     bg: 'rgba(16, 185, 129, 0.12)',
@@ -44,22 +50,10 @@ export const SeverityColors = {
     text: '#B45309',
   },
   3: {
-    color: '#F97316', // Orange - High
-    bg: 'rgba(249, 115, 22, 0.12)',
-    border: '#FED7AA',
-    text: '#C2410C',
-  },
-  4: {
-    color: '#DC2626', // Emergency Red - Severe
+    color: '#DC2626', // Emergency Red - Critical
     bg: 'rgba(220, 38, 38, 0.12)',
     border: '#FECACA',
     text: '#B91C1C',
-  },
-  5: {
-    color: '#8B5CF6', // Purple/Violet Alert - Critical
-    bg: 'rgba(139, 92, 246, 0.12)',
-    border: '#DDD6FE',
-    text: '#6D28D9',
   },
 };
 

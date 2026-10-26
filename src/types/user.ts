@@ -17,6 +17,13 @@ export interface UserResponseDto {
   address?: string | null;
   bloodType?: string | null;
   medicalNotes?: string | null;
+  chronicConditions?: string[];
+  allergies?: string[];
+  currentMedications?: string[];
+  mobilityLimitations?: string[];
+  preferredLanguage?: string | null;
+  dependentsNote?: string | null;
+  householdMembersCount?: number | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
@@ -38,6 +45,13 @@ export interface UpdateProfileDto {
   address?: string | null;
   bloodType?: string | null;
   medicalNotes?: string | null;
+  chronicConditions?: string[] | null;
+  allergies?: string[] | null;
+  currentMedications?: string[] | null;
+  mobilityLimitations?: string[] | null;
+  preferredLanguage?: string | null;
+  dependentsNote?: string | null;
+  householdMembersCount?: number | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
@@ -246,10 +260,10 @@ export const mapBackendUserToProfile = (
 
     medicalId: {
       bloodType: mapBloodTypeFromBackend(dto.bloodType),
-      chronicConditions: currentProfile?.medicalId?.chronicConditions || [],
-      allergies: currentProfile?.medicalId?.allergies || [],
-      currentMedications: currentProfile?.medicalId?.currentMedications || [],
-      mobilityLimitations: currentProfile?.medicalId?.mobilityLimitations || [],
+      chronicConditions: Array.isArray(dto.chronicConditions) ? dto.chronicConditions : currentProfile?.medicalId?.chronicConditions || [],
+      allergies: Array.isArray(dto.allergies) ? dto.allergies : currentProfile?.medicalId?.allergies || [],
+      currentMedications: Array.isArray(dto.currentMedications) ? dto.currentMedications : currentProfile?.medicalId?.currentMedications || [],
+      mobilityLimitations: Array.isArray(dto.mobilityLimitations) ? dto.mobilityLimitations : currentProfile?.medicalId?.mobilityLimitations || [],
       additionalNotes: dto.medicalNotes || '',
     },
 
@@ -260,9 +274,9 @@ export const mapBackendUserToProfile = (
     },
 
     specialInfo: {
-      preferredLanguage: currentProfile?.specialInfo?.preferredLanguage || 'Tiếng Việt',
-      dependentsNote: currentProfile?.specialInfo?.dependentsNote || '',
-      householdMembersCount: currentProfile?.specialInfo?.householdMembersCount,
+      preferredLanguage: dto.preferredLanguage || currentProfile?.specialInfo?.preferredLanguage || 'Tiếng Việt',
+      dependentsNote: dto.dependentsNote ?? currentProfile?.specialInfo?.dependentsNote ?? '',
+      householdMembersCount: dto.householdMembersCount ?? currentProfile?.specialInfo?.householdMembersCount,
     },
   };
 };
@@ -283,6 +297,13 @@ export const mapProfileToUpdateDto = (profile: UserEmergencyProfile): UpdateProf
     address: profile.address || null,
     bloodType: mapBloodTypeToBackend(profile.medicalId?.bloodType),
     medicalNotes: profile.medicalId?.additionalNotes || null,
+    chronicConditions: profile.medicalId?.chronicConditions || [],
+    allergies: profile.medicalId?.allergies || [],
+    currentMedications: profile.medicalId?.currentMedications || [],
+    mobilityLimitations: profile.medicalId?.mobilityLimitations || [],
+    preferredLanguage: profile.specialInfo?.preferredLanguage || null,
+    dependentsNote: profile.specialInfo?.dependentsNote || null,
+    householdMembersCount: profile.specialInfo?.householdMembersCount ?? null,
     emergencyContactName: primaryContact?.name || null,
     emergencyContactPhone: primaryContact?.phoneNumber || null,
     emergencyContactRelationship: primaryContact?.relationship || null,

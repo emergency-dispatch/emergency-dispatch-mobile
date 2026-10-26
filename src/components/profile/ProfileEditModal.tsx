@@ -211,6 +211,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [dependentsNote, setDependentsNote] = useState(
     profile.specialInfo?.dependentsNote || ''
   );
+  const [householdMembersCount, setHouseholdMembersCount] = useState(
+    profile.specialInfo?.householdMembersCount !== undefined && profile.specialInfo?.householdMembersCount !== null
+      ? String(profile.specialInfo.householdMembersCount)
+      : ''
+  );
 
   // Date of Birth & Age 18+ Validation States
   const [dobError, setDobError] = useState('');
@@ -464,6 +469,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         ...profile.specialInfo,
         preferredLanguage: preferredLanguage.trim(),
         dependentsNote: dependentsNote.trim(),
+        householdMembersCount: householdMembersCount.trim() ? parseInt(householdMembersCount.trim(), 10) : undefined,
       },
       updatedAt: new Date().toISOString(),
     };
@@ -1157,6 +1163,20 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         value={preferredLanguage}
                         onChangeText={setPreferredLanguage}
                         placeholder="VD: Tiếng Việt, Tiếng Anh, Tiếng Trung..."
+                        placeholderTextColor="#64748B"
+                      />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>
+                        Số lượng thành viên trong hộ gia đình
+                      </Text>
+                      <TextInput
+                        style={styles.input}
+                        value={householdMembersCount}
+                        onChangeText={(txt) => setHouseholdMembersCount(txt.replace(/[^0-9]/g, ''))}
+                        keyboardType="number-pad"
+                        placeholder="VD: 4"
                         placeholderTextColor="#64748B"
                       />
                     </View>

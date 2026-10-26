@@ -295,7 +295,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const daysInSelectedMonth = new Date(pickerYear, pickerMonth, 0).getDate();
   const isDayValid = pickerDay >= 1 && pickerDay <= daysInSelectedMonth;
   const isAgeValid = pickerAge >= 18;
-  const isNotFuture = pickerAge >= 0;
+  const isNotFuture = pickerYear <= CURRENT_YEAR && pickerAge >= 0;
   const isPickerValid = isAgeValid && isNotFuture && isDayValid && pickerYear >= MIN_BIRTH_YEAR;
 
   const currentDecadeObj =
@@ -307,7 +307,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   const handleConfirmDate = () => {
     if (!isPickerValid) {
-      if (!isDayValid) {
+      if (!isNotFuture) {
+        Alert.alert(
+          'Ngày sinh không hợp lệ',
+          `Ngày sinh không thể ở tương lai (Năm ${pickerYear}). Yêu cầu từ đủ 18 tuổi trở lên (sinh năm ${MAX_BIRTH_YEAR} trở về trước).`
+        );
+      } else if (!isDayValid) {
         Alert.alert(
           'Ngày không hợp lệ',
           `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày.`
@@ -405,11 +410,16 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập họ tên và số điện thoại người thân.');
       return;
     }
+    const cleanContactPhone = newContactPhone.trim().replace(/\s/g, '');
+    if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(cleanContactPhone)) {
+      Alert.alert('Số điện thoại không hợp lệ', 'Số điện thoại người thân không đúng định dạng di động Việt Nam (ví dụ: 0912345678).');
+      return;
+    }
     const newContact: IceContact = {
       id: `ice_${Date.now()}`,
       name: newContactName.trim(),
       relationship: newContactRelation.trim() || 'Người thân',
-      phoneNumber: newContactPhone.trim(),
+      phoneNumber: cleanContactPhone,
       isPrimary: contacts.length === 0,
     };
     setContacts([...contacts, newContact]);
@@ -428,19 +438,36 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       Alert.alert('Lỗi', 'Họ và tên không được để trống.');
       return;
     }
-    if (!phoneNumber.trim()) {
+    const cleanPhone = phoneNumber.trim().replace(/\s/g, '');
+    if (!cleanPhone) {
       Alert.alert('Lỗi', 'Số điện thoại không được để trống.');
       return;
     }
+    if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(cleanPhone)) {
+      Alert.alert('Số điện thoại không hợp lệ', 'Số điện thoại không đúng định dạng di động Việt Nam (ví dụ: 0912345678).');
+      return;
+    }
 
-    if (dateOfBirth.trim()) {
-      const ageCheck = validateDobAge18(dateOfBirth);
-      if (!ageCheck.isValid) {
-        setDobError(ageCheck.error || 'Ngày sinh không hợp lệ');
-        Alert.alert('Lỗi ngày sinh', ageCheck.error);
-        setActiveTab('identity');
-        return;
-      }
+    if (!dateOfBirth.trim()) {
+      setDobError('Vui lòng chọn ngày sinh (từ đủ 18 tuổi trở lên)');
+      Alert.alert('Lỗi ngày sinh', 'Ngày sinh là bắt buộc. Ứng dụng yêu cầu người dùng từ đủ 18 tuổi trở lên.');
+      setActiveTab('identity');
+      return;
+    }
+
+    const ageCheck = validateDobAge18(dateOfBirth);
+    if (!ageCheck.isValid) {
+      setDobError(ageCheck.error || 'Ngày sinh không hợp lệ');
+      Alert.alert('Lỗi ngày sinh', ageCheck.error);
+      setActiveTab('identity');
+      return;
+    }
+
+    const cleanId = idCardNumber.trim();
+    if (cleanId && !/^[0-9]{9}([0-9]{3})?$/.test(cleanId)) {
+      Alert.alert('Số CCCD không hợp lệ', 'Số CMND/CCCD phải gồm đúng 9 hoặc 12 chữ số.');
+      setActiveTab('identity');
+      return;
     }
 
     const updatedProfile: UserEmergencyProfile = {
@@ -1277,8 +1304,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         ? `${String(pickerDay).padStart(2, '0')}/${String(pickerMonth).padStart(2, '0')}/${pickerYear} • ${pickerAge} tuổi (Hợp lệ)`
                         : !isDayValid
                           ? `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày`
-                          : pickerAge < 0
-                            ? 'Ngày sinh không thể ở tương lai'
+                          : (pickerYear > CURRENT_YEAR || pickerAge < 0)
+                            ? `Ngày sinh không thể ở tương lai (Năm ${pickerYear})`
                             : `Chưa đủ 18 tuổi (${pickerAge} tuổi)`}
                     </Text>
                   </View>

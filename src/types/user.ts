@@ -189,8 +189,9 @@ export const validateDobAge18 = (
     };
   }
 
+  const curYear = new Date().getFullYear();
   const age = calculateAgeFromParts(day, month, year);
-  if (age < 0) {
+  if (year > curYear || age < 0) {
     return { isValid: false, error: 'Ngày sinh không thể ở tương lai' };
   }
   if (age < 18) {

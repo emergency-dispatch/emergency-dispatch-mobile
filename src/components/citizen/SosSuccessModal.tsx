@@ -107,11 +107,14 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               <CheckCircle2 size={16} color="#16A34A" />
               <Text style={styles.statusText}>{t('sos_modal.connected_rescue')}</Text>
             </View>
-            {incident?.aiClassification && (
+            {incident?.aiClassification?.isSuccess === true &&
+              incident.aiClassification.eventType !== 'None' &&
+              Boolean(incident.aiClassification.summary) &&
+              !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(incident.aiClassification.summary || '') && (
               <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
                 <Sparkles size={16} color="#0284C7" style={{ marginTop: 2 }} />
                 <Text style={[styles.statusText, { color: '#0284C7', flex: 1 }]}>
-                  AI Phân Loại ({incident.severity}): {incident.aiClassification.summary}
+                  Thông tin hiện trường: {incident.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}
                 </Text>
               </View>
             )}

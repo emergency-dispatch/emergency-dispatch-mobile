@@ -35,6 +35,8 @@ export interface AiClassificationResultDto {
   modelName: string;
   isSuccess: boolean;
   processingDurationMs: number;
+  eventType?: string | null;
+  incidentType?: string | null;
 }
 
 export interface CreateIncidentDto {
@@ -57,6 +59,7 @@ export interface IncidentResponseDto {
   locationAddress: string;
   status: IncidentStatus;
   severity: SeverityLevel;
+  eventType?: string | null;
   reportedByUserId?: string | null;
   reporterName?: string | null;
   reporterPhone?: string | null;

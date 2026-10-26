@@ -16,12 +16,16 @@ interface SosPulseButtonProps {
   onSosTriggered: () => void;
   holdDuration?: number; // default 2000ms
   onPressStateChange?: (isPressing: boolean) => void;
+  disabled?: boolean;
+  cooldownSeconds?: number;
 }
 
 export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   onSosTriggered,
   holdDuration = 2000,
   onPressStateChange,
+  disabled = false,
+  cooldownSeconds = 0,
 }) => {
   const { t } = useTranslation();
   const { width, isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
@@ -95,8 +99,10 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
     };
   }, []);
 
+  const isCooldown = disabled || cooldownSeconds > 0;
+
   const triggerSos = () => {
-    if (hasTriggeredRef.current) return;
+    if (isCooldown || hasTriggeredRef.current) return;
     hasTriggeredRef.current = true;
     Vibration.vibrate([0, 300, 100, 300]);
     onSosTriggered();
@@ -104,6 +110,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   };
 
   const handlePressIn = () => {
+    if (isCooldown) return;
     hasTriggeredRef.current = false;
     setIsPressing(true);
     onPressStateChange?.(true);
@@ -176,33 +183,37 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
 
   return (
     <View style={[styles.outerContainer, { width: outerSize, height: outerSize }]}>
-      {/* Ambient Pulsing Background Waves (pointerEvents="none" to not steal touches) */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.glowRing,
-          {
-            width: buttonSize,
-            height: buttonSize,
-            borderRadius: buttonSize / 2,
-            transform: [{ scale: pulseAnim2 }],
-            opacity: pulseOpacity2,
-          },
-        ]}
-      />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.glowRing,
-          {
-            width: buttonSize,
-            height: buttonSize,
-            borderRadius: buttonSize / 2,
-            transform: [{ scale: pulseAnim1 }],
-            opacity: pulseOpacity1,
-          },
-        ]}
-      />
+      {/* Ambient Pulsing Background Waves (disabled during cooldown) */}
+      {!isCooldown && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.glowRing,
+              {
+                width: buttonSize,
+                height: buttonSize,
+                borderRadius: buttonSize / 2,
+                transform: [{ scale: pulseAnim2 }],
+                opacity: pulseOpacity2,
+              },
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.glowRing,
+              {
+                width: buttonSize,
+                height: buttonSize,
+                borderRadius: buttonSize / 2,
+                transform: [{ scale: pulseAnim1 }],
+                opacity: pulseOpacity1,
+              },
+            ]}
+          />
+        </>
+      )}
 
       {/* Press Active Expanding Progress Ring */}
       {isPressing && (
@@ -238,7 +249,8 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
               height: buttonSize,
               borderRadius: buttonSize / 2,
             },
-            pressed && styles.buttonPressed,
+            isCooldown && styles.buttonCooldown,
+            pressed && !isCooldown && styles.buttonPressed,
           ]}
           accessible={true}
           accessibilityLabel="Nút báo động khẩn cấp SOS. Nhấn và giữ 2 giây để gửi tín hiệu cứu nạn"
@@ -268,22 +280,34 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
             </View>
 
             {/* Central SOS Icon & Text */}
-            <ShieldAlert size={iconSize} color="#FFFFFF" strokeWidth={2.4} />
+            <ShieldAlert size={iconSize} color={isCooldown ? '#E2E8F0' : '#FFFFFF'} strokeWidth={2.4} />
             <Text
               style={[
                 styles.sosTitle,
                 {
-                  fontSize: fontScale(isSmallDevice || isShortScreen ? 26 : 32),
+                  fontSize: fontScale(isSmallDevice || isShortScreen ? (isCooldown ? 22 : 26) : (isCooldown ? 26 : 32)),
                   lineHeight: fontScale(isSmallDevice || isShortScreen ? 28 : 34),
+                  color: isCooldown ? '#E2E8F0' : '#FFFFFF',
                 },
               ]}
             >
-              SOS
+              {isCooldown ? 'CHỜ' : 'SOS'}
             </Text>
 
             {/* Hold instruction or Progress */}
             <View style={styles.statusContainer}>
-              {isPressing ? (
+              {isCooldown ? (
+                <Text
+                  style={[
+                    styles.holdText,
+                    { fontSize: fontScale(isSmallDevice ? 10 : 11.5), color: '#CBD5E1', fontWeight: '700' },
+                  ]}
+                >
+                  {cooldownSeconds > 0
+                    ? `${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}`
+                    : 'Đã báo cáo'}
+                </Text>
+              ) : isPressing ? (
                 <Text
                   style={[
                     styles.holdingText,
@@ -350,6 +374,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 20,
     elevation: 14,
+  },
+  buttonCooldown: {
+    backgroundColor: '#64748B',
+    borderColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonPressed: {
     backgroundColor: '#B91C1C',

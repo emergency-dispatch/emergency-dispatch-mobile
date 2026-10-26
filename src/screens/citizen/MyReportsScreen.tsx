@@ -116,28 +116,6 @@ export const MyReportsScreen: React.FC = () => {
     fetchIncidents();
   };
 
-  const handleCancelReport = (incidentId: string) => {
-    Alert.alert(
-      t('reports.cancel_title', 'Hủy Báo Cáo Sự Cố'),
-      t('reports.cancel_confirm_message', 'Bạn có chắc chắn muốn hủy yêu cầu cứu hộ cho sự cố này không?'),
-      [
-        { text: t('common.cancel', 'Quay lại'), style: 'cancel' },
-        {
-          text: t('reports.cancel_confirm_btn', 'Xác nhận hủy'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await incidentService.cancelIncident(incidentId, 'Người dân tự hủy báo cáo');
-              Alert.alert(t('common.success', 'Thành công'), t('reports.cancel_success', 'Đã hủy báo cáo sự cố thành công.'));
-              fetchIncidents();
-            } catch (err: any) {
-              Alert.alert(t('common.error', 'Lỗi'), err.message || t('reports.cancel_failed', 'Không thể hủy sự cố này.'));
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const getStatusBadge = (status: IncidentStatus) => {
     switch (status) {
@@ -181,23 +159,27 @@ export const MyReportsScreen: React.FC = () => {
   };
 
 
-  const getLocalizedTitle = (title?: string) => {
-    if (!title) return t('reports.default_title', 'Sự Cố Khẩn Cấp');
-    const lower = title.toLowerCase();
-    if (lower.includes('báo động sos') || lower.includes('sos')) {
-      return t('reports.sos_alarm', 'Báo động SOS Khẩn cấp');
+  const getLocalizedTitle = (incident?: IncidentResponseDto | any, rawTitle?: string) => {
+    const isAiSuccess = incident?.aiClassification?.isSuccess === true;
+    const eventType = incident?.eventType || (isAiSuccess ? incident?.aiClassification?.eventType : null);
+    const aiType = isAiSuccess ? incident?.aiClassification?.incidentType : null;
+    if (eventType === 'FireExplosion' || aiType === 'fire') {
+      return '🔥 Hỏa Hoạn / Cháy Nổ';
     }
+    if (eventType === 'TrafficAccident' || aiType === 'accident') {
+      return '🚗 Tai Nạn Giao Thông';
+    }
+
+    const title = incident?.title || rawTitle;
+    if (!title || title.includes('Tín hiệu') || title.includes('SOS')) {
+      return '🚨 Tín Hiệu SOS';
+    }
+    const lower = title.toLowerCase();
     if (lower.includes('hỏa hoạn') || lower.includes('cháy') || lower.includes('fire')) {
-      return t('reports.fire_hazard', 'Sự Cố Hỏa Hoạn');
+      return '🔥 ' + t('reports.fire_hazard', 'Sự Cố Hỏa Hoạn');
     }
     if (lower.includes('tai nạn') || lower.includes('accident')) {
-      return t('reports.accident_hazard', 'Tai Nạn Khẩn Cấp');
-    }
-    if (lower.includes('y tế') || lower.includes('cấp cứu') || lower.includes('medical')) {
-      return t('reports.medical_hazard', 'Cấp Cứu Y Tế');
-    }
-    if (lower.includes('sự cố khẩn cấp') || lower.includes('khẩn cấp')) {
-      return t('reports.emergency_hazard', 'Sự Cố Khẩn Cấp');
+      return '🚗 ' + t('reports.accident_hazard', 'Tai Nạn Giao Thông');
     }
     return title;
   };
@@ -302,7 +284,7 @@ export const MyReportsScreen: React.FC = () => {
                 </View>
               </View>
 
-              <Text style={styles.itemType}>{getLocalizedTitle(item.title)}</Text>
+              <Text style={styles.itemType}>{getLocalizedTitle(item, item.title)}</Text>
               {item.description ? (
                 <Text style={styles.itemDesc} numberOfLines={2}>
                   {getLocalizedDescription(item.description)}
@@ -310,13 +292,16 @@ export const MyReportsScreen: React.FC = () => {
               ) : null}
 
               {/* AI Insight Box */}
-              {item.aiClassification?.summary && (
+              {item.aiClassification?.isSuccess === true &&
+                item.aiClassification?.eventType !== 'None' &&
+                Boolean(item.aiClassification?.summary) &&
+                !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(item.aiClassification?.summary || '') && (
                 <View style={styles.aiBox}>
                   <View style={styles.aiHeader}>
                     <Sparkles size={13} color="#0284C7" />
                     <Text style={styles.aiTitle}>{t('reports.ai_insight')}</Text>
                   </View>
-                  <Text style={styles.aiSummary}>{item.aiClassification.summary}</Text>
+                  <Text style={styles.aiSummary}>{item.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}</Text>
                 </View>
               )}
 
@@ -343,9 +328,9 @@ export const MyReportsScreen: React.FC = () => {
                   )}
                 </View>
 
-                {/* Actions row: Tracking & Cancel */}
-                <View style={styles.actionRowContainer}>
-                  {(item.status === IncidentStatus.Dispatched || item.status === IncidentStatus.InProgress) && (
+                {/* Actions row: Tracking */}
+                {(item.status === IncidentStatus.Dispatched || item.status === IncidentStatus.InProgress) && (
+                  <View style={styles.actionRowContainer}>
                     <TouchableOpacity
                       style={styles.trackingBtn}
                       activeOpacity={0.8}
@@ -354,19 +339,8 @@ export const MyReportsScreen: React.FC = () => {
                       <Navigation size={13} color="#FFFFFF" />
                       <Text style={styles.trackingBtnText}>{t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}</Text>
                     </TouchableOpacity>
-                  )}
-
-                  {item.status !== IncidentStatus.Completed && item.status !== IncidentStatus.Cancelled && (
-                    <TouchableOpacity
-                      style={styles.cancelIncidentBtn}
-                      activeOpacity={0.7}
-                      onPress={() => handleCancelReport(item.id)}
-                    >
-                      <XCircle size={13} color="#DC2626" />
-                      <Text style={styles.cancelIncidentBtnText}>{t('reports.cancel_report_btn', 'Hủy báo cáo này')}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -574,29 +548,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  cancelActionRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 8,
-    marginTop: 2,
-    alignItems: 'flex-end',
-  },
-  cancelIncidentBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  cancelIncidentBtnText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#DC2626',
   },
   modalOverlay: {
     flex: 1,

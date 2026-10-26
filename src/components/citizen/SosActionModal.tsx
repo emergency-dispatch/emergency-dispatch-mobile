@@ -83,7 +83,7 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
               <ActivityIndicator size="large" color="#DC2626" />
               <Text style={styles.loadingTitle}>{t('sos_modal.connecting_dispatch')}</Text>
               <Text style={styles.loadingSubtitle}>
-                {loadingMessage || 'Đang tải dữ liệu hiện trường và kích hoạt AI phân tích'}
+                {loadingMessage || 'Đang tải dữ liệu hiện trường và truyền tín hiệu cứu hộ...'}
               </Text>
             </View>
           ) : (

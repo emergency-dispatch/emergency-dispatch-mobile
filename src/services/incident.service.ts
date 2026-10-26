@@ -30,6 +30,17 @@ function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Bán kính hoạt động thực tế của nền tảng tại Khu Công nghệ cao (SHTP)
+const KCN_RADIUS_KM = 4.5;
+
+const DEFAULT_SERVICE_AREA: ServiceAreaDto = {
+  enabled: true,
+  name: 'Khu Công nghệ cao, TP. Thủ Đức (SHTP)',
+  centerLat: 10.8441,
+  centerLng: 106.8089,
+  radiusKm: KCN_RADIUS_KM,
+};
+
 export const incidentService = {
   /**
    * POST /api/incidents — Gửi báo cáo sự cố khẩn cấp SOS
@@ -196,24 +207,42 @@ export const incidentService = {
   }> {
     try {
       const area = await this.getServiceArea();
-      if (!area || !area.enabled || !(area.radiusKm > 0)) {
-        return { isOutside: false, distanceOutsideKm: 0, area: null };
-      }
-      const centerLat = area.centerLat ?? (area as any).CenterLat;
-      const centerLng = area.centerLng ?? (area as any).CenterLng;
-      const radiusKm = area.radiusKm ?? (area as any).RadiusKm;
+      const rawLat = area?.centerLat ?? (area as any)?.CenterLat;
+      const rawLng = area?.centerLng ?? (area as any)?.CenterLng;
+      const rawRad = area?.radiusKm ?? (area as any)?.RadiusKm;
+
+      const centerLat = typeof rawLat === 'number' && rawLat !== 0 ? rawLat : DEFAULT_SERVICE_AREA.centerLat;
+      const centerLng = typeof rawLng === 'number' && rawLng !== 0 ? rawLng : DEFAULT_SERVICE_AREA.centerLng;
+      // Bán kính hoạt động thực tế chỉ trong phạm vi KCN (tối đa 4.5 km)
+      const radiusKm = KCN_RADIUS_KM;
+      const areaName = area?.name || DEFAULT_SERVICE_AREA.name;
+
+      const effectiveArea: ServiceAreaDto = {
+        enabled: true,
+        name: areaName,
+        centerLat,
+        centerLng,
+        radiusKm,
+      };
+
       const dist = haversineDistanceKm(lat, lng, centerLat, centerLng);
       const outside = dist - radiusKm;
       if (outside > 0) {
         return {
           isOutside: true,
           distanceOutsideKm: Math.round(outside * 10) / 10,
-          area,
+          area: effectiveArea,
         };
       }
-      return { isOutside: false, distanceOutsideKm: 0, area };
+      return { isOutside: false, distanceOutsideKm: 0, area: effectiveArea };
     } catch {
-      return { isOutside: false, distanceOutsideKm: 0, area: null };
+      const dist = haversineDistanceKm(lat, lng, DEFAULT_SERVICE_AREA.centerLat, DEFAULT_SERVICE_AREA.centerLng);
+      const outside = dist - DEFAULT_SERVICE_AREA.radiusKm;
+      return {
+        isOutside: outside > 0,
+        distanceOutsideKm: outside > 0 ? Math.round(outside * 10) / 10 : 0,
+        area: DEFAULT_SERVICE_AREA,
+      };
     }
   },
 };

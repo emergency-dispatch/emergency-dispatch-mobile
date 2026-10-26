@@ -93,9 +93,27 @@ export const HomeScreen: React.FC = () => {
     return () => pulse.stop();
   }, []);
 
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
   // Fetch real GPS on mount (shared with Map screen)
   useEffect(() => {
     refreshLocation();
+
+    const checkCooldown = async () => {
+      const last = await storage.getItem<number>('LAST_SOS_REPORTED_AT');
+      if (last) {
+        const diff = Date.now() - Number(last);
+        if (diff < 180000) {
+          setCooldownSeconds(Math.ceil((180000 - diff) / 1000));
+          return;
+        }
+      }
+      setCooldownSeconds(0);
+    };
+
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRefreshGps = () => {
@@ -135,6 +153,8 @@ export const HomeScreen: React.FC = () => {
 
       setIsSosSuccessModalVisible(false);
       setActiveIncident(null);
+      await storage.removeItem('LAST_SOS_REPORTED_AT');
+      setCooldownSeconds(0);
       Alert.alert('Đã Hủy Báo Động', 'Tín hiệu SOS đã được hủy bỏ thành công.');
     } catch {
       setIsSosSuccessModalVisible(false);
@@ -142,9 +162,32 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // When SOS pulse button is held for 2s: open camera with crop, then open confirm modal with note
+  // When SOS pulse button is held for 2s: check service area, then open camera with crop, then open confirm modal with note
   const handleSosTriggered = async () => {
+    if (cooldownSeconds > 0) {
+      const m = Math.floor(cooldownSeconds / 60);
+      const s = cooldownSeconds % 60;
+      Alert.alert(
+        'Vui Lòng Chờ',
+        `Bạn vừa gửi một yêu cầu cứu hộ đang được xử lý. Vui lòng chờ ${m}:${s < 10 ? '0' : ''}${s} trước khi gửi lại.`
+      );
+      return;
+    }
     try {
+      const loc = await useLocationStore.getState().refreshLocation(false);
+      const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
+      if (areaCheck.isOutside) {
+        setOutOfAreaInfo({
+          visible: true,
+          areaName: areaCheck.area?.name,
+          radiusKm: areaCheck.area?.radiusKm,
+          distanceOutsideKm: areaCheck.distanceOutsideKm,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        });
+        return;
+      }
+
       const asset = await mediaService.pickFromCamera();
       if (asset) {
         setPendingSosAsset(asset);
@@ -180,18 +223,9 @@ export const HomeScreen: React.FC = () => {
   const handleConfirmSosDispatch = async (note: string) => {
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
-    setSosSendingLoadingText('Đang kết nối trung tâm cứu hộ khẩn cấp...');
+    setSosSendingLoadingText('Đang xác thực phạm vi cứu hộ...');
     try {
-      let mediaUrls: string[] = [];
-      if (pendingSosAsset) {
-        setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
-        const url = await mediaService.uploadMedia(pendingSosAsset);
-        if (url) mediaUrls.push(url);
-      }
-
-      setSosSendingLoadingText('AI đang phân tích nguy cơ & kích hoạt điều phối...');
       const loc = await useLocationStore.getState().refreshLocation(false);
-
       const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
       if (areaCheck.isOutside) {
         setIsSendingSos(false);
@@ -206,6 +240,15 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
+      let mediaUrls: string[] = [];
+      if (pendingSosAsset) {
+        setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
+        const url = await mediaService.uploadMedia(pendingSosAsset);
+        if (url) mediaUrls.push(url);
+      }
+
+      setSosSendingLoadingText('Đang kết nối trung tâm & kích hoạt điều phối cứu hộ...');
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.'),
@@ -219,6 +262,8 @@ export const HomeScreen: React.FC = () => {
 
       setActiveIncident(created);
       await recordIncidentId(created.id, created);
+      await storage.setItem('LAST_SOS_REPORTED_AT', Date.now());
+      setCooldownSeconds(180);
       setPendingSosAsset(null);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
@@ -344,6 +389,8 @@ export const HomeScreen: React.FC = () => {
             onSosTriggered={handleSosTriggered}
             holdDuration={2000}
             onPressStateChange={setIsSosPressing}
+            disabled={cooldownSeconds > 0}
+            cooldownSeconds={cooldownSeconds}
           />
 
           {/* Reference Layout Prompt */}

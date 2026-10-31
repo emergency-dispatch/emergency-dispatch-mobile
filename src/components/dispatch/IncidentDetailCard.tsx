@@ -181,7 +181,7 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
               {incident.callerName}
             </Text>
             <Text style={styles.compactCallerSub} numberOfLines={1}>
-              {incident.callerPhone} • Nhân chứng
+              {incident.callerPhone} • Người báo cáo
             </Text>
           </View>
 
@@ -211,30 +211,36 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
           showsVerticalScrollIndicator={true}
         >
           {/* 1. Caller & On-Scene Contact Card */}
+          {/* 1. Caller & On-Scene Contact Card */}
           <View style={styles.callerCard}>
             <View style={styles.callerAvatarWrap}>
-              <Users size={moderateScale(18)} color="#DC2626" />
+              <Users size={moderateScale(16)} color="#DC2626" />
             </View>
 
             <View style={styles.callerInfoGroup}>
-              <Text style={styles.callerName} numberOfLines={1}>
-                {incident.callerName}
-              </Text>
+              <View style={styles.callerNameRow}>
+                <Text style={styles.callerName} numberOfLines={1}>
+                  {incident.callerName}
+                </Text>
+                <View style={styles.callerRoleBadge}>
+                  <Text style={styles.callerRoleText}>Người báo cáo</Text>
+                </View>
+              </View>
+
               <View style={styles.callerSubRow}>
-                <Text style={styles.callerPhoneText}>{incident.callerPhone}</Text>
+                <Text style={styles.callerPhoneText} numberOfLines={1}>
+                  {incident.callerPhone}
+                </Text>
                 {incident.callerPhone.includes('*') && onRevealPhone && (
                   <TouchableOpacity
                     activeOpacity={0.7}
                     style={styles.revealPhoneChip}
                     onPress={onRevealPhone}
                   >
-                    <Eye size={moderateScale(12)} color="#DC2626" />
-                    <Text style={styles.revealPhoneText}>Mở khóa SĐT</Text>
+                    <Eye size={moderateScale(11)} color="#DC2626" />
+                    <Text style={styles.revealPhoneText}>Mở khóa</Text>
                   </TouchableOpacity>
                 )}
-                <View style={styles.callerRoleBadge}>
-                  <Text style={styles.callerRoleText}>Nhân chứng</Text>
-                </View>
               </View>
             </View>
 
@@ -244,22 +250,24 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
                 activeOpacity={0.8}
                 style={styles.smsButton}
                 onPress={handleSmsCaller}
+                accessibilityLabel="Nhắn tin cho người báo cáo"
               >
-                <MessageSquare size={moderateScale(16)} color="#DC2626" />
+                <MessageSquare size={moderateScale(15)} color="#DC2626" />
               </TouchableOpacity>
 
               <TouchableOpacity
                 activeOpacity={0.8}
                 style={styles.callNowButton}
                 onPress={handleCallCaller}
+                accessibilityLabel="Gọi điện cho người báo cáo"
               >
-                <Phone size={moderateScale(15)} color="#FFFFFF" />
+                <Phone size={moderateScale(14)} color="#FFFFFF" />
                 <Text
                   style={styles.callNowText}
                   numberOfLines={1}
                   maxFontSizeMultiplier={1.15}
                 >
-                  Gọi Ngay
+                  Gọi
                 </Text>
               </TouchableOpacity>
             </View>
@@ -583,74 +591,103 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(10),
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: scale(8),
+    gap: scale(10),
   },
   callerAvatarWrap: {
-    width: moderateScale(30),
-    height: moderateScale(30),
-    borderRadius: moderateScale(15),
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   callerInfoGroup: {
     flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
-  callerName: {
-    fontSize: moderateScale(12),
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  callerSubRow: {
+  callerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(5),
-    marginTop: verticalScale(1),
+    gap: scale(6),
+  },
+  callerName: {
+    fontSize: moderateScale(12.5),
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
   },
   callerRoleBadge: {
     backgroundColor: '#FEF2F2',
-    paddingVertical: verticalScale(1),
-    paddingHorizontal: scale(5),
+    paddingVertical: verticalScale(1.5),
+    paddingHorizontal: scale(6),
     borderRadius: moderateScale(4),
     borderWidth: 1,
     borderColor: '#FECACA',
+    flexShrink: 0,
   },
   callerRoleText: {
     fontSize: moderateScale(8.5),
     fontWeight: '700',
     color: '#DC2626',
   },
+  callerSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    marginTop: verticalScale(2),
+  },
   callerPhoneText: {
-    fontSize: moderateScale(10.5),
+    fontSize: moderateScale(11),
     color: '#64748B',
     fontFamily: 'monospace',
     fontWeight: '600',
+    flexShrink: 1,
+  },
+  revealPhoneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(3),
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(1.5),
+    borderRadius: moderateScale(8),
+    flexShrink: 0,
+  },
+  revealPhoneText: {
+    fontSize: moderateScale(9),
+    fontWeight: '700',
+    color: '#DC2626',
   },
   contactActionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(5),
+    gap: scale(6),
+    flexShrink: 0,
   },
   smsButton: {
-    width: moderateScale(30),
-    height: moderateScale(30),
-    borderRadius: moderateScale(15),
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(16),
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FCA5A5',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   callNowButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#DC2626',
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(9),
+    height: moderateScale(32),
+    paddingHorizontal: scale(10),
     borderRadius: moderateScale(8),
     gap: scale(4),
     shadowColor: '#DC2626',
@@ -658,9 +695,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 2,
     elevation: 2,
+    flexShrink: 0,
   },
   callNowText: {
-    fontSize: moderateScale(10.5),
+    fontSize: moderateScale(11),
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -842,21 +880,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#059669',
     letterSpacing: 0.5,
-  },
-  revealPhoneChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(4),
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: scale(7),
-    paddingVertical: verticalScale(2),
-    borderRadius: moderateScale(10),
-    marginLeft: scale(6),
-  },
-  revealPhoneText: {
-    fontSize: moderateScale(10),
-    fontWeight: '700',
-    color: '#DC2626',
   },
   operatorNotesCard: {
     backgroundColor: '#F0F9FF',

@@ -1,32 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import {
-  CheckCircle2,
-  Navigation,
-  Clock,
-  Zap,
-  TrendingUp,
-  ShieldAlert,
-} from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 
 interface ShiftMetricsGridProps {
-  completedMissions: number;
-  totalDistanceKm: number;
-  avgEtaMinutes: number;
+  completedMissions?: number;
+  totalDistanceKm?: number;
+  avgEtaMinutes?: number;
   shiftHoursElapsed?: number;
   totalShiftHours?: number;
   onTimeRate?: number;
+  fuelStatus?: string;
+  etaComparison?: string;
 }
 
 export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
-  completedMissions = 3,
-  totalDistanceKm = 42,
-  avgEtaMinutes = 8.5,
-  shiftHoursElapsed = 6.5,
+  completedMissions = 0,
+  totalDistanceKm = 0,
+  avgEtaMinutes = 6.5,
+  shiftHoursElapsed = 4.5,
   totalShiftHours = 12,
   onTimeRate = 100,
+  fuelStatus = 'Nhiên liệu 85%',
+  etaComparison = 'Nhanh hơn 1.2m',
 }) => {
   const { t } = useTranslation();
   const shiftProgressPercent = Math.min(
@@ -36,138 +32,69 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Shift Title & Progress */}
+      {/* Title & Shift Progress */}
       <View style={styles.headerRow}>
-        <View style={styles.titleGroup}>
-          <TrendingUp size={moderateScale(15)} color="#DC2626" />
-          <Text
-            style={styles.sectionTitle}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-          >
-            {t('staff.metrics_title')}
-          </Text>
-        </View>
-        <Text
-          style={styles.shiftTimeText}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.15}
-        >
-          {shiftHoursElapsed}h / {totalShiftHours}h ({shiftProgressPercent}%)
+        <Text style={styles.titleText}>
+          {t('staff.metrics_title') || 'Ca trực hôm nay'}
+        </Text>
+        <Text style={styles.progressText}>
+          {shiftHoursElapsed}h / {totalShiftHours}h
         </Text>
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressBarBg}>
+      {/* Clean Minimalist Progress Bar */}
+      <View style={styles.progressTrack}>
         <View
           style={[
-            styles.progressBarFill,
+            styles.progressFill,
             { width: `${shiftProgressPercent}%` },
           ]}
         />
       </View>
 
-      {/* 3-Column Metrics Grid */}
-      <View style={styles.gridRow}>
-        {/* Metric 1: Completed Missions */}
-        <View style={styles.metricCard}>
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-            <CheckCircle2 size={moderateScale(18)} color="#10B981" />
-          </View>
-          <View style={styles.valueRow}>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {completedMissions}
-            </Text>
-            <Text style={styles.metricUnit} numberOfLines={1}>
-              {t('staff.unit_mission')}
-            </Text>
-          </View>
-          <Text
-            style={styles.metricLabel}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-          >
-            {t('staff.completed_missions')}
+      {/* 3-Column Minimalist Metric Counter (Flat & Card-Light) */}
+      <View style={styles.metricGrid}>
+        {/* Column 1: Sự cố */}
+        <View style={styles.metricCol}>
+          <Text style={styles.metricLabel} numberOfLines={1}>
+            {t('staff.metric_incident') || 'Sự cố'}
           </Text>
-          <View style={styles.subBadge}>
-            <Text
-              style={[styles.subBadgeText, { color: '#34D399' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.15}
-            >
-              {onTimeRate}% {t('staff.on_time')}
-            </Text>
-          </View>
+          <Text style={styles.metricValue} numberOfLines={1}>
+            {completedMissions}
+          </Text>
+          <Text style={[styles.metricSub, { color: '#059669' }]} numberOfLines={1}>
+            {onTimeRate}% {t('staff.on_time') || 'đúng hạn'}
+          </Text>
         </View>
 
-        {/* Metric 2: Total Distance */}
-        <View style={styles.metricCard}>
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-            <Navigation size={moderateScale(18)} color="#06B6D4" />
-          </View>
-          <View style={styles.valueRow}>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {totalDistanceKm}
-            </Text>
-            <Text style={styles.metricUnit} numberOfLines={1}>
-              km
-            </Text>
-          </View>
-          <Text
-            style={styles.metricLabel}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-          >
-            {t('staff.total_distance')}
+        <View style={styles.colDivider} />
+
+        {/* Column 2: Quãng đường */}
+        <View style={styles.metricCol}>
+          <Text style={styles.metricLabel} numberOfLines={1}>
+            {t('staff.metric_distance') || 'Quãng đường'}
           </Text>
-          <View style={styles.subBadge}>
-            <Text
-              style={[styles.subBadgeText, { color: '#38BDF8' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.15}
-            >
-              {t('staff.fuel_status')}
-            </Text>
-          </View>
+          <Text style={styles.metricValue} numberOfLines={1}>
+            {totalDistanceKm} km
+          </Text>
+          <Text style={[styles.metricSub, { color: '#0284C7' }]} numberOfLines={1}>
+            {fuelStatus}
+          </Text>
         </View>
 
-        {/* Metric 3: Avg ETA */}
-        <View style={styles.metricCard}>
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-            <Clock size={moderateScale(18)} color="#F59E0B" />
-          </View>
-          <View style={styles.valueRow}>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {avgEtaMinutes}
-            </Text>
-            <Text style={styles.metricUnit} numberOfLines={1}>
-              {t('staff.unit_minute')}
-            </Text>
-          </View>
-          <Text
-            style={styles.metricLabel}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-          >
-            {t('staff.avg_eta')}
+        <View style={styles.colDivider} />
+
+        {/* Column 3: ETA TB */}
+        <View style={styles.metricCol}>
+          <Text style={styles.metricLabel} numberOfLines={1}>
+            {t('staff.metric_eta') || 'ETA TB'}
           </Text>
-          <View style={styles.subBadge}>
-            <Text
-              style={[styles.subBadgeText, { color: '#FBBF24' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.15}
-            >
-              {t('staff.faster_by')}
-            </Text>
-          </View>
+          <Text style={styles.metricValue} numberOfLines={1}>
+            {avgEtaMinutes} ph
+          </Text>
+          <Text style={[styles.metricSub, { color: '#D97706' }]} numberOfLines={1}>
+            {etaComparison}
+          </Text>
         </View>
       </View>
     </View>
@@ -177,107 +104,72 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: moderateScale(16),
+    borderRadius: moderateScale(14),
     padding: moderateScale(14),
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
     marginBottom: verticalScale(12),
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: verticalScale(6),
   },
-  titleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-  },
-  sectionTitle: {
-    fontSize: moderateScale(11),
-    fontWeight: '800',
-    color: '#334155',
-    letterSpacing: 0.8,
-  },
-  shiftTimeText: {
-    fontSize: moderateScale(11),
+  titleText: {
+    fontSize: moderateScale(13),
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
-  progressBarBg: {
-    height: verticalScale(4),
+  progressText: {
+    fontSize: moderateScale(11.5),
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  progressTrack: {
+    height: verticalScale(5),
     backgroundColor: '#F1F5F9',
-    borderRadius: moderateScale(2),
+    borderRadius: moderateScale(2.5),
     overflow: 'hidden',
-    marginBottom: verticalScale(12),
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(14),
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
     backgroundColor: '#DC2626',
-    borderRadius: moderateScale(2),
+    borderRadius: moderateScale(2.5),
   },
-  gridRow: {
+  metricGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: scale(8),
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: moderateScale(12),
-    padding: moderateScale(10),
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    justifyContent: 'space-between',
   },
-  iconContainer: {
-    width: moderateScale(34),
-    height: moderateScale(34),
-    borderRadius: moderateScale(17),
+  metricCol: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: verticalScale(6),
+    paddingVertical: verticalScale(2),
   },
-  valueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: scale(2),
-  },
-  metricValue: {
-    fontSize: moderateScale(18),
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-  },
-  metricUnit: {
-    fontSize: moderateScale(10),
-    fontWeight: '600',
-    color: '#64748B',
+  colDivider: {
+    width: 1,
+    height: verticalScale(32),
+    backgroundColor: '#F1F5F9',
   },
   metricLabel: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(11),
     fontWeight: '600',
     color: '#64748B',
-    marginTop: verticalScale(2),
-    textAlign: 'center',
+    marginBottom: verticalScale(2),
   },
-  subBadge: {
-    marginTop: verticalScale(6),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: verticalScale(2),
-    paddingHorizontal: scale(5),
-    borderRadius: moderateScale(4),
+  metricValue: {
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
-  subBadgeText: {
-    fontSize: moderateScale(9),
-    fontWeight: '700',
+  metricSub: {
+    fontSize: moderateScale(10),
+    fontWeight: '600',
+    marginTop: verticalScale(3),
   },
 });

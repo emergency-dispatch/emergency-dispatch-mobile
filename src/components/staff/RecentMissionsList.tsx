@@ -108,7 +108,18 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
 
       {/* Missions List */}
       <View style={styles.list}>
-        {missions.map((mission, index) => {
+        {missions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <CheckCircle2 size={moderateScale(24)} color="#10B981" />
+            </View>
+            <Text style={styles.emptyTitle}>Chưa có ca trực nào hoàn tất</Text>
+            <Text style={styles.emptySub}>
+              Các nhiệm vụ cứu hộ sau khi nghiệm thu sẽ được lưu vào lịch sử tại đây.
+            </Text>
+          </View>
+        ) : (
+          missions.map((mission, index) => {
           const typeConfig = getMissionTypeIcon(mission.type);
           const IconComp = typeConfig.icon;
           const severityConfig = getSeverityBadge(mission.severity);
@@ -210,8 +221,9 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
               </View>
             </TouchableOpacity>
           );
-        })}
-      </View>
+        })
+      )}
+    </View>
     </View>
   );
 };
@@ -376,5 +388,32 @@ const styles = StyleSheet.create({
   },
   arrowIcon: {
     marginLeft: 'auto',
+  },
+  emptyContainer: {
+    paddingVertical: verticalScale(28),
+    paddingHorizontal: scale(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIconCircle: {
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(24),
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(10),
+  },
+  emptyTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: verticalScale(4),
+  },
+  emptySub: {
+    fontSize: moderateScale(11),
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: moderateScale(16),
   },
 });

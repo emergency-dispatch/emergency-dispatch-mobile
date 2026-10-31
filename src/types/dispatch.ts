@@ -28,6 +28,8 @@ export interface EmergencyIncident {
   mediaUrls?: string[];
   operatorNotes?: string;
   isPhoneRevealed?: boolean;
+  assignmentId?: string;
+  backendStatus?: BackendDispatchStatus;
   cooperatingUnits?: DispatchAssignmentResponseDto[];
   originCoords: {
     latitude: number;
@@ -92,7 +94,7 @@ export const MOCK_EMERGENCY_INCIDENT: EmergencyIncident = {
   patientSummary: '3 Nạn nhân • 1 Hôn mê • 2 Đa chấn thương gãy cẳng chân',
   triageLevel: 'T1',
   callerName: 'Anh Hoàng Nam',
-  callerRole: 'Người đi đường / Nhân chứng báo nạn khẩn cấp',
+  callerRole: 'Người đi đường / Người báo nạn khẩn cấp',
   callerPhone: '0903123456',
   emergencyNotes:
     'Có 2 người bị kẹt cabin, yêu cầu mang kìm cắt thủy lực và bình oxy dự phòng. Chú ý nguy cơ rò rỉ nhiên liệu từ xe tải.',
@@ -196,13 +198,118 @@ export interface DispatchAssignmentResponseDto {
   completionReport?: CompletionReportDto | null;
   incidentTitle?: string;
   incidentAddress?: string;
+  incidentLat?: number;
+  incidentLng?: number;
   incidentLatitude?: number;
   incidentLongitude?: number;
   incidentSeverity?: string;
   rescueUnitPlate?: string;
   rescueUnitType?: string;
   stationName?: string;
+  rescueUnit?: {
+    id: string;
+    plateNumber?: string;
+    unitType?: string;
+    status?: string;
+    currentLat?: number;
+    currentLng?: number;
+    stationId?: string;
+    stationName?: string;
+  };
 }
+
+export const mapBackendStatusToStage = (status?: string): MissionStage => {
+  switch (status) {
+    case 'EnRoute':
+      return 'en_route';
+    case 'OnScene':
+      return 'on_scene';
+    case 'Completed':
+      return 'completed';
+    case 'Accepted':
+    case 'Dispatched':
+    default:
+      return 'accepted';
+  }
+};
+
+export const mapStageToBackendStatus = (
+  stage: MissionStage
+): 'Accepted' | 'EnRoute' | 'OnScene' => {
+  switch (stage) {
+    case 'en_route':
+      return 'EnRoute';
+    case 'on_scene':
+      return 'OnScene';
+    case 'accepted':
+    default:
+      return 'Accepted';
+  }
+};
+
+const isCoordInVn = (lat?: number, lng?: number): boolean => {
+  if (lat == null || lng == null) return false;
+  return lat >= 8.0 && lat <= 24.5 && lng >= 102.0 && lng <= 111.0;
+};
+
+export const mapAssignmentToIncident = (dto: DispatchAssignmentResponseDto): EmergencyIncident => {
+  const stationLat = 10.8415;
+  const stationLng = 106.8098;
+  const vehicleLat =
+    dto.rescueUnit?.currentLat && isCoordInVn(dto.rescueUnit.currentLat, dto.rescueUnit.currentLng)
+      ? dto.rescueUnit.currentLat
+      : stationLat;
+  const vehicleLng =
+    dto.rescueUnit?.currentLng && isCoordInVn(dto.rescueUnit.currentLat, dto.rescueUnit.currentLng)
+      ? dto.rescueUnit.currentLng
+      : stationLng;
+
+  const targetLat = dto.incidentLat ?? dto.incidentLatitude ?? 10.8450;
+  const targetLng = dto.incidentLng ?? dto.incidentLongitude ?? 106.8140;
+
+  return {
+    id: dto.incidentId || dto.id,
+    assignmentId: dto.id,
+    backendStatus: dto.status,
+    code: `#${(dto.incidentId || dto.id).slice(0, 8).toUpperCase()}`,
+    severity:
+      dto.incidentSeverity === 'Level3'
+        ? 'code_red'
+        : dto.incidentSeverity === 'Level2'
+        ? 'code_orange'
+        : 'code_yellow',
+    severityLabel: `MỨC ĐỘ: ${dto.incidentSeverity || 'Level3'}`,
+    title: dto.incidentTitle || 'SỰ CỐ KHẨN CẤP ĐƯỢC ĐIỀU PHỐI',
+    category: dto.rescueUnitType || 'Cứu hộ khẩn cấp',
+    address: dto.incidentAddress || 'Hiện trường sự cố',
+    distanceKm: dto.distanceKm ?? 2.4,
+    etaMinutes: dto.estimatedArrivalMinutes ?? 5,
+    assignedUnit: dto.rescueUnitPlate || 'Xe Cứu Thương ICU',
+    vehiclePlate: dto.rescueUnitPlate || '51B-115.02',
+    patientCount: 1,
+    patientSummary: 'Nạn nhân cần cấp cứu và giải cứu khẩn cấp',
+    triageLevel: dto.incidentSeverity === 'Level3' ? 'T1' : 'T2',
+    callerName: 'Tổng Đài CAD',
+    callerRole: 'Người báo nạn khẩn cấp',
+    callerPhone: '115',
+    emergencyNotes: dto.notes || 'Khẩn trương tiếp cận hiện trường và bật còi ưu tiên.',
+    requiredEquipment: ['Bình Oxy', 'Kìm cắt thủy lực', 'Bộ nẹp cổ & nẹp chi cố định'],
+    recommendedHospital: 'Bệnh viện Cấp Cứu Trưng Vương',
+    hospitalDistance: '1.8 km',
+    timeoutSeconds: 30,
+    originCoords: {
+      latitude: vehicleLat,
+      longitude: vehicleLng,
+      label: dto.rescueUnit?.stationName || dto.stationName || 'FPT Station',
+    },
+    targetCoords: {
+      latitude: targetLat,
+      longitude: targetLng,
+      label: dto.incidentAddress || 'Hiện trường',
+    },
+    createdAt: dto.dispatchedAt || new Date().toISOString(),
+  };
+};
 
 export interface StationTeamMemberDto {
   staffId: string;

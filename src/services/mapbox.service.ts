@@ -155,6 +155,17 @@ class MapboxService {
     origin: { latitude: number; longitude: number },
     destination: { latitude: number; longitude: number }
   ): Promise<RoutePoint[]> {
+    const details = await this.getRouteWithDetails(origin, destination);
+    return details.points;
+  }
+
+  /**
+   * Get driving route with realistic points, distance (km) and ETA (minutes)
+   */
+  async getRouteWithDetails(
+    origin: { latitude: number; longitude: number },
+    destination: { latitude: number; longitude: number }
+  ): Promise<RouteDetailResult> {
     // 1. Try Mapbox Directions API
     if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy')) {
       try {
@@ -163,11 +174,16 @@ class MapboxService {
         if (res.ok) {
           const data = await res.json();
           if (data.routes && data.routes.length > 0) {
-            const coords = data.routes[0].geometry.coordinates;
-            return coords.map(([lng, lat]: [number, number]) => ({
-              latitude: lat,
-              longitude: lng,
-            }));
+            const route = data.routes[0];
+            const coords = route.geometry.coordinates;
+            return {
+              points: coords.map(([lng, lat]: [number, number]) => ({
+                latitude: lat,
+                longitude: lng,
+              })),
+              distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+              durationMinutes: Math.max(1, Math.round(route.duration / 60)),
+            };
           }
         }
       } catch {
@@ -182,18 +198,54 @@ class MapboxService {
       if (res.ok) {
         const data = await res.json();
         if (data.routes && data.routes.length > 0) {
-          const coords = data.routes[0].geometry.coordinates;
-          return coords.map(([lng, lat]: [number, number]) => ({
-            latitude: lat,
-            longitude: lng,
-          }));
+          const route = data.routes[0];
+          const coords = route.geometry.coordinates;
+          return {
+            points: coords.map(([lng, lat]: [number, number]) => ({
+              latitude: lat,
+              longitude: lng,
+            })),
+            distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+            durationMinutes: Math.max(1, Math.round(route.duration / 60)),
+          };
         }
       }
     } catch {
       // Fallback below
     }
-    return [origin, destination];
+
+    // Straight-line haversine fallback
+    const dLat = ((destination.latitude - origin.latitude) * Math.PI) / 180;
+    const dLon = ((destination.longitude - origin.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((origin.latitude * Math.PI) / 180) *
+        Math.cos((destination.latitude * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const straightKm = Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+    return {
+      points: [origin, destination],
+      distanceKm: straightKm || 2.4,
+      durationMinutes: Math.max(1, Math.round((straightKm / 35) * 60)) || 5,
+    };
   }
 }
 
+export interface RouteDetailResult {
+  points: RoutePoint[];
+  distanceKm: number;
+  durationMinutes: number;
+}
+
+export const isValidVietnamRoute = (points?: RoutePoint[]): boolean => {
+  if (!points || points.length === 0) return false;
+  const first = points[0];
+  const last = points[points.length - 1];
+  const inVn = (p: RoutePoint) =>
+    p.latitude >= 8.0 && p.latitude <= 24.5 && p.longitude >= 102.0 && p.longitude <= 111.0;
+  return inVn(first) && inVn(last);
+};
+
 export const mapboxService = new MapboxService();
+

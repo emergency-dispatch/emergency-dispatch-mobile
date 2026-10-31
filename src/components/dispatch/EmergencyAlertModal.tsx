@@ -24,16 +24,20 @@ import {
   X,
   Radio,
   Zap,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Minus,
+  Crosshair,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import {
   EmergencyIncident,
-  MOCK_EMERGENCY_INCIDENT,
   RejectAssignmentPayload,
 } from '../../types/dispatch';
 import { StaffRejectModal } from '../staff/StaffRejectModal';
-import { MapboxView } from '../map/MapboxView';
+import { MapboxView, MapboxViewRef } from '../map/MapboxView';
 import { mapboxService, MapMarkerItem, RoutePoint } from '../../services/mapbox.service';
 
 interface EmergencyAlertModalProps {
@@ -49,16 +53,43 @@ const TOTAL_COUNTDOWN = 30; // 30 seconds auto-decline countdown
 
 export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
   visible,
-  incident = MOCK_EMERGENCY_INCIDENT,
+  incident,
   assignmentId,
   onAccept,
   onDecline,
   onTimeout,
 }) => {
+  if (!visible || !incident) {
+    return null;
+  }
+
   const insets = useSafeAreaInsets();
   const [secondsRemaining, setSecondsRemaining] = useState<number>(TOTAL_COUNTDOWN);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState<boolean>(false);
   const [routeCoordinates, setRouteCoordinates] = useState<RoutePoint[]>([]);
+
+  // Map refs & zoom / expand states
+  const mapRef = useRef<MapboxViewRef>(null);
+  const fullscreenMapRef = useRef<MapboxViewRef>(null);
+  const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
+  const [isFullscreenMapModal, setIsFullscreenMapModal] = useState<boolean>(false);
+  const [isInteractingWithMap, setIsInteractingWithMap] = useState<boolean>(false);
+
+  const handleZoomIn = () => {
+    mapRef.current?.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    mapRef.current?.zoomOut();
+  };
+
+  const handleFitBounds = () => {
+    mapRef.current?.fitBounds();
+  };
+
+  const handleToggleExpandMap = () => {
+    setIsMapExpanded((prev) => !prev);
+  };
 
   // Safe area insets calculation across Android/iOS devices
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : insets.top;
@@ -283,6 +314,8 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
           style={styles.scrollBody}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          scrollEnabled={!isInteractingWithMap}
         >
           {/* Hero Incident Title Card */}
           <View style={styles.titleCard}>
@@ -373,14 +406,44 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
                 <Radio size={moderateScale(14)} color="#0284C7" />
                 <Text style={styles.mapSectionTitle}>LỘ TRÌNH TIẾP CẬN DỰ KIẾN</Text>
               </View>
-              <View style={styles.routePill}>
-                <Text style={styles.routePillText}>Lộ trình nhanh nhất</Text>
+              <View style={styles.mapHeaderActions}>
+                <View style={styles.routePill}>
+                  <Text style={styles.routePillText}>Lộ trình nhanh nhất</Text>
+                </View>
+
+                {/* In-place Expand / Shrink Toggle */}
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  style={styles.expandHeaderBtn}
+                  onPress={handleToggleExpandMap}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessible={true}
+                  accessibilityLabel={isMapExpanded ? 'Thu nhỏ bản đồ' : 'Phóng to bản đồ'}
+                >
+                  {isMapExpanded ? (
+                    <Minimize2 size={moderateScale(13)} color="#0284C7" />
+                  ) : (
+                    <Maximize2 size={moderateScale(13)} color="#0284C7" />
+                  )}
+                  <Text style={styles.expandHeaderBtnText}>
+                    {isMapExpanded ? 'Thu nhỏ' : 'Mở to'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
-            {/* Live Mapbox Container */}
-            <View style={styles.miniMapContainer}>
+            {/* Live Mapbox Container with Dynamic Height */}
+            <View
+              style={[
+                styles.miniMapContainer,
+                isMapExpanded && styles.expandedMapContainer,
+              ]}
+              onTouchStart={() => setIsInteractingWithMap(true)}
+              onTouchEnd={() => setIsInteractingWithMap(false)}
+              onTouchCancel={() => setIsInteractingWithMap(false)}
+            >
               <MapboxView
+                ref={mapRef}
                 userLatitude={incident.originCoords.latitude}
                 userLongitude={incident.originCoords.longitude}
                 markers={mapMarkers}
@@ -396,6 +459,57 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
                 <Text style={styles.mapEtaFloatingText}>
                   {incident.distanceKm} km • ~{incident.etaMinutes} phút
                 </Text>
+              </View>
+
+              {/* Floating Map Controls (Zoom In, Zoom Out, Recenter, Fullscreen) */}
+              <View style={styles.mapFloatingControls}>
+                {/* Fullscreen Modal View */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.mapCtrlBtn}
+                  onPress={() => setIsFullscreenMapModal(true)}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Toàn màn hình bản đồ"
+                >
+                  <Maximize2 size={moderateScale(15)} color="#0F172A" />
+                </TouchableOpacity>
+
+                {/* Zoom In (+) */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.mapCtrlBtn}
+                  onPress={handleZoomIn}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Phóng to"
+                >
+                  <Plus size={moderateScale(16)} color="#0F172A" strokeWidth={2.6} />
+                </TouchableOpacity>
+
+                {/* Zoom Out (-) */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.mapCtrlBtn}
+                  onPress={handleZoomOut}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Thu nhỏ"
+                >
+                  <Minus size={moderateScale(16)} color="#0F172A" strokeWidth={2.6} />
+                </TouchableOpacity>
+
+                {/* Recenter / Fit Bounds */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.mapCtrlBtn}
+                  onPress={handleFitBounds}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Căn vừa lộ trình"
+                >
+                  <Crosshair size={moderateScale(15)} color="#DC2626" />
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -439,6 +553,97 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
             await onDecline(payload);
           }}
         />
+
+        {/* Fullscreen Interactive Map Modal */}
+        <Modal
+          visible={isFullscreenMapModal}
+          animationType="fade"
+          transparent={false}
+          onRequestClose={() => setIsFullscreenMapModal(false)}
+        >
+          <View style={[styles.fullscreenMapContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            {/* Header */}
+            <View style={styles.fullscreenMapHeader}>
+              <View style={styles.fullscreenMapTitleCol}>
+                <View style={styles.fullscreenMapTitleRow}>
+                  <Radio size={moderateScale(15)} color="#0284C7" />
+                  <Text style={styles.fullscreenMapTitle}>LỘ TRÌNH TIẾP CẬN DỰ KIẾN</Text>
+                </View>
+                <Text style={styles.fullscreenMapSub} numberOfLines={1}>
+                  {incident.address || 'Hiện trường sự cố'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.fullscreenCloseBtn}
+                onPress={() => setIsFullscreenMapModal(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessible={true}
+                accessibilityLabel="Đóng toàn màn hình"
+              >
+                <X size={moderateScale(18)} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Map Body */}
+            <View style={styles.fullscreenMapBody}>
+              <MapboxView
+                ref={fullscreenMapRef}
+                userLatitude={incident.originCoords.latitude}
+                userLongitude={incident.originCoords.longitude}
+                markers={mapMarkers}
+                routeCoordinates={routeCoordinates}
+                fitBounds={true}
+                interactive={true}
+                style={styles.mapboxMap}
+              />
+
+              {/* Floating ETA Badge */}
+              <View style={styles.fullscreenEtaBadge}>
+                <Navigation size={moderateScale(12)} color="#0284C7" />
+                <Text style={styles.fullscreenEtaText}>
+                  {incident.distanceKm} km • ~{incident.etaMinutes} phút ({incident.assignedUnit})
+                </Text>
+              </View>
+
+              {/* Fullscreen Floating Controls */}
+              <View style={styles.fullscreenFloatingControls}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.fullscreenCtrlBtn}
+                  onPress={() => fullscreenMapRef.current?.zoomIn()}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Phóng to"
+                >
+                  <Plus size={moderateScale(18)} color="#0F172A" strokeWidth={2.6} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.fullscreenCtrlBtn}
+                  onPress={() => fullscreenMapRef.current?.zoomOut()}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Thu nhỏ"
+                >
+                  <Minus size={moderateScale(18)} color="#0F172A" strokeWidth={2.6} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.fullscreenCtrlBtn}
+                  onPress={() => fullscreenMapRef.current?.fitBounds()}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessible={true}
+                  accessibilityLabel="Căn vừa lộ trình"
+                >
+                  <Crosshair size={moderateScale(17)} color="#DC2626" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -694,14 +899,150 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0284C7',
   },
+  mapHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  expandHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(3),
+    backgroundColor: '#EFF6FF',
+    paddingVertical: verticalScale(2.5),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  expandHeaderBtnText: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#0284C7',
+  },
   miniMapContainer: {
-    height: verticalScale(175),
+    height: verticalScale(180),
     backgroundColor: '#E2E8F0',
     borderRadius: moderateScale(12),
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  expandedMapContainer: {
+    height: verticalScale(380),
+  },
+  mapFloatingControls: {
+    position: 'absolute',
+    top: verticalScale(8),
+    right: scale(8),
+    gap: verticalScale(6),
+  },
+  mapCtrlBtn: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  fullscreenMapContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  fullscreenMapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  fullscreenMapTitleCol: {
+    flex: 1,
+    paddingRight: scale(10),
+  },
+  fullscreenMapTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  fullscreenMapTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  fullscreenMapSub: {
+    fontSize: moderateScale(11),
+    color: '#64748B',
+    marginTop: verticalScale(1),
+  },
+  fullscreenCloseBtn: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenMapBody: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: '#E2E8F0',
+  },
+  fullscreenEtaBadge: {
+    position: 'absolute',
+    top: verticalScale(12),
+    left: scale(12),
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  fullscreenEtaText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#0284C7',
+  },
+  fullscreenFloatingControls: {
+    position: 'absolute',
+    top: verticalScale(12),
+    right: scale(12),
+    gap: verticalScale(8),
+  },
+  fullscreenCtrlBtn: {
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 4,
   },
   mapboxMap: {
     flex: 1,

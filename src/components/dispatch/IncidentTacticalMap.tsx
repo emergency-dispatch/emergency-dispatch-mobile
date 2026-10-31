@@ -16,9 +16,10 @@ import {
   Minimize2,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
-import { MissionStage, MOCK_EMERGENCY_INCIDENT } from '../../types/dispatch';
+import { MissionStage } from '../../types/dispatch';
 import { MapboxView, MapboxViewRef } from '../map/MapboxView';
-import { mapboxService, MapMarkerItem, RoutePoint } from '../../services/mapbox.service';
+import { mapboxService, MapMarkerItem, RoutePoint, isValidVietnamRoute } from '../../services/mapbox.service';
+import { isCoordinatesInVietnam, DEFAULT_VN_LOCATION } from '../../services/location.service';
 
 interface IncidentTacticalMapProps {
   currentStage: MissionStage;
@@ -37,13 +38,13 @@ interface IncidentTacticalMapProps {
 
 export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
   currentStage,
-  incidentAddress = '120 Võ Văn Tần, P.6, Q.3, TP.HCM',
-  distanceKm = 2.4,
-  etaMinutes = 6,
-  originCoords = MOCK_EMERGENCY_INCIDENT.originCoords,
-  targetCoords = MOCK_EMERGENCY_INCIDENT.targetCoords,
-  assignedUnit = 'Xe Cứu Thương ICU 01',
-  incidentTitle = 'Hiện Trường Tai Nạn',
+  incidentAddress = '',
+  distanceKm = 0,
+  etaMinutes = 0,
+  originCoords = { latitude: DEFAULT_VN_LOCATION.latitude, longitude: DEFAULT_VN_LOCATION.longitude, label: DEFAULT_VN_LOCATION.address },
+  targetCoords = { latitude: DEFAULT_VN_LOCATION.latitude, longitude: DEFAULT_VN_LOCATION.longitude, label: 'Hiện trường' },
+  assignedUnit = 'Đội Cứu Hộ',
+  incidentTitle = 'Hiện Trường Sự Cố',
   backendRouteTrajectory,
   onRecenter,
   isMapExpanded = false,
@@ -54,39 +55,56 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
   const [trafficActive, setTrafficActive] = useState<boolean>(true);
   const [routeCoordinates, setRouteCoordinates] = useState<RoutePoint[]>([]);
 
+  // Safe coordinates guaranteed to be within Vietnam bounds
+  const safeOrigin = useMemo(() => {
+    return isCoordinatesInVietnam(originCoords.latitude, originCoords.longitude)
+      ? originCoords
+      : { latitude: DEFAULT_VN_LOCATION.latitude, longitude: DEFAULT_VN_LOCATION.longitude, label: DEFAULT_VN_LOCATION.address };
+  }, [originCoords]);
+
+  const safeTarget = useMemo(() => {
+    return isCoordinatesInVietnam(targetCoords.latitude, targetCoords.longitude)
+      ? targetCoords
+      : { latitude: DEFAULT_VN_LOCATION.latitude, longitude: DEFAULT_VN_LOCATION.longitude, label: 'Hiện trường' };
+  }, [targetCoords]);
+
   // Compute map markers (Ambulance + Incident location)
   const mapMarkers = useMemo<MapMarkerItem[]>(() => {
     return [
       {
         id: 'ambulance-unit',
         title: assignedUnit || 'Xe Cứu Thương',
-        description: originCoords.label || 'Vị trí hiện tại',
-        latitude: originCoords.latitude,
-        longitude: originCoords.longitude,
+        description: safeOrigin.label || 'Vị trí hiện tại',
+        latitude: safeOrigin.latitude,
+        longitude: safeOrigin.longitude,
         type: 'ambulance',
       },
       {
         id: 'incident-site',
         title: incidentTitle || 'Điểm Sự Cố Tai Nạn',
         description: incidentAddress,
-        latitude: targetCoords.latitude,
-        longitude: targetCoords.longitude,
+        latitude: safeTarget.latitude,
+        longitude: safeTarget.longitude,
         type: 'incident',
         severity: 'Critical',
       },
     ];
-  }, [assignedUnit, originCoords, incidentTitle, incidentAddress, targetCoords]);
+  }, [assignedUnit, safeOrigin, incidentTitle, incidentAddress, safeTarget]);
 
-  // Use backend OSRM route trajectory if provided, otherwise fallback to Mapbox OSRM
+  // Use backend OSRM route trajectory if valid, otherwise fallback to local route
   useEffect(() => {
-    if (backendRouteTrajectory && backendRouteTrajectory.length > 0) {
+    if (
+      backendRouteTrajectory &&
+      backendRouteTrajectory.length > 0 &&
+      isValidVietnamRoute(backendRouteTrajectory)
+    ) {
       setRouteCoordinates(backendRouteTrajectory);
       return;
     }
 
     let isMounted = true;
     mapboxService
-      .getRoute(originCoords, targetCoords)
+      .getRoute(safeOrigin, safeTarget)
       .then((coords) => {
         if (isMounted) {
           setRouteCoordinates(coords);
@@ -94,14 +112,14 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
       })
       .catch(() => {
         if (isMounted) {
-          setRouteCoordinates([originCoords, targetCoords]);
+          setRouteCoordinates([safeOrigin, safeTarget]);
         }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [backendRouteTrajectory, originCoords, targetCoords]);
+  }, [backendRouteTrajectory, safeOrigin, safeTarget]);
 
   const handleRecenter = () => {
     if (mapRef.current) {
@@ -117,8 +135,8 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
       {/* Real Mapbox View */}
       <MapboxView
         ref={mapRef}
-        userLatitude={originCoords.latitude}
-        userLongitude={originCoords.longitude}
+        userLatitude={safeOrigin.latitude}
+        userLongitude={safeOrigin.longitude}
         markers={mapMarkers}
         routeCoordinates={routeCoordinates}
         fitBounds={true}

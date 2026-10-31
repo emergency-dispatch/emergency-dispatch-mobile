@@ -7,8 +7,11 @@ import {
   Alert,
   Linking,
   StatusBar,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ArrowLeft,
   PhoneCall,
@@ -21,6 +24,8 @@ import {
   Flame,
   ShieldCheck,
   ArrowRight,
+  RefreshCw,
+  Navigation as NavigationIcon,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -32,15 +37,17 @@ import { IncidentDetailCard } from '../../components/dispatch/IncidentDetailCard
 import { SwipeToAction } from '../../components/dispatch/SwipeToAction';
 import { StaffClosureReportModal } from '../../components/staff/StaffClosureReportModal';
 import { staffDispatchService } from '../../services/staffDispatch.service';
-import { locationService } from '../../services/location.service';
 import { useAppStore } from '../../store/useAppStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   EmergencyIncident,
-  MOCK_EMERGENCY_INCIDENT,
   MissionStage,
   ResolveAssignmentPayload,
+  mapBackendStatusToStage,
+  mapAssignmentToIncident,
 } from '../../types/dispatch';
-import { RoutePoint } from '../../services/mapbox.service';
+import { RoutePoint, mapboxService, isValidVietnamRoute } from '../../services/mapbox.service';
+import { locationService, isCoordinatesInVietnam } from '../../services/location.service';
 
 interface IncidentOverviewScreenProps {
   navigation?: any;
@@ -58,32 +65,113 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const initialIncident = route?.params?.incident || MOCK_EMERGENCY_INCIDENT;
-  const assignmentId = route?.params?.assignmentId;
+  const passedIncident =
+    route?.params?.incident && !route.params.incident.id.startsWith('inc-2409')
+      ? route.params.incident
+      : null;
+  const assignmentId = route?.params?.assignmentId || passedIncident?.assignmentId;
 
-  // Active Incident Data state (populated with real incident details & unmasked phone)
-  const [activeIncidentData, setActiveIncidentData] = useState<EmergencyIncident>(initialIncident);
-  const incident = activeIncidentData;
+  // Active Assignment ID state
+  const [activeAssignmentId, setActiveAssignmentId] = useState<string | undefined>(assignmentId);
+
+  // Active Incident Data state (null if no active mission)
+  const [activeIncidentData, setActiveIncidentData] = useState<EmergencyIncident | null>(passedIncident);
+  const [isLoadingActiveMission, setIsLoadingActiveMission] = useState<boolean>(!passedIncident);
+
   const [routeTrajectory, setRouteTrajectory] = useState<RoutePoint[]>([]);
 
-  // Mission State Management (4 Stages)
-  const [currentStage, setCurrentStage] = useState<MissionStage>('accepted');
+  // Mission State Management (4 Stages) - initialized from backend status or AsyncStorage
+  const initialStage = passedIncident?.backendStatus
+    ? mapBackendStatusToStage(passedIncident.backendStatus)
+    : 'accepted';
+  const [currentStage, setCurrentStage] = useState<MissionStage>(initialStage);
   const user = useAppStore((s) => s.user);
+
+  // Check active mission from real backend assignments (no fake data)
+  const checkActiveMission = useCallback(async () => {
+    setIsLoadingActiveMission(true);
+    try {
+      const myAssignments = await staffDispatchService.getMyAssignments();
+      const activeAssign = myAssignments.find(
+        (a) =>
+          a.status === 'Accepted' ||
+          a.status === 'EnRoute' ||
+          a.status === 'OnScene' ||
+          a.status === 'Dispatched'
+      );
+      if (activeAssign) {
+        const mapped = mapAssignmentToIncident(activeAssign);
+        setActiveIncidentData(mapped);
+        setActiveAssignmentId(activeAssign.id);
+        const stage = mapBackendStatusToStage(activeAssign.status);
+        setCurrentStage(stage);
+        if (mapped.id) {
+          AsyncStorage.setItem(`@mission_stage_${mapped.id}`, stage).catch(() => {});
+        }
+      } else {
+        setActiveIncidentData(null);
+        setActiveAssignmentId(undefined);
+      }
+    } catch (err: any) {
+      console.warn('Check active mission error:', err?.message);
+      setActiveIncidentData(null);
+    } finally {
+      setIsLoadingActiveMission(false);
+    }
+  }, []);
+
+  // When focused on this tab, verify if there is an active mission
+  useFocusEffect(
+    useCallback(() => {
+      const paramInc = route?.params?.incident;
+      if (!paramInc || paramInc.id.startsWith('inc-2409')) {
+        checkActiveMission();
+      }
+    }, [route?.params?.incident, checkActiveMission])
+  );
+
+  // 0. Persistent Step Recovery: Load locally stored stage for this incident immediately
+  useEffect(() => {
+    const targetIncidentId = activeIncidentData?.id;
+    if (!targetIncidentId || targetIncidentId.startsWith('inc-2409')) return;
+
+    AsyncStorage.getItem(`@mission_stage_${targetIncidentId}`)
+      .then((savedStage) => {
+        if (
+          savedStage &&
+          ['accepted', 'en_route', 'on_scene', 'completed'].includes(savedStage)
+        ) {
+          setCurrentStage(savedStage as MissionStage);
+        }
+      })
+      .catch(() => {});
+  }, [activeIncidentData?.id]);
 
   // Sync state if navigation route params change
   useEffect(() => {
     const routeIncident = route?.params?.incident;
-    if (routeIncident) {
+    if (routeIncident && !routeIncident.id.startsWith('inc-2409')) {
       setActiveIncidentData((prev) => ({
-        ...prev,
+        ...(prev || routeIncident),
         ...routeIncident,
       }));
+      if (routeIncident.assignmentId) {
+        setActiveAssignmentId(routeIncident.assignmentId);
+      }
+      if (routeIncident.backendStatus) {
+        const mapped = mapBackendStatusToStage(routeIncident.backendStatus);
+        setCurrentStage(mapped);
+      }
+      setIsLoadingActiveMission(false);
     }
-  }, [route?.params?.incident]);
+    if (route?.params?.assignmentId) {
+      setActiveAssignmentId(route.params.assignmentId);
+    }
+  }, [route?.params?.incident, route?.params?.assignmentId]);
 
   // Load real backend details: GET /api/incidents/{id}, GET /api/dispatch/tracking/incident/{id}, GET /api/dispatch/assignments/incident/{id}
   useEffect(() => {
-    const targetIncidentId = activeIncidentData.id;
+    const targetIncidentId = activeIncidentData?.id;
     if (!targetIncidentId || targetIncidentId.startsWith('inc-2409')) {
       return;
     }
@@ -95,21 +183,24 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
       .getIncidentDetails(targetIncidentId)
       .then((res) => {
         if (isMounted && res) {
-          setActiveIncidentData((prev) => ({
-            ...prev,
-            title: res.title || prev.title,
-            address: res.locationAddress || prev.address,
-            category: res.eventType || prev.category,
-            callerName: res.reporterName || prev.callerName,
-            callerPhone: prev.isPhoneRevealed ? prev.callerPhone : (res.reporterPhone || prev.callerPhone),
-            mediaUrls: res.mediaUrls || [],
-            operatorNotes: res.operatorNotes || '',
-            targetCoords: {
-              latitude: res.latitude ?? prev.targetCoords.latitude,
-              longitude: res.longitude ?? prev.targetCoords.longitude,
-              label: res.locationAddress || prev.targetCoords.label,
-            },
-          }));
+          setActiveIncidentData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              title: res.title || prev.title,
+              address: res.locationAddress || prev.address,
+              category: res.eventType || prev.category,
+              callerName: res.reporterName || prev.callerName,
+              callerPhone: prev.isPhoneRevealed ? prev.callerPhone : (res.reporterPhone || prev.callerPhone),
+              mediaUrls: res.mediaUrls || [],
+              operatorNotes: res.operatorNotes || '',
+              targetCoords: {
+                latitude: res.latitude ?? prev.targetCoords.latitude,
+                longitude: res.longitude ?? prev.targetCoords.longitude,
+                label: res.locationAddress || prev.targetCoords.label,
+              },
+            };
+          });
         }
       })
       .catch(() => {});
@@ -117,29 +208,103 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     // 2. Fetch official OSRM tracking route trajectory & distance / ETA from dispatch backend
     staffDispatchService
       .getTracking(targetIncidentId)
-      .then((tracking) => {
+      .then(async (tracking) => {
         if (isMounted && tracking) {
-          if (tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
-            setRouteTrajectory(tracking.routeTrajectory);
+          // Sync mission stage from backend tracking status
+          if (tracking.dispatchStatus) {
+            const mappedStage = mapBackendStatusToStage(tracking.dispatchStatus);
+            setCurrentStage(mappedStage);
+            AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, mappedStage).catch(() => {});
           }
-          setActiveIncidentData((prev) => ({
-            ...prev,
-            distanceKm: tracking.distanceKm ?? prev.distanceKm,
-            etaMinutes: tracking.estimatedArrivalMinutes ?? prev.etaMinutes,
-          }));
+
+          // Validate route trajectory and distance (avoid routes from US emulator coords)
+          const isRouteValid =
+            tracking.distanceKm < 150 &&
+            isValidVietnamRoute(tracking.routeTrajectory);
+
+          if (isRouteValid && tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
+            setRouteTrajectory(tracking.routeTrajectory);
+            setActiveIncidentData((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                distanceKm: tracking.distanceKm ?? prev.distanceKm,
+                etaMinutes: tracking.estimatedArrivalMinutes ?? prev.etaMinutes,
+              };
+            });
+          } else {
+            // Recalculate realistic local route via Mapbox/OSRM
+            try {
+              const safeOrigin =
+                activeIncidentData &&
+                isCoordinatesInVietnam(
+                  activeIncidentData.originCoords.latitude,
+                  activeIncidentData.originCoords.longitude
+                )
+                  ? activeIncidentData.originCoords
+                  : { latitude: 10.8415, longitude: 106.8098, label: 'FPT Station' };
+              const safeTarget =
+                activeIncidentData &&
+                isCoordinatesInVietnam(
+                  activeIncidentData.targetCoords.latitude,
+                  activeIncidentData.targetCoords.longitude
+                )
+                  ? activeIncidentData.targetCoords
+                  : {
+                      latitude: 10.845,
+                      longitude: 106.814,
+                      label: activeIncidentData?.address || 'Hiện trường',
+                    };
+
+              const localRoute = await mapboxService.getRouteWithDetails(safeOrigin, safeTarget);
+              if (isMounted) {
+                setRouteTrajectory(localRoute.points);
+                setActiveIncidentData((prev) => {
+                  if (!prev) return null;
+                  return {
+                    ...prev,
+                    distanceKm: localRoute.distanceKm,
+                    etaMinutes: localRoute.durationMinutes,
+                  };
+                });
+              }
+            } catch {
+              // ignore
+            }
+          }
         }
       })
       .catch(() => {});
 
-    // 3. Fetch coordinating units at scene
+    // 3. Fetch coordinating units at scene & discover unit's assignment ID and status
     staffDispatchService
       .getAssignmentsByIncident(targetIncidentId)
       .then((units) => {
         if (isMounted && units && units.length > 0) {
-          setActiveIncidentData((prev) => ({
-            ...prev,
-            cooperatingUnits: units.filter((u) => u.id !== assignmentId),
-          }));
+          const myAssignment = units.find(
+            (u) =>
+              u.id === activeAssignmentId ||
+              u.rescueUnitId === user?.rescueUnitId ||
+              u.incidentId === targetIncidentId
+          );
+          if (myAssignment) {
+            setActiveAssignmentId(myAssignment.id);
+            if (myAssignment.status) {
+              const stageFromAssignment = mapBackendStatusToStage(myAssignment.status);
+              setCurrentStage(stageFromAssignment);
+              AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, stageFromAssignment).catch(() => {});
+            }
+          }
+
+          setActiveIncidentData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              cooperatingUnits: units.filter(
+                (u) => u.id !== (myAssignment?.id || activeAssignmentId)
+              ),
+            };
+          });
         }
       })
       .catch(() => {});
@@ -147,7 +312,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [activeIncidentData.id, assignmentId]);
+  }, [activeIncidentData?.id, activeAssignmentId, user?.rescueUnitId]);
 
   // Periodic location telemetry when en_route or on_scene (every 15s)
   useEffect(() => {
@@ -159,7 +324,13 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     const sendTelemetry = async () => {
       try {
         const loc = await locationService.getCurrentLocation();
-        if (loc.latitude && loc.longitude && unitId) {
+        // Guard against sending any invalid emulator coords outside VN
+        if (
+          loc.latitude &&
+          loc.longitude &&
+          unitId &&
+          isCoordinatesInVietnam(loc.latitude, loc.longitude)
+        ) {
           await staffDispatchService.updateVehicleLocation(
             unitId,
             loc.latitude,
@@ -196,14 +367,17 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Unmask / Reveal reporter phone with audit trail
   const handleRevealReporterPhone = useCallback(async () => {
-    if (!activeIncidentData.id) return;
+    if (!activeIncidentData?.id) return;
     try {
       const phone = await staffDispatchService.revealReporterPhone(activeIncidentData.id);
-      setActiveIncidentData((prev) => ({
-        ...prev,
-        callerPhone: phone,
-        isPhoneRevealed: true,
-      }));
+      setActiveIncidentData((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          callerPhone: phone,
+          isPhoneRevealed: true,
+        };
+      });
       Alert.alert(
         'Đã Mở Khóa Số Điện Thoại',
         `Số điện thoại của người báo tin: ${phone}\n(Hành động này đã được ghi nhận vào nhật ký kiểm toán BR-32)`
@@ -211,7 +385,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     } catch (err: any) {
       Alert.alert('Không Thể Mở Khóa', err.message || 'Lỗi khi yêu cầu mở khóa số điện thoại.');
     }
-  }, [activeIncidentData.id]);
+  }, [activeIncidentData?.id]);
 
   // Quick Dispatcher Hotline Call (using real stationOperator phone if available)
   const handleConfirmCallDispatcher = () => {
@@ -225,37 +399,53 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Handle Swipe to En Route
   const handleSwipeEnRoute = useCallback(async () => {
-    try {
-      if (assignmentId) {
-        await staffDispatchService.updateStatus(assignmentId, 'EnRoute');
-      }
-    } catch (err: any) {
-      console.warn('Update EnRoute status failed:', err.message);
-    }
     setCurrentStage('en_route');
+    if (activeIncidentData?.id) {
+      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'en_route').catch(() => {});
+    }
+    const targetId = activeAssignmentId || assignmentId;
+    if (targetId) {
+      try {
+        await staffDispatchService.updateStatus(targetId, 'EnRoute');
+      } catch (err: any) {
+        console.warn('Update EnRoute status failed:', err.message);
+      }
+    }
     setIsEnRouteModalVisible(true);
-  }, [assignmentId]);
+  }, [activeAssignmentId, assignmentId, activeIncidentData?.id]);
 
   // Handle Advance Stage
   const handleAdvanceStage = useCallback(
     async (nextStage: MissionStage) => {
-      if (nextStage === 'on_scene') {
-        try {
-          if (assignmentId) {
-            await staffDispatchService.updateStatus(assignmentId, 'OnScene');
+      setCurrentStage(nextStage);
+      if (activeIncidentData?.id) {
+        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, nextStage).catch(() => {});
+      }
+      const targetId = activeAssignmentId || assignmentId;
+
+      if (nextStage === 'en_route') {
+        if (targetId) {
+          try {
+            await staffDispatchService.updateStatus(targetId, 'EnRoute');
+          } catch (err: any) {
+            console.warn('Update EnRoute status failed:', err.message);
           }
-        } catch (err: any) {
-          console.warn('Update OnScene status failed:', err.message);
         }
-        setCurrentStage('on_scene');
+        setIsEnRouteModalVisible(true);
+      } else if (nextStage === 'on_scene') {
+        if (targetId) {
+          try {
+            await staffDispatchService.updateStatus(targetId, 'OnScene');
+          } catch (err: any) {
+            console.warn('Update OnScene status failed:', err.message);
+          }
+        }
         setIsOnSceneModalVisible(true);
       } else if (nextStage === 'completed') {
         setIsClosureModalVisible(true);
-      } else {
-        setCurrentStage(nextStage);
       }
     },
-    [assignmentId]
+    [activeAssignmentId, assignmentId, activeIncidentData?.id]
   );
 
   // Handle Complete Mission -> Open closure modal
@@ -265,10 +455,18 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Handle Submit Closure Report
   const handleSubmitClosureReport = async (payload: ResolveAssignmentPayload) => {
-    if (assignmentId) {
-      await staffDispatchService.resolveAssignment(assignmentId, payload);
+    const targetId = activeAssignmentId || assignmentId;
+    if (targetId) {
+      try {
+        await staffDispatchService.resolveAssignment(targetId, payload);
+      } catch (err: any) {
+        console.warn('Resolve assignment failed:', err.message);
+      }
     }
     setCurrentStage('completed');
+    if (activeIncidentData?.id) {
+      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => {});
+    }
     setIsCompleteModalVisible(true);
   };
 
@@ -279,6 +477,159 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     }
   };
 
+  // 1. Loading State
+  if (isLoadingActiveMission) {
+    return (
+      <ScreenContainer
+        backgroundColor="#F8FAFC"
+        edges={['top', 'left', 'right', 'bottom']}
+        safeArea
+        statusBarStyle="dark-content"
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0284C7" />
+          <Text style={styles.loadingText}>Đang kiểm tra lệnh điều phối tác chiến...</Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // 2. Empty State (No Active Incident Assigned)
+  if (!activeIncidentData) {
+    return (
+      <ScreenContainer
+        backgroundColor="#F8FAFC"
+        edges={['top', 'left', 'right', 'bottom']}
+        safeArea
+        statusBarStyle="dark-content"
+      >
+        <View style={styles.rootContainer}>
+          {/* Top Bar */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.backButton}
+              onPress={handleGoBack}
+            >
+              <ArrowLeft size={moderateScale(20)} color="#0F172A" />
+            </TouchableOpacity>
+
+            <View style={styles.standbyBadge}>
+              <View style={styles.standbyDot} />
+              <Text style={styles.standbyBadgeText}>TRỰC SẴN SÀNG (STANDBY)</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.callDispatcherBtn}
+              onPress={() => setIsCallDispatcherModalVisible(true)}
+            >
+              <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
+              <Text style={styles.callDispatcherText} numberOfLines={1}>
+                {t('staff.call_dispatcher')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Empty State Scrollable Body */}
+          <ScrollView
+            contentContainerStyle={styles.emptyScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Visual Icon with soft rings */}
+            <View style={styles.emptyIconOuterRing}>
+              <View style={styles.emptyIconCircle}>
+                <ShieldCheck size={moderateScale(44)} color="#10B981" />
+              </View>
+            </View>
+
+            <Text style={styles.emptyTitle}>Không Có Sự Cố Cần Xử Lý</Text>
+            <Text style={styles.emptySubtitle}>
+              Hiện tại không có ca cấp cứu hoặc lệnh điều động nào được giao cho bạn hoặc kíp trực. Hệ thống CAD sẽ tự động phát tín hiệu chuông khẩn cấp và hiển thị bản đồ lộ trình ngay khi có lệnh mới.
+            </Text>
+
+            {/* CAD Standby Status Card */}
+            <View style={styles.cadStatusBox}>
+              <View style={styles.cadStatusHeader}>
+                <View style={styles.standbyDot} />
+                <Text style={styles.cadStatusHeaderText}>KÍP TRỰC SẴN SÀNG NHẬN LỆNH</Text>
+              </View>
+
+              <View style={styles.cadDivider} />
+
+              <View style={styles.cadStatusRow}>
+                <Text style={styles.cadStatusLabel}>Đơn vị tác chiến:</Text>
+                <Text style={styles.cadStatusValue} numberOfLines={1}>
+                  {user?.teamName || user?.name || user?.vehiclePlate || 'Đội cứu hộ cơ động'}
+                </Text>
+              </View>
+
+              <View style={styles.cadStatusRow}>
+                <Text style={styles.cadStatusLabel}>Trạm điều phối:</Text>
+                <Text style={styles.cadStatusValue} numberOfLines={1}>
+                  {user?.stationName || 'Trung tâm Điều phối Cứu hộ 115'}
+                </Text>
+              </View>
+
+              <View style={styles.cadStatusRow}>
+                <Text style={styles.cadStatusLabel}>Kênh trực ban:</Text>
+                <Text style={styles.cadStatusValue} numberOfLines={1}>
+                  {user?.stationOperatorPhone
+                    ? `${user.stationOperatorName || 'Tổng đài'} (${user.stationOperatorPhone})`
+                    : 'Tổng đài 112 / 115'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.emptyActionsContainer}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.emptyRefreshBtn}
+                onPress={checkActiveMission}
+              >
+                <RefreshCw size={moderateScale(18)} color="#FFFFFF" />
+                <Text style={styles.emptyRefreshBtnText}>Quét & Làm Mới Lệnh Điều Động</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.emptyNavBtn}
+                onPress={() => {
+                  if (navigation?.navigate) {
+                    navigation.navigate('StaffDashboard');
+                  } else if (navigation?.canGoBack()) {
+                    navigation.goBack();
+                  }
+                }}
+              >
+                <Radio size={moderateScale(18)} color="#0284C7" />
+                <Text style={styles.emptyNavBtnText}>Về Bảng Điều Khiển Ca Trực</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          {/* Hotline Modal for Dispatcher */}
+          <ConfirmationModal
+            visible={isCallDispatcherModalVisible}
+            type="danger"
+            title={t('staff.call_dispatcher')}
+            description={`Kết nối trực tiếp đến kênh đàm thoại điều phối viên ${
+              user?.stationOperatorName || 'Tổng Đài'
+            }?`}
+            highlightBadge="KÊNH KHẨN CẤP ĐIỀU PHỐI"
+            confirmText={t('staff.call_dispatcher')}
+            cancelText={t('common.cancel')}
+            onConfirm={handleConfirmCallDispatcher}
+            onCancel={() => setIsCallDispatcherModalVisible(false)}
+          />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // 3. Guaranteed non-null incident for active mission rendering
+  const incident = activeIncidentData;
 
   return (
     <ScreenContainer
@@ -328,7 +679,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             {/* 2. Mission Stepper (4 Stages) */}
             <MissionStepper
               currentStage={currentStage}
-              onSelectStage={setCurrentStage}
+              onSelectStage={handleAdvanceStage}
               interactive={true}
             />
           </>
@@ -637,13 +988,13 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   mapAreaContainer: {
-    flex: 68,
+    flex: 56,
   },
   mapAreaMinimized: {
     flex: 16,
   },
   bottomCardContainer: {
-    flex: 32,
+    flex: 44,
   },
   bottomCardExpanded: {
     flex: 84,
@@ -805,5 +1156,178 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(11),
     fontWeight: '800',
     color: '#059669',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    gap: verticalScale(12),
+  },
+  loadingText: {
+    fontSize: moderateScale(13),
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  standbyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(20),
+    gap: scale(6),
+  },
+  standbyDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(4),
+    backgroundColor: '#10B981',
+  },
+  standbyBadgeText: {
+    fontSize: moderateScale(11.5),
+    fontWeight: '900',
+    color: '#059669',
+    letterSpacing: 0.3,
+  },
+  emptyScrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: scale(24),
+    paddingVertical: verticalScale(36),
+  },
+  emptyIconOuterRing: {
+    width: moderateScale(110),
+    height: moderateScale(110),
+    borderRadius: moderateScale(55),
+    backgroundColor: '#F0FDF4',
+    borderWidth: 2,
+    borderColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(20),
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  emptyIconCircle: {
+    width: moderateScale(80),
+    height: moderateScale(80),
+    borderRadius: moderateScale(40),
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: moderateScale(20),
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: verticalScale(8),
+    letterSpacing: -0.3,
+  },
+  emptySubtitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '400',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: moderateScale(19),
+    marginBottom: verticalScale(24),
+    paddingHorizontal: scale(8),
+  },
+  cadStatusBox: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(16),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: scale(16),
+    marginBottom: verticalScale(24),
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cadStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  cadStatusHeaderText: {
+    fontSize: moderateScale(11.5),
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.5,
+  },
+  cadDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: verticalScale(12),
+  },
+  cadStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: verticalScale(4),
+  },
+  cadStatusLabel: {
+    fontSize: moderateScale(12),
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  cadStatusValue: {
+    fontSize: moderateScale(12),
+    color: '#0F172A',
+    fontWeight: '700',
+    maxWidth: '65%',
+  },
+  emptyActionsContainer: {
+    width: '100%',
+    gap: verticalScale(10),
+  },
+  emptyRefreshBtn: {
+    width: '100%',
+    height: verticalScale(46),
+    borderRadius: moderateScale(14),
+    backgroundColor: '#0284C7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(8),
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  emptyRefreshBtnText: {
+    fontSize: moderateScale(13.5),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emptyNavBtn: {
+    width: '100%',
+    height: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(8),
+  },
+  emptyNavBtnText: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#0284C7',
   },
 });

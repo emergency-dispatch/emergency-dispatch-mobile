@@ -8,6 +8,22 @@ export interface UserCurrentLocation {
   address: string;
 }
 
+/**
+  * Kiểm tra tọa độ có nằm trong lãnh thổ Việt Nam hay không
+  * Giúp phát hiện vị trí mặc định từ Android Emulator (Mountain View USA: 37.42, -122.08)
+  */
+export const isCoordinatesInVietnam = (lat?: number, lng?: number): boolean => {
+  if (lat == null || lng == null) return false;
+  return lat >= 8.0 && lat <= 24.5 && lng >= 102.0 && lng <= 111.0;
+};
+
+export const DEFAULT_VN_LOCATION: UserCurrentLocation = {
+  latitude: 10.8415,
+  longitude: 106.8098,
+  accuracy: 5,
+  address: 'FPT Station, Khu Công Nghệ Cao, TP. Thủ Đức, TP.HCM',
+};
+
 class LocationService {
   async requestPermission(): Promise<boolean> {
     try {
@@ -21,17 +37,10 @@ class LocationService {
   }
 
   async getCurrentLocation(): Promise<UserCurrentLocation> {
-    const defaultLocation: UserCurrentLocation = {
-      latitude: 10.776889,
-      longitude: 106.700806,
-      accuracy: 5,
-      address: 'Đang định vị GPS...',
-    };
-
     try {
       const hasPermission = await this.requestPermission();
       if (!hasPermission) {
-        return defaultLocation;
+        return DEFAULT_VN_LOCATION;
       }
 
       // Try quick cached GPS position first
@@ -53,10 +62,18 @@ class LocationService {
       }
 
       if (!position) {
-        return defaultLocation;
+        return DEFAULT_VN_LOCATION;
       }
 
-      const { latitude, longitude, accuracy } = position.coords;
+      let { latitude, longitude, accuracy } = position.coords;
+
+      // Bảo vệ: Nếu vị trí GPS nằm ngoài Việt Nam (ví dụ Android Emulator đang ở Mountain View, Mỹ)
+      // thì fallback về trạm FPT Station ở TP.HCM để tránh OSRM vẽ đường 14.500km xuyên lục địa
+      if (!isCoordinatesInVietnam(latitude, longitude)) {
+        latitude = DEFAULT_VN_LOCATION.latitude;
+        longitude = DEFAULT_VN_LOCATION.longitude;
+      }
+
       const address = await mapboxService.reverseGeocode(latitude, longitude);
 
       return {
@@ -66,9 +83,10 @@ class LocationService {
         address,
       };
     } catch {
-      return defaultLocation;
+      return DEFAULT_VN_LOCATION;
     }
   }
 }
 
 export const locationService = new LocationService();
+

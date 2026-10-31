@@ -7,6 +7,7 @@ import {
   ScrollView,
   Linking,
   Alert,
+  Image,
 } from 'react-native';
 import {
   Phone,
@@ -26,6 +27,8 @@ import {
   ChevronDown,
   Maximize2,
   Minimize2,
+  Eye,
+  Truck,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { EmergencyIncident, MissionStage } from '../../types/dispatch';
@@ -39,6 +42,7 @@ interface IncidentDetailCardProps {
   onSwipeEnRoute: () => void;
   onAdvanceStage: (nextStage: MissionStage) => void;
   onCompleteMission: () => void;
+  onRevealPhone?: () => Promise<void> | void;
   viewMode?: IncidentViewMode;
   onToggleExpandDetails?: () => void;
   onToggleExpandMap?: () => void;
@@ -50,12 +54,17 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
   onSwipeEnRoute,
   onAdvanceStage,
   onCompleteMission,
+  onRevealPhone,
   viewMode = 'split',
   onToggleExpandDetails,
   onToggleExpandMap,
 }) => {
-  // Call caller handler
-  const handleCallCaller = () => {
+  // Call caller handler (auto prompt unmask if still masked)
+  const handleCallCaller = async () => {
+    if (incident.callerPhone.includes('*') && onRevealPhone) {
+      await onRevealPhone();
+      return;
+    }
     const phoneNumber = `tel:${incident.callerPhone}`;
     Linking.canOpenURL(phoneNumber)
       .then((supported) => {
@@ -76,8 +85,12 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
       });
   };
 
-  // SMS caller handler
-  const handleSmsCaller = () => {
+  // SMS caller handler (auto prompt unmask if still masked)
+  const handleSmsCaller = async () => {
+    if (incident.callerPhone.includes('*') && onRevealPhone) {
+      await onRevealPhone();
+      return;
+    }
     const smsUrl = `sms:${incident.callerPhone}`;
     Linking.canOpenURL(smsUrl)
       .then((supported) => {
@@ -209,6 +222,16 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
               </Text>
               <View style={styles.callerSubRow}>
                 <Text style={styles.callerPhoneText}>{incident.callerPhone}</Text>
+                {incident.callerPhone.includes('*') && onRevealPhone && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.revealPhoneChip}
+                    onPress={onRevealPhone}
+                  >
+                    <Eye size={moderateScale(12)} color="#DC2626" />
+                    <Text style={styles.revealPhoneText}>Mở khóa SĐT</Text>
+                  </TouchableOpacity>
+                )}
                 <View style={styles.callerRoleBadge}>
                   <Text style={styles.callerRoleText}>Nhân chứng</Text>
                 </View>
@@ -241,6 +264,55 @@ export const IncidentDetailCard: React.FC<IncidentDetailCardProps> = ({
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Operator Dispatcher Instructions */}
+          {!!incident.operatorNotes && (
+            <View style={styles.operatorNotesCard}>
+              <View style={styles.operatorNotesHeader}>
+                <ShieldAlert size={moderateScale(15)} color="#0284C7" />
+                <Text style={styles.operatorNotesTitle}>CHỈ THỊ ĐIỀU PHỐI TỪ OPERATOR</Text>
+              </View>
+              <Text style={styles.operatorNotesBody}>"{incident.operatorNotes}"</Text>
+            </View>
+          )}
+
+          {/* Citizen Evidence Photos */}
+          {!!(incident.mediaUrls && incident.mediaUrls.length > 0) && (
+            <View style={styles.mediaBox}>
+              <Text style={styles.mediaTitle}>
+                ẢNH HIỆN TRƯỜNG TỪ NGƯỜI BÁO TIN ({incident.mediaUrls.length})
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.mediaScroll}
+              >
+                {incident.mediaUrls.map((url, idx) => (
+                  <Image key={idx} source={{ uri: url }} style={styles.evidenceThumbnail} />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Coordinated Units at the Scene */}
+          {!!(incident.cooperatingUnits && incident.cooperatingUnits.length > 0) && (
+            <View style={styles.cooperatingUnitsCard}>
+              <View style={styles.cooperatingHeader}>
+                <Truck size={moderateScale(15)} color="#059669" />
+                <Text style={styles.cooperatingTitle}>
+                  ĐỘI CỨU HỘ CÙNG HIỆN TRƯỜNG ({incident.cooperatingUnits.length})
+                </Text>
+              </View>
+              {incident.cooperatingUnits.map((u, idx) => (
+                <View key={idx} style={styles.cooperatingUnitRow}>
+                  <Text style={styles.cooperatingUnitPlate}>{u.rescueUnitPlate || 'Xe cứu hộ'}</Text>
+                  <Text style={styles.cooperatingUnitType}>
+                    • {u.rescueUnitType || 'Cứu hộ'} • Trạng thái: {u.status}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* 2. Critical Scene Warning Box (Ghi chú hiện trường khẩn cấp) */}
           <View style={styles.emergencyWarningBox}>
@@ -770,5 +842,105 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#059669',
     letterSpacing: 0.5,
+  },
+  revealPhoneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: scale(7),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(10),
+    marginLeft: scale(6),
+  },
+  revealPhoneText: {
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  operatorNotesCard: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: moderateScale(12),
+    padding: scale(10),
+    marginBottom: verticalScale(10),
+  },
+  operatorNotesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    marginBottom: verticalScale(4),
+  },
+  operatorNotesTitle: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#0284C7',
+    letterSpacing: 0.3,
+  },
+  operatorNotesBody: {
+    fontSize: moderateScale(11.5),
+    color: '#0369A1',
+    lineHeight: verticalScale(16),
+    fontWeight: '500',
+  },
+  mediaBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: moderateScale(12),
+    padding: scale(10),
+    marginBottom: verticalScale(10),
+  },
+  mediaTitle: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: verticalScale(8),
+    letterSpacing: 0.3,
+  },
+  mediaScroll: {
+    gap: scale(8),
+  },
+  evidenceThumbnail: {
+    width: scale(72),
+    height: scale(72),
+    borderRadius: moderateScale(8),
+    backgroundColor: '#E2E8F0',
+  },
+  cooperatingUnitsCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: moderateScale(12),
+    padding: scale(10),
+    marginBottom: verticalScale(10),
+  },
+  cooperatingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    marginBottom: verticalScale(6),
+  },
+  cooperatingTitle: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.3,
+  },
+  cooperatingUnitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(2),
+  },
+  cooperatingUnitPlate: {
+    fontSize: moderateScale(11),
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  cooperatingUnitType: {
+    fontSize: moderateScale(11),
+    color: '#047857',
+    marginLeft: scale(4),
   },
 });

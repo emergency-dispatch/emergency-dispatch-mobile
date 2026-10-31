@@ -157,6 +157,8 @@ export const StaffDashboardScreen: React.FC = () => {
           vehiclePlate: teamRes.myTeamRescueUnitPlate || undefined,
           teamName: teamRes.myTeamName || undefined,
           crewRole: teamRes.myCrewRole || undefined,
+          stationOperatorPhone: teamRes.stationOperator?.phoneNumber || undefined,
+          stationOperatorName: teamRes.stationOperator?.fullName || undefined,
         });
       }
 
@@ -274,11 +276,13 @@ export const StaffDashboardScreen: React.FC = () => {
     }
   };
 
-  // SOS Emergency Hotline Call
+  // SOS Emergency Hotline Call (uses real station operator phone if available)
   const handleConfirmSosCall = () => {
     setIsSosModalVisible(false);
-    Linking.openURL('tel:112').catch(() => {
-      Alert.alert('Thông Báo', 'Đang kết nối qua kênh đàm thoại nội bộ cứu hộ...');
+    const operatorPhone = myTeam?.stationOperator?.phoneNumber || user?.stationOperatorPhone || '112';
+    const operatorName = myTeam?.stationOperator?.fullName || user?.stationOperatorName || 'Tổng Đài Điều Phối';
+    Linking.openURL(`tel:${operatorPhone}`).catch(() => {
+      Alert.alert('Thông Báo', `Đang kết nối qua kênh đàm thoại điều phối: ${operatorName} (${operatorPhone})`);
     });
   };
 

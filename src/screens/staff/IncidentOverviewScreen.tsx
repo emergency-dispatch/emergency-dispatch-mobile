@@ -40,6 +40,7 @@ import {
   MissionStage,
   ResolveAssignmentPayload,
 } from '../../types/dispatch';
+import { RoutePoint } from '../../services/mapbox.service';
 
 interface IncidentOverviewScreenProps {
   navigation?: any;
@@ -57,12 +58,96 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const incident = route?.params?.incident || MOCK_EMERGENCY_INCIDENT;
+  const initialIncident = route?.params?.incident || MOCK_EMERGENCY_INCIDENT;
   const assignmentId = route?.params?.assignmentId;
+
+  // Active Incident Data state (populated with real incident details & unmasked phone)
+  const [activeIncidentData, setActiveIncidentData] = useState<EmergencyIncident>(initialIncident);
+  const incident = activeIncidentData;
+  const [routeTrajectory, setRouteTrajectory] = useState<RoutePoint[]>([]);
 
   // Mission State Management (4 Stages)
   const [currentStage, setCurrentStage] = useState<MissionStage>('accepted');
   const user = useAppStore((s) => s.user);
+
+  // Sync state if navigation route params change
+  useEffect(() => {
+    const routeIncident = route?.params?.incident;
+    if (routeIncident) {
+      setActiveIncidentData((prev) => ({
+        ...prev,
+        ...routeIncident,
+      }));
+    }
+  }, [route?.params?.incident]);
+
+  // Load real backend details: GET /api/incidents/{id}, GET /api/dispatch/tracking/incident/{id}, GET /api/dispatch/assignments/incident/{id}
+  useEffect(() => {
+    const targetIncidentId = activeIncidentData.id;
+    if (!targetIncidentId || targetIncidentId.startsWith('inc-2409')) {
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Fetch full incident details (mediaUrls, operatorNotes, aiClassification)
+    staffDispatchService
+      .getIncidentDetails(targetIncidentId)
+      .then((res) => {
+        if (isMounted && res) {
+          setActiveIncidentData((prev) => ({
+            ...prev,
+            title: res.title || prev.title,
+            address: res.locationAddress || prev.address,
+            category: res.eventType || prev.category,
+            callerName: res.reporterName || prev.callerName,
+            callerPhone: prev.isPhoneRevealed ? prev.callerPhone : (res.reporterPhone || prev.callerPhone),
+            mediaUrls: res.mediaUrls || [],
+            operatorNotes: res.operatorNotes || '',
+            targetCoords: {
+              latitude: res.latitude ?? prev.targetCoords.latitude,
+              longitude: res.longitude ?? prev.targetCoords.longitude,
+              label: res.locationAddress || prev.targetCoords.label,
+            },
+          }));
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch official OSRM tracking route trajectory & distance / ETA from dispatch backend
+    staffDispatchService
+      .getTracking(targetIncidentId)
+      .then((tracking) => {
+        if (isMounted && tracking) {
+          if (tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
+            setRouteTrajectory(tracking.routeTrajectory);
+          }
+          setActiveIncidentData((prev) => ({
+            ...prev,
+            distanceKm: tracking.distanceKm ?? prev.distanceKm,
+            etaMinutes: tracking.estimatedArrivalMinutes ?? prev.etaMinutes,
+          }));
+        }
+      })
+      .catch(() => {});
+
+    // 3. Fetch coordinating units at scene
+    staffDispatchService
+      .getAssignmentsByIncident(targetIncidentId)
+      .then((units) => {
+        if (isMounted && units && units.length > 0) {
+          setActiveIncidentData((prev) => ({
+            ...prev,
+            cooperatingUnits: units.filter((u) => u.id !== assignmentId),
+          }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeIncidentData.id, assignmentId]);
 
   // Periodic location telemetry when en_route or on_scene (every 15s)
   useEffect(() => {
@@ -109,11 +194,32 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   const [isClosureModalVisible, setIsClosureModalVisible] = useState(false);
   const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
-  // Quick Dispatcher Hotline Call
+  // Unmask / Reveal reporter phone with audit trail
+  const handleRevealReporterPhone = useCallback(async () => {
+    if (!activeIncidentData.id) return;
+    try {
+      const phone = await staffDispatchService.revealReporterPhone(activeIncidentData.id);
+      setActiveIncidentData((prev) => ({
+        ...prev,
+        callerPhone: phone,
+        isPhoneRevealed: true,
+      }));
+      Alert.alert(
+        'Đã Mở Khóa Số Điện Thoại',
+        `Số điện thoại của người báo tin: ${phone}\n(Hành động này đã được ghi nhận vào nhật ký kiểm toán BR-32)`
+      );
+    } catch (err: any) {
+      Alert.alert('Không Thể Mở Khóa', err.message || 'Lỗi khi yêu cầu mở khóa số điện thoại.');
+    }
+  }, [activeIncidentData.id]);
+
+  // Quick Dispatcher Hotline Call (using real stationOperator phone if available)
   const handleConfirmCallDispatcher = () => {
     setIsCallDispatcherModalVisible(false);
-    Linking.openURL('tel:112').catch(() => {
-      Alert.alert('Đàm Thoại', 'Đang kết nối qua kênh vô tuyến cứu hộ...');
+    const dispatcherPhone = user?.stationOperatorPhone || '112';
+    const dispatcherName = user?.stationOperatorName || 'Tổng Đài Điều Phối';
+    Linking.openURL(`tel:${dispatcherPhone}`).catch(() => {
+      Alert.alert('Đàm Thoại', `Đang kết nối qua kênh đàm thoại điều phối: ${dispatcherName} (${dispatcherPhone})`);
     });
   };
 
@@ -241,6 +347,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               targetCoords={incident.targetCoords}
               assignedUnit={incident.assignedUnit}
               incidentTitle={incident.title}
+              backendRouteTrajectory={routeTrajectory}
               onRecenter={() => {}}
               isMapExpanded={true}
               onToggleMapExpand={handleToggleMapExpand}
@@ -355,6 +462,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 targetCoords={incident.targetCoords}
                 assignedUnit={incident.assignedUnit}
                 incidentTitle={incident.title}
+                backendRouteTrajectory={routeTrajectory}
                 onRecenter={() => {}}
                 isMapExpanded={false}
                 onToggleMapExpand={handleToggleMapExpand}
@@ -374,6 +482,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 onSwipeEnRoute={handleSwipeEnRoute}
                 onAdvanceStage={handleAdvanceStage}
                 onCompleteMission={handleCompleteMission}
+                onRevealPhone={handleRevealReporterPhone}
                 viewMode={viewMode}
                 onToggleExpandDetails={handleToggleExpandDetails}
                 onToggleExpandMap={handleToggleMapExpand}

@@ -25,6 +25,10 @@ export interface EmergencyIncident {
   recommendedHospital: string;
   hospitalDistance: string;
   timeoutSeconds: number;
+  mediaUrls?: string[];
+  operatorNotes?: string;
+  isPhoneRevealed?: boolean;
+  cooperatingUnits?: DispatchAssignmentResponseDto[];
   originCoords: {
     latitude: number;
     longitude: number;
@@ -218,6 +222,65 @@ export interface MyTeamDto {
   myTeamMembers: StationTeamMemberDto[];
   stationVehicles?: Array<{ id: string; plateNumber: string; unitType: string; status: string }>;
   teamMembers?: StationTeamMemberDto[];
+  stationOperator?: {
+    id: string;
+    fullName: string;
+    phoneNumber: string;
+    email?: string;
+    avatarUrl?: string | null;
+  } | null;
+}
+
+export interface RevealPhoneDto {
+  incidentId: string;
+  phoneNumber: string;
+}
+
+export type RescueUnitStatus =
+  | 'Available'
+  | 'Dispatched'
+  | 'OnScene'
+  | 'Maintenance'
+  | 'CoolDown'
+  | 'OutOfService'
+  | string;
+
+export interface RescueUnitDetailDto {
+  id: string;
+  plateNumber: string;
+  unitType: string;
+  status: RescueUnitStatus;
+  stationId: string;
+  stationName?: string;
+  currentLat?: number;
+  currentLng?: number;
+  fuelPercentage?: number;
+  equipmentReady?: boolean;
+}
+
+export interface StationStaffMemberDto {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  role: string;
+  avatarUrl?: string | null;
+  crewRole?: string | null;
+  teamName?: string | null;
+}
+
+export interface StationDetailDto {
+  id: string;
+  name: string;
+  address: string;
+  phoneNumber?: string | null;
+  latitude: number;
+  longitude: number;
+  headOperatorId?: string | null;
+  headOperatorName?: string | null;
+  headOperatorPhone?: string | null;
+  activeUnitsCount?: number;
+  staffCount?: number;
 }
 
 export interface AppNotificationDto {

@@ -56,6 +56,7 @@ export const Endpoints = {
     VERIFY: (id: string) => `/incidents/${id}/verify`,
     CANCEL: (id: string) => `/incidents/${id}/cancel`,
     MY_REPORTS: '/incidents/my-reports',
+    REVEAL_PHONE: (id: string) => `/incidents/${id}/reveal-phone`,
   },
   MEDIA: {
     UPLOAD: '/media/upload',
@@ -63,6 +64,8 @@ export const Endpoints = {
   STATIONS: {
     BASE: '/stations',
     BY_ID: (id: string) => `/stations/${id}`,
+    STAFF: (id: string) => `/stations/${id}/staff`,
+    TEAMS: (id: string) => `/stations/${id}/teams`,
   },
   AI: {
     ANALYZE: '/ai/analyze',

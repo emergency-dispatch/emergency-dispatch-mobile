@@ -29,6 +29,7 @@ interface IncidentTacticalMapProps {
   targetCoords?: { latitude: number; longitude: number; label?: string };
   assignedUnit?: string;
   incidentTitle?: string;
+  backendRouteTrajectory?: RoutePoint[];
   onRecenter?: () => void;
   isMapExpanded?: boolean;
   onToggleMapExpand?: () => void;
@@ -43,6 +44,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
   targetCoords = MOCK_EMERGENCY_INCIDENT.targetCoords,
   assignedUnit = 'Xe Cứu Thương ICU 01',
   incidentTitle = 'Hiện Trường Tai Nạn',
+  backendRouteTrajectory,
   onRecenter,
   isMapExpanded = false,
   onToggleMapExpand,
@@ -75,8 +77,13 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
     ];
   }, [assignedUnit, originCoords, incidentTitle, incidentAddress, targetCoords]);
 
-  // Fetch real road route coordinates from OSRM
+  // Use backend OSRM route trajectory if provided, otherwise fallback to Mapbox OSRM
   useEffect(() => {
+    if (backendRouteTrajectory && backendRouteTrajectory.length > 0) {
+      setRouteCoordinates(backendRouteTrajectory);
+      return;
+    }
+
     let isMounted = true;
     mapboxService
       .getRoute(originCoords, targetCoords)
@@ -94,7 +101,7 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [originCoords, targetCoords]);
+  }, [backendRouteTrajectory, originCoords, targetCoords]);
 
   const handleRecenter = () => {
     if (mapRef.current) {

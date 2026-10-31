@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,12 @@ import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
+import { staffDispatchService } from '../../services/staffDispatch.service';
+import {
+  StationDetailDto,
+  RescueUnitDetailDto,
+  StationStaffMemberDto,
+} from '../../types/dispatch';
 
 export const StaffProfileScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -58,6 +64,31 @@ export const StaffProfileScreen: React.FC = () => {
   const [isRadioModalVisible, setIsRadioModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
+  // Real Backend Data for Station, Vehicle & Staff
+  const [stationDetail, setStationDetail] = useState<StationDetailDto | null>(null);
+  const [rescueUnitDetail, setRescueUnitDetail] = useState<RescueUnitDetailDto | null>(null);
+  const [stationStaffMembers, setStationStaffMembers] = useState<StationStaffMemberDto[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (user?.stationId) {
+      staffDispatchService.getStationById(user.stationId).then((st) => {
+        if (isMounted && st) setStationDetail(st);
+      });
+      staffDispatchService.getStationStaff(user.stationId).then((staff) => {
+        if (isMounted && staff && staff.length > 0) setStationStaffMembers(staff);
+      });
+    }
+    if (user?.rescueUnitId) {
+      staffDispatchService.getRescueUnitById(user.rescueUnitId).then((ru) => {
+        if (isMounted && ru) setRescueUnitDetail(ru);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.stationId, user?.rescueUnitId]);
+
   // Crew member call
   const handleCallCrew = (name: string, phone: string) => {
     Linking.openURL(`tel:${phone}`).catch(() => {
@@ -65,13 +96,25 @@ export const StaffProfileScreen: React.FC = () => {
     });
   };
 
-  // Handover confirmation
-  const handleConfirmHandover = () => {
+  // Handover confirmation with PUT /api/rescue-units/{id}/status
+  const handleConfirmHandover = async () => {
     setIsHandoverModalVisible(false);
-    Alert.alert(
-      'Bàn Giao Ca Thành Công',
-      'Biên bản bàn giao xe 51A-999.99 và trang thiết bị đã được gửi về Trung tâm Điều phối Cứu hộ.'
-    );
+    if (user?.rescueUnitId) {
+      try {
+        await staffDispatchService.updateRescueUnitStatus(user.rescueUnitId, 'Available');
+        Alert.alert(
+          'Bàn Giao Ca Thành Công',
+          `Biên bản bàn giao xe ${user?.vehiclePlate || 'cứu hộ'} và trang thiết bị đã được đồng bộ lên máy chủ điều phối.`
+        );
+      } catch (err: any) {
+        Alert.alert('Bàn Giao Ca', 'Đã lưu biên bản bàn giao: ' + (err.message || ''));
+      }
+    } else {
+      Alert.alert(
+        'Bàn Giao Ca Thành Công',
+        'Biên bản bàn giao xe và trang thiết bị đã được gửi về Trung tâm Điều phối Cứu hộ.'
+      );
+    }
   };
 
   // Logout confirmation
@@ -162,9 +205,17 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.stationRow}>
             <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
-              {user?.stationName || 'Trạm Cứu Hộ & PCCC (TP.HCM)'}
+              {stationDetail ? `${stationDetail.name} • ${stationDetail.address}` : (user?.stationName || 'Trạm Cứu Hộ & PCCC (TP.HCM)')}
             </Text>
           </View>
+          {!!stationDetail?.headOperatorName && (
+            <View style={[styles.stationRow, { marginTop: verticalScale(4) }]}>
+              <Users size={moderateScale(13)} color="#0284C7" />
+              <Text style={[styles.stationText, { color: '#0369A1' }]} numberOfLines={1}>
+                Operator phụ trách: {stationDetail.headOperatorName} ({stationDetail.headOperatorPhone || 'N/A'})
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* 3. Assigned Industrial Vehicle & Equipment Card */}
@@ -181,9 +232,11 @@ export const StaffProfileScreen: React.FC = () => {
 
           <View style={styles.vehicleDetailsBox}>
             <View style={styles.vehiclePlateRow}>
-              <Text style={styles.vehicleName}>Xe Cứu Hộ & Hazmat Chuyên Dụng KCN #RESCUE-04</Text>
+              <Text style={styles.vehicleName}>
+                {rescueUnitDetail ? `Xe ${rescueUnitDetail.unitType} #${rescueUnitDetail.plateNumber}` : 'Xe Cứu Hộ & Hazmat Chuyên Dụng KCN'}
+              </Text>
               <View style={styles.plateBadge}>
-                <Text style={styles.plateText}>{user?.vehiclePlate || '51A-999.99'}</Text>
+                <Text style={styles.plateText}>{rescueUnitDetail?.plateNumber || user?.vehiclePlate || '51A-999.99'}</Text>
               </View>
             </View>
 

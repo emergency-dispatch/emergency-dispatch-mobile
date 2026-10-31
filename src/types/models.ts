@@ -14,6 +14,8 @@ export interface User {
   teamName?: string;
   stationId?: string;
   stationName?: string;
+  stationOperatorPhone?: string;
+  stationOperatorName?: string;
   crewRole?: string;
   rescueUnitId?: string;
   createdAt?: string;

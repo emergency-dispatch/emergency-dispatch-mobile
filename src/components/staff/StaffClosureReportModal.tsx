@@ -57,7 +57,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
   const [victimsCount, setVictimsCount] = useState(1);
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
-  const [handoverEntity, setHandoverEntity] = useState('Bệnh viện Cấp Cứu Trưng Vương');
+  const [handoverEntity, setHandoverEntity] = useState('');
   const [handoverContactName, setHandoverContactName] = useState('');
   const [handoverContactPhone, setHandoverContactPhone] = useState('');
   const [handoverNotes, setHandoverNotes] = useState('');
@@ -339,7 +339,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <Building2 size={moderateScale(14)} color="#64748B" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.singleInput}
-                  placeholder="Đơn vị tiếp nhận (ví dụ: BV Cấp Cứu Trưng Vương)"
+                  placeholder="Đơn vị tiếp nhận (Bệnh viện / Cơ quan công an bàn giao)"
                   placeholderTextColor="#94A3B8"
                   value={handoverEntity}
                   onChangeText={setHandoverEntity}

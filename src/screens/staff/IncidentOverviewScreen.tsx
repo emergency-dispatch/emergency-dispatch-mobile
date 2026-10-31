@@ -360,8 +360,6 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Confirmation Modal states
   const [isCallDispatcherModalVisible, setIsCallDispatcherModalVisible] = useState(false);
-  const [isEnRouteModalVisible, setIsEnRouteModalVisible] = useState(false);
-  const [isOnSceneModalVisible, setIsOnSceneModalVisible] = useState(false);
   const [isClosureModalVisible, setIsClosureModalVisible] = useState(false);
   const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
@@ -411,7 +409,6 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         console.warn('Update EnRoute status failed:', err.message);
       }
     }
-    setIsEnRouteModalVisible(true);
   }, [activeAssignmentId, assignmentId, activeIncidentData?.id]);
 
   // Handle Advance Stage
@@ -431,7 +428,6 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             console.warn('Update EnRoute status failed:', err.message);
           }
         }
-        setIsEnRouteModalVisible(true);
       } else if (nextStage === 'on_scene') {
         if (targetId) {
           try {
@@ -440,7 +436,6 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             console.warn('Update OnScene status failed:', err.message);
           }
         }
-        setIsOnSceneModalVisible(true);
       } else if (nextStage === 'completed') {
         setIsClosureModalVisible(true);
       }
@@ -855,35 +850,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           onCancel={() => setIsCallDispatcherModalVisible(false)}
         />
 
-        {/* 2. Modal: En Route Success Confirmation */}
-        <ConfirmationModal
-          visible={isEnRouteModalVisible}
-          type="warning"
-          title="Xuất Phát Thành Công (En Route)"
-          description={`Xe cứu thương ${incident.assignedUnit} đã chuyển trạng thái xuất phát.`}
-          highlightBadge="ĐANG DI CHUYỂN • BẬT CÒI ƯU TIÊN"
-          highlightText={`Đang dẫn đường tới hiện trường: ${incident.address}`}
-          singleButton
-          confirmText="Tiếp Tục Dẫn Đường"
-          onConfirm={() => setIsEnRouteModalVisible(false)}
-          onCancel={() => setIsEnRouteModalVisible(false)}
-        />
-
-        {/* 3. Modal: Arrived On Scene Confirmation */}
-        <ConfirmationModal
-          visible={isOnSceneModalVisible}
-          type="danger"
-          title="Đã Tiếp Cận Hiện Trường (On Scene)"
-          description="Kíp trực đã có mặt tại hiện trường. Bắt đầu phân loại Triage và sơ cứu nạn nhân."
-          highlightBadge="TRIAGE T1 • 3 NẠN NHÂN"
-          highlightText="Yêu cầu mang kìm cắt thủy lực và bình Oxy dự phòng theo đúng ghi chú hiện trường."
-          singleButton
-          confirmText="Bắt Đầu Cấp Cứu"
-          onConfirm={() => setIsOnSceneModalVisible(false)}
-          onCancel={() => setIsOnSceneModalVisible(false)}
-        />
-
-        {/* 4. Modal: Complete Mission Resolution Report (Required by Backend) */}
+        {/* 2. Modal: Complete Mission Resolution Report (Required by Backend) */}
         <StaffClosureReportModal
           visible={isClosureModalVisible}
           incidentCode={incident.code}
@@ -891,16 +858,15 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           onSubmitResolve={handleSubmitClosureReport}
         />
 
-        {/* 5. Modal: Complete Mission Success Notification */}
+        {/* 3. Modal: Complete Mission Success Notification */}
         <ConfirmationModal
           visible={isCompleteModalVisible}
           type="success"
-          title="Hoàn Thành Ca Cấp Cứu 🎉"
-          description="Báo cáo nghiệm thu ca trực và dữ liệu Telemetry đã được đồng bộ về Trung tâm Cứu hộ thành công."
-          highlightBadge="CA TRỰC HOÀN TẤT XUẤT SẮC"
-          highlightText="Xe cứu hộ đã chuyển sang giai đoạn hạ nhiệt CoolDown trước khi sẵn sàng cho ca tiếp theo."
+          title="Nghiệm Thu Thành Công"
+          description="Báo cáo nghiệm thu ca trực đã được đồng bộ về máy chủ CAD thành công."
+          highlightBadge="ĐÃ HOÀN TẤT"
           singleButton
-          confirmText="Về Bảng Trực Cứu Hộ"
+          confirmText="Về Bảng Điều Khiển"
           onConfirm={() => {
             setIsCompleteModalVisible(false);
             if (navigation?.canGoBack()) {

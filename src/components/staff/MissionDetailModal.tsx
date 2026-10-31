@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { MissionItem } from '../../types/staff';
+import { useAppStore } from '../../store/useAppStore';
 
 interface MissionDetailModalProps {
   visible: boolean;
@@ -36,6 +37,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
   mission,
   onClose,
 }) => {
+  const user = useAppStore((s) => s.user);
   if (!mission) return null;
 
   return (
@@ -152,7 +154,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                   <View style={styles.timelineInfo}>
                     <Text style={styles.timelineStepTitle}>Bàn giao bệnh viện</Text>
                     <Text style={styles.timelineTime}>
-                      {mission.destinationHospital || 'Bệnh viện Trưng Vương TP.HCM'}
+                      {mission.destinationHospital || 'Chưa ghi nhận'}
                     </Text>
                   </View>
                 </View>
@@ -164,16 +166,16 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               <Text style={styles.sectionHeader}>KÍP TRỰC & PHƯƠNG TIỆN</Text>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Kíp cứu hộ:</Text>
-                <Text style={styles.infoValue}>Lê Quốc Huy (Lái xe) • BS. Trần Văn Minh</Text>
+                <Text style={styles.infoValue}>{user?.teamName || user?.name || 'Kíp trực cứu hộ'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Xe cấp cứu:</Text>
-                <Text style={styles.infoValue}>51A-999.99 (Đội ICU 01)</Text>
+                <Text style={styles.infoValue}>{user?.vehiclePlate || 'Xe cứu hộ CAD'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Bệnh viện tiếp nhận:</Text>
                 <Text style={[styles.infoValue, { color: '#38BDF8' }]}>
-                  {mission.destinationHospital || 'Bệnh viện Cấp Cứu Trưng Vương'}
+                  {mission.destinationHospital || 'Chưa ghi nhận'}
                 </Text>
               </View>
             </View>

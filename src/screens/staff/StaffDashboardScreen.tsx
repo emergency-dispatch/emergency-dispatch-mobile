@@ -150,8 +150,8 @@ export const StaffDashboardScreen: React.FC = () => {
     etaMinutes: a.estimatedArrivalMinutes ?? 5,
     status: 'completed',
     patientCount: a.completionReport?.victimsAssistedCount ?? 1,
-    destinationHospital: a.completionReport?.handoverEntity || 'Bệnh viện Cấp Cứu Trưng Vương',
-    notes: a.completionReport?.actionsSummary || a.notes || 'Đã bàn giao nạn nhân an toàn.',
+    destinationHospital: a.completionReport?.handoverEntity || '',
+    notes: a.completionReport?.actionsSummary || a.notes || '',
   }));
 
   const activeIncident = dispatchedAssignment

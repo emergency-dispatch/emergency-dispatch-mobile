@@ -16,18 +16,34 @@ import {
 } from '../types/dispatch';
 import { CitizenTracking, IncidentResponseDto } from '../types/incident';
 
+let cachedMyAssignments: { data: DispatchAssignmentResponseDto[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 6000; // 6 seconds in-memory TTL to avoid rapid re-fetches
+
 export const staffDispatchService = {
+  /**
+   * Invalidate local assignments cache
+   */
+  invalidateCache() {
+    cachedMyAssignments = null;
+  },
+
   /**
    * GET /api/dispatch/my-assignments
    * Lấy toàn bộ nhiệm vụ của các xe thuộc trạm của nhân viên (mới nhất trước)
    */
-  async getMyAssignments(): Promise<DispatchAssignmentResponseDto[]> {
+  async getMyAssignments(forceRefresh = false): Promise<DispatchAssignmentResponseDto[]> {
+    const now = Date.now();
+    if (!forceRefresh && cachedMyAssignments && now - cachedMyAssignments.timestamp < CACHE_TTL_MS) {
+      return cachedMyAssignments.data;
+    }
+
     const response = await apiService.get<BackendApiResponse<DispatchAssignmentResponseDto[]>>(
       Endpoints.DISPATCH.MY_ASSIGNMENTS
     );
     if (!response.success || !response.data) {
       return [];
     }
+    cachedMyAssignments = { data: response.data, timestamp: now };
     return response.data;
   },
 
@@ -54,6 +70,7 @@ export const staffDispatchService = {
     status: 'Accepted' | 'EnRoute' | 'OnScene',
     notes?: string
   ): Promise<DispatchAssignmentResponseDto> {
+    cachedMyAssignments = null;
     const response = await apiService.put<BackendApiResponse<DispatchAssignmentResponseDto>>(
       Endpoints.DISPATCH.ASSIGNMENT_STATUS(id),
       { status, notes }
@@ -72,6 +89,7 @@ export const staffDispatchService = {
     id: string,
     payload: RejectAssignmentPayload
   ): Promise<DispatchAssignmentResponseDto> {
+    cachedMyAssignments = null;
     const response = await apiService.post<BackendApiResponse<DispatchAssignmentResponseDto>>(
       Endpoints.DISPATCH.ASSIGNMENT_REJECT(id),
       payload
@@ -90,6 +108,7 @@ export const staffDispatchService = {
     id: string,
     payload: ResolveAssignmentPayload
   ): Promise<DispatchAssignmentResponseDto> {
+    cachedMyAssignments = null;
     const response = await apiService.post<BackendApiResponse<DispatchAssignmentResponseDto>>(
       Endpoints.DISPATCH.ASSIGNMENT_RESOLVE(id),
       payload

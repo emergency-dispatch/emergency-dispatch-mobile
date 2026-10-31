@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -87,11 +87,26 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   const [currentStage, setCurrentStage] = useState<MissionStage>(initialStage);
   const user = useAppStore((s) => s.user);
 
-  // Check active mission from real backend assignments (no fake data)
-  const checkActiveMission = useCallback(async () => {
-    setIsLoadingActiveMission(true);
+  // Throttling & Caching references to avoid freezing the UI on tab switch
+  const lastCheckTimeRef = useRef<number>(0);
+  const hasLoadedInitialRef = useRef<boolean>(!!passedIncident);
+
+  // Check active mission from real backend assignments (fast with in-memory caching)
+  const checkActiveMission = useCallback(async (isForced = false) => {
+    const now = Date.now();
+    // Throttle automatic focus calls: skip if called within last 8 seconds unless forced
+    if (!isForced && now - lastCheckTimeRef.current < 8000) {
+      return;
+    }
+    lastCheckTimeRef.current = now;
+
+    // Only show full-screen blocking spinner on very first mount if no cached data exists
+    if (!hasLoadedInitialRef.current && !activeIncidentData) {
+      setIsLoadingActiveMission(true);
+    }
+
     try {
-      const myAssignments = await staffDispatchService.getMyAssignments();
+      const myAssignments = await staffDispatchService.getMyAssignments(isForced);
       const activeAssign = myAssignments.find(
         (a) =>
           a.status === 'Accepted' ||
@@ -114,18 +129,18 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
       }
     } catch (err: any) {
       console.warn('Check active mission error:', err?.message);
-      setActiveIncidentData(null);
     } finally {
+      hasLoadedInitialRef.current = true;
       setIsLoadingActiveMission(false);
     }
-  }, []);
+  }, [activeIncidentData]);
 
-  // When focused on this tab, verify if there is an active mission
+  // When focused on this tab, verify if there is an active mission (throttled & non-blocking)
   useFocusEffect(
     useCallback(() => {
       const paramInc = route?.params?.incident;
       if (!paramInc || paramInc.id.startsWith('inc-2409')) {
-        checkActiveMission();
+        checkActiveMission(false);
       }
     }, [route?.params?.incident, checkActiveMission])
   );
@@ -169,145 +184,146 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     }
   }, [route?.params?.incident, route?.params?.assignmentId]);
 
-  // Load real backend details: GET /api/incidents/{id}, GET /api/dispatch/tracking/incident/{id}, GET /api/dispatch/assignments/incident/{id}
+  // Cache to avoid refetching same incident details repeatedly
+  const lastFetchedDetailsIncidentIdRef = useRef<string | null>(null);
+
+  // Load real backend details in a single parallel batch:
+  // GET /api/incidents/{id}, GET /api/dispatch/tracking/incident/{id}, GET /api/dispatch/assignments/incident/{id}
   useEffect(() => {
     const targetIncidentId = activeIncidentData?.id;
     if (!targetIncidentId || targetIncidentId.startsWith('inc-2409')) {
       return;
     }
 
+    // Skip duplicate fetches if this incident was already fetched
+    if (lastFetchedDetailsIncidentIdRef.current === targetIncidentId) {
+      return;
+    }
+    lastFetchedDetailsIncidentIdRef.current = targetIncidentId;
+
     let isMounted = true;
 
-    // 1. Fetch full incident details (mediaUrls, operatorNotes, aiClassification)
-    staffDispatchService
-      .getIncidentDetails(targetIncidentId)
-      .then((res) => {
-        if (isMounted && res) {
-          setActiveIncidentData((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              title: res.title || prev.title,
-              address: res.locationAddress || prev.address,
-              category: res.eventType || prev.category,
-              callerName: res.reporterName || prev.callerName,
-              callerPhone: prev.isPhoneRevealed ? prev.callerPhone : (res.reporterPhone || prev.callerPhone),
-              mediaUrls: res.mediaUrls || [],
-              operatorNotes: res.operatorNotes || '',
-              targetCoords: {
-                latitude: res.latitude ?? prev.targetCoords.latitude,
-                longitude: res.longitude ?? prev.targetCoords.longitude,
-                label: res.locationAddress || prev.targetCoords.label,
-              },
-            };
-          });
+    Promise.allSettled([
+      staffDispatchService.getIncidentDetails(targetIncidentId),
+      staffDispatchService.getTracking(targetIncidentId),
+      staffDispatchService.getAssignmentsByIncident(targetIncidentId),
+    ]).then(async ([detailsSettled, trackingSettled, assignmentsSettled]) => {
+      if (!isMounted) return;
+
+      const details = detailsSettled.status === 'fulfilled' ? detailsSettled.value : null;
+      const tracking = trackingSettled.status === 'fulfilled' ? trackingSettled.value : null;
+      const assignments = assignmentsSettled.status === 'fulfilled' ? assignmentsSettled.value : null;
+
+      // 1. Process tracking status & route
+      let newTrajectory: RoutePoint[] | null = null;
+      let newDistanceKm: number | undefined;
+      let newEtaMinutes: number | undefined;
+
+      if (tracking) {
+        if (tracking.dispatchStatus) {
+          const mappedStage = mapBackendStatusToStage(tracking.dispatchStatus);
+          setCurrentStage(mappedStage);
+          AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, mappedStage).catch(() => {});
         }
-      })
-      .catch(() => {});
 
-    // 2. Fetch official OSRM tracking route trajectory & distance / ETA from dispatch backend
-    staffDispatchService
-      .getTracking(targetIncidentId)
-      .then(async (tracking) => {
-        if (isMounted && tracking) {
-          // Sync mission stage from backend tracking status
-          if (tracking.dispatchStatus) {
-            const mappedStage = mapBackendStatusToStage(tracking.dispatchStatus);
-            setCurrentStage(mappedStage);
-            AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, mappedStage).catch(() => {});
+        const isRouteValid =
+          tracking.distanceKm < 150 &&
+          isValidVietnamRoute(tracking.routeTrajectory);
+
+        if (isRouteValid && tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
+          newTrajectory = tracking.routeTrajectory;
+          newDistanceKm = tracking.distanceKm;
+          newEtaMinutes = tracking.estimatedArrivalMinutes;
+        }
+      }
+
+      // 2. Process assignments (find my assignment ID & stage)
+      let foundAssignmentId: string | undefined;
+      let cooperating: typeof assignments = [];
+
+      if (assignments && assignments.length > 0) {
+        const myAssignment = assignments.find(
+          (u) =>
+            u.id === activeAssignmentId ||
+            u.rescueUnitId === user?.rescueUnitId ||
+            u.incidentId === targetIncidentId
+        );
+        if (myAssignment) {
+          foundAssignmentId = myAssignment.id;
+          setActiveAssignmentId(myAssignment.id);
+          if (myAssignment.status) {
+            const stageFromAssignment = mapBackendStatusToStage(myAssignment.status);
+            setCurrentStage(stageFromAssignment);
+            AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, stageFromAssignment).catch(() => {});
           }
+        }
+        cooperating = assignments.filter((u) => u.id !== (myAssignment?.id || activeAssignmentId));
+      }
 
-          // Validate route trajectory and distance (avoid routes from US emulator coords)
-          const isRouteValid =
-            tracking.distanceKm < 150 &&
-            isValidVietnamRoute(tracking.routeTrajectory);
+      // If no valid tracking route from backend, use fast local routing
+      if (!newTrajectory && (!routeTrajectory || routeTrajectory.length === 0)) {
+        try {
+          const safeOrigin =
+            activeIncidentData &&
+            isCoordinatesInVietnam(
+              activeIncidentData.originCoords.latitude,
+              activeIncidentData.originCoords.longitude
+            )
+              ? activeIncidentData.originCoords
+              : { latitude: 10.8415, longitude: 106.8098, label: 'FPT Station' };
+          const safeTarget =
+            activeIncidentData &&
+            isCoordinatesInVietnam(
+              activeIncidentData.targetCoords.latitude,
+              activeIncidentData.targetCoords.longitude
+            )
+              ? activeIncidentData.targetCoords
+              : {
+                  latitude: 10.845,
+                  longitude: 106.814,
+                  label: activeIncidentData?.address || 'Hiện trường',
+                };
+          const localRoute = await mapboxService.getRouteWithDetails(safeOrigin, safeTarget);
+          if (isMounted) {
+            newTrajectory = localRoute.points;
+            newDistanceKm = localRoute.distanceKm;
+            newEtaMinutes = localRoute.durationMinutes;
+          }
+        } catch {
+          // ignore
+        }
+      }
 
-          if (isRouteValid && tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
-            setRouteTrajectory(tracking.routeTrajectory);
-            setActiveIncidentData((prev) => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                distanceKm: tracking.distanceKm ?? prev.distanceKm,
-                etaMinutes: tracking.estimatedArrivalMinutes ?? prev.etaMinutes,
-              };
-            });
-          } else {
-            // Recalculate realistic local route via Mapbox/OSRM
-            try {
-              const safeOrigin =
-                activeIncidentData &&
-                isCoordinatesInVietnam(
-                  activeIncidentData.originCoords.latitude,
-                  activeIncidentData.originCoords.longitude
-                )
-                  ? activeIncidentData.originCoords
-                  : { latitude: 10.8415, longitude: 106.8098, label: 'FPT Station' };
-              const safeTarget =
-                activeIncidentData &&
-                isCoordinatesInVietnam(
-                  activeIncidentData.targetCoords.latitude,
-                  activeIncidentData.targetCoords.longitude
-                )
-                  ? activeIncidentData.targetCoords
-                  : {
-                      latitude: 10.845,
-                      longitude: 106.814,
-                      label: activeIncidentData?.address || 'Hiện trường',
-                    };
+      if (newTrajectory && isMounted) {
+        setRouteTrajectory(newTrajectory);
+      }
 
-              const localRoute = await mapboxService.getRouteWithDetails(safeOrigin, safeTarget);
-              if (isMounted) {
-                setRouteTrajectory(localRoute.points);
-                setActiveIncidentData((prev) => {
-                  if (!prev) return null;
-                  return {
-                    ...prev,
-                    distanceKm: localRoute.distanceKm,
-                    etaMinutes: localRoute.durationMinutes,
-                  };
-                });
+      // 3. Single atomic state update
+      setActiveIncidentData((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          title: details?.title || prev.title,
+          address: details?.locationAddress || prev.address,
+          category: details?.eventType || prev.category,
+          callerName: details?.reporterName || prev.callerName,
+          callerPhone: prev.isPhoneRevealed ? prev.callerPhone : (details?.reporterPhone || prev.callerPhone),
+          mediaUrls: details?.mediaUrls || prev.mediaUrls || [],
+          operatorNotes: details?.operatorNotes || prev.operatorNotes || '',
+          targetCoords: details?.latitude && details?.longitude
+            ? {
+                latitude: details.latitude,
+                longitude: details.longitude,
+                label: details.locationAddress || prev.targetCoords.label,
               }
-            } catch {
-              // ignore
-            }
-          }
-        }
-      })
-      .catch(() => {});
-
-    // 3. Fetch coordinating units at scene & discover unit's assignment ID and status
-    staffDispatchService
-      .getAssignmentsByIncident(targetIncidentId)
-      .then((units) => {
-        if (isMounted && units && units.length > 0) {
-          const myAssignment = units.find(
-            (u) =>
-              u.id === activeAssignmentId ||
-              u.rescueUnitId === user?.rescueUnitId ||
-              u.incidentId === targetIncidentId
-          );
-          if (myAssignment) {
-            setActiveAssignmentId(myAssignment.id);
-            if (myAssignment.status) {
-              const stageFromAssignment = mapBackendStatusToStage(myAssignment.status);
-              setCurrentStage(stageFromAssignment);
-              AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, stageFromAssignment).catch(() => {});
-            }
-          }
-
-          setActiveIncidentData((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              cooperatingUnits: units.filter(
-                (u) => u.id !== (myAssignment?.id || activeAssignmentId)
-              ),
-            };
-          });
-        }
-      })
-      .catch(() => {});
+            : prev.targetCoords,
+          distanceKm: newDistanceKm ?? prev.distanceKm,
+          etaMinutes: newEtaMinutes ?? prev.etaMinutes,
+          cooperatingUnits: cooperating && cooperating.length > 0 ? cooperating : prev.cooperatingUnits,
+          assignmentId: foundAssignmentId || prev.assignmentId,
+        };
+      });
+    });
 
     return () => {
       isMounted = false;
@@ -506,12 +522,12 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               style={styles.backButton}
               onPress={handleGoBack}
             >
-              <ArrowLeft size={moderateScale(20)} color="#0F172A" />
+              <ArrowLeft size={moderateScale(18)} color="#0F172A" />
             </TouchableOpacity>
 
             <View style={styles.standbyBadge}>
               <View style={styles.standbyDot} />
-              <Text style={styles.standbyBadgeText}>TRỰC SẴN SÀNG (STANDBY)</Text>
+              <Text style={styles.standbyBadgeText} numberOfLines={1}>TRỰC SẴN SÀNG</Text>
             </View>
 
             <TouchableOpacity
@@ -519,9 +535,9 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               style={styles.callDispatcherBtn}
               onPress={() => setIsCallDispatcherModalVisible(true)}
             >
-              <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
+              <PhoneCall size={moderateScale(13)} color="#FFFFFF" />
               <Text style={styles.callDispatcherText} numberOfLines={1}>
-                {t('staff.call_dispatcher')}
+                Gọi Điều Hành
               </Text>
             </TouchableOpacity>
           </View>
@@ -581,7 +597,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.emptyRefreshBtn}
-                onPress={checkActiveMission}
+                onPress={() => checkActiveMission(true)}
               >
                 <RefreshCw size={moderateScale(18)} color="#FFFFFF" />
                 <Text style={styles.emptyRefreshBtnText}>Quét & Làm Mới Lệnh Điều Động</Text>
@@ -659,14 +675,12 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 style={styles.callDispatcherBtn}
                 onPress={() => setIsCallDispatcherModalVisible(true)}
               >
-                <PhoneCall size={moderateScale(14)} color="#FFFFFF" />
+                <PhoneCall size={moderateScale(13)} color="#FFFFFF" />
                 <Text
                   style={styles.callDispatcherText}
                   numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1.15}
                 >
-                  {t('staff.call_dispatcher')}
+                  Gọi Điều Hành
                 </Text>
               </TouchableOpacity>
             </View>
@@ -890,21 +904,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: scale(14),
+    paddingHorizontal: scale(12),
     paddingVertical: verticalScale(10),
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    gap: scale(8),
   },
   backButton: {
-    width: moderateScale(38),
-    height: moderateScale(38),
-    borderRadius: moderateScale(19),
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   incidentCodeBadge: {
     flexDirection: 'row',
@@ -913,9 +929,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#EF4444',
     paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(12),
+    paddingHorizontal: scale(10),
     borderRadius: moderateScale(20),
-    gap: scale(6),
+    gap: scale(5),
+    flexShrink: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   livePulseDot: {
     width: moderateScale(8),
@@ -924,7 +943,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   incidentCodeText: {
-    fontSize: moderateScale(13),
+    fontSize: moderateScale(12),
     fontWeight: '900',
     color: '#DC2626',
     fontFamily: 'monospace',
@@ -934,7 +953,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#DC2626',
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(7),
     paddingHorizontal: scale(10),
     borderRadius: moderateScale(10),
     gap: scale(5),
@@ -943,6 +962,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+    flexShrink: 0,
   },
   callDispatcherText: {
     fontSize: moderateScale(11),
@@ -1142,9 +1162,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#10B981',
     paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(12),
+    paddingHorizontal: scale(10),
     borderRadius: moderateScale(20),
     gap: scale(6),
+    flexShrink: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   standbyDot: {
     width: moderateScale(8),
@@ -1153,7 +1176,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   standbyBadgeText: {
-    fontSize: moderateScale(11.5),
+    fontSize: moderateScale(11),
     fontWeight: '900',
     color: '#059669',
     letterSpacing: 0.3,

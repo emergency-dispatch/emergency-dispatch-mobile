@@ -34,6 +34,9 @@ export interface RoutePoint {
   longitude: number;
 }
 
+const routeCache = new Map<string, { result: RouteDetailResult; timestamp: number }>();
+const ROUTE_CACHE_TTL_MS = 60000; // 60s in-memory route cache
+
 class MapboxService {
   /**
    * Reverse geocode coordinates to human-readable Vietnamese address.
@@ -166,17 +169,26 @@ class MapboxService {
     origin: { latitude: number; longitude: number },
     destination: { latitude: number; longitude: number }
   ): Promise<RouteDetailResult> {
-    // 1. Try Mapbox Directions API
+    const cacheKey = `${origin.latitude.toFixed(4)},${origin.longitude.toFixed(4)}->${destination.latitude.toFixed(4)},${destination.longitude.toFixed(4)}`;
+    const cached = routeCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < ROUTE_CACHE_TTL_MS) {
+      return cached.result;
+    }
+
+    // 1. Try Mapbox Directions API (with 2.5s timeout)
     if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy')) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
         const mapboxDirUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
-        const res = await fetch(mapboxDirUrl);
+        const res = await fetch(mapboxDirUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (data.routes && data.routes.length > 0) {
             const route = data.routes[0];
             const coords = route.geometry.coordinates;
-            return {
+            const result: RouteDetailResult = {
               points: coords.map(([lng, lat]: [number, number]) => ({
                 latitude: lat,
                 longitude: lng,
@@ -184,23 +196,28 @@ class MapboxService {
               distanceKm: Math.round((route.distance / 1000) * 10) / 10,
               durationMinutes: Math.max(1, Math.round(route.duration / 60)),
             };
+            routeCache.set(cacheKey, { result, timestamp: Date.now() });
+            return result;
           }
         }
       } catch {
-        // Fallback
+        // Fallback below
       }
     }
 
-    // 2. Fallback via OSRM
+    // 2. Fallback via OSRM (with 2.5s timeout)
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         if (data.routes && data.routes.length > 0) {
           const route = data.routes[0];
           const coords = route.geometry.coordinates;
-          return {
+          const result: RouteDetailResult = {
             points: coords.map(([lng, lat]: [number, number]) => ({
               latitude: lat,
               longitude: lng,
@@ -208,6 +225,8 @@ class MapboxService {
             distanceKm: Math.round((route.distance / 1000) * 10) / 10,
             durationMinutes: Math.max(1, Math.round(route.duration / 60)),
           };
+          routeCache.set(cacheKey, { result, timestamp: Date.now() });
+          return result;
         }
       }
     } catch {
@@ -224,11 +243,13 @@ class MapboxService {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const straightKm = Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-    return {
+    const result: RouteDetailResult = {
       points: [origin, destination],
       distanceKm: straightKm || 2.4,
       durationMinutes: Math.max(1, Math.round((straightKm / 35) * 60)) || 5,
     };
+    routeCache.set(cacheKey, { result, timestamp: Date.now() });
+    return result;
   }
 }
 

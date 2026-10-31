@@ -28,6 +28,7 @@ import {
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ResolveAssignmentPayload } from '../../types/dispatch';
 import { mediaService } from '../../services/media.service';
+import { DigitalSignaturePad } from '../common/DigitalSignaturePad';
 
 interface StaffClosureReportModalProps {
   visible: boolean;
@@ -36,15 +37,14 @@ interface StaffClosureReportModalProps {
   onSubmitResolve: (payload: ResolveAssignmentPayload) => Promise<void> | void;
 }
 
-const COMMON_EQUIPMENT = [
+const QUICK_SUGGESTIONS = [
   'Bình Oxy 10L',
-  'Kìm cắt thủy lực',
-  'Cáng cứu thương cứng',
-  'Bộ nẹp cổ & cố định chi',
+  'Bộ nẹp cố định',
   'Máy sốc tim AED',
-  'Bột chữa cháy ABC',
-  'Đồ bảo hộ Hazmat & SCBA',
-  'Băng gạc & garo cầm máu',
+  'Băng gạc & garo',
+  'Kìm cắt thủy lực',
+  'Cáng cứu thương',
+  'Bình chữa cháy',
 ];
 
 export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = ({
@@ -57,10 +57,13 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
   const [victimsCount, setVictimsCount] = useState(1);
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+  const [equipmentInputText, setEquipmentInputText] = useState('');
   const [handoverEntity, setHandoverEntity] = useState('');
   const [handoverContactName, setHandoverContactName] = useState('');
   const [handoverContactPhone, setHandoverContactPhone] = useState('');
   const [handoverNotes, setHandoverNotes] = useState('');
+  const [isDrawingSignature, setIsDrawingSignature] = useState(false);
+  const [signatureData, setSignatureData] = useState<string>('');
 
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,10 +72,37 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
   const hasPhotos = evidenceUrls.length >= 1;
   const canSubmit = isSummaryValid && hasPhotos && !isSubmitting && !isUploading;
 
-  const toggleEquipment = (item: string) => {
-    setSelectedEquipment((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
-    );
+  const handleAddCustomEquipment = () => {
+    const trimmed = equipmentInputText.trim();
+    if (!trimmed) return;
+    const items = trimmed
+      .split(/[,;\n]+/)
+      .map((i) => i.trim())
+      .filter((i) => i.length > 0);
+
+    setSelectedEquipment((prev) => {
+      const next = [...prev];
+      for (const it of items) {
+        if (!next.includes(it)) {
+          next.push(it);
+        }
+      }
+      return next;
+    });
+    setEquipmentInputText('');
+  };
+
+  const handleRemoveEquipment = (indexToRemove: number) => {
+    setSelectedEquipment((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const toggleSuggestion = (item: string) => {
+    setSelectedEquipment((prev) => {
+      if (prev.includes(item)) {
+        return prev.filter((i) => i !== item);
+      }
+      return [...prev, item];
+    });
   };
 
   const handlePickCamera = async () => {
@@ -119,15 +149,31 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
     setIsSubmitting(true);
     try {
+      // Include any typed equipment that hasn't been added to selectedEquipment yet
+      let finalEquipment = [...selectedEquipment];
+      if (equipmentInputText.trim()) {
+        const extraItems = equipmentInputText
+          .trim()
+          .split(/[,;\n]+/)
+          .map((i) => i.trim())
+          .filter((i) => i.length > 0);
+        for (const it of extraItems) {
+          if (!finalEquipment.includes(it)) {
+            finalEquipment.push(it);
+          }
+        }
+      }
+
       await onSubmitResolve({
         resolutionSummary: summary.trim(),
         evidenceMediaUrls: evidenceUrls,
         victimsAssistedCount: victimsCount,
-        equipmentUsed: selectedEquipment.length > 0 ? selectedEquipment : undefined,
+        equipmentUsed: finalEquipment.length > 0 ? finalEquipment : undefined,
         handoverEntity: handoverEntity.trim() || undefined,
         handoverContactName: handoverContactName.trim() || undefined,
         handoverContactPhone: handoverContactPhone.trim() || undefined,
         handoverNotes: handoverNotes.trim() || undefined,
+        signatureSvg: signatureData || undefined,
       });
       onClose();
     } catch (err: any) {
@@ -174,6 +220,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             style={styles.scrollBody}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={!isDrawingSignature}
           >
             {/* 1. Resolution Summary (Required >= 10 chars) */}
             <View style={styles.formSection}>
@@ -297,37 +344,98 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
               </View>
             </View>
 
-            {/* 4. Equipment Used (Optional) */}
+            {/* 4. Equipment Used Input (Optional) */}
             <View style={styles.formSection}>
               <Text style={styles.sectionLabel}>TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):</Text>
-              <View style={styles.chipsWrap}>
-                {COMMON_EQUIPMENT.map((item) => {
-                  const isSelected = selectedEquipment.includes(item);
-                  return (
-                    <TouchableOpacity
-                      key={item}
-                      activeOpacity={0.75}
-                      style={[
-                        styles.chip,
-                        isSelected && styles.chipSelected,
-                      ]}
-                      onPress={() => toggleEquipment(item)}
-                      disabled={isSubmitting}
-                    >
-                      {isSelected && (
-                        <CheckCircle2 size={moderateScale(12)} color="#059669" />
-                      )}
-                      <Text
-                        style={[
-                          styles.chipText,
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
+
+              {/* Text Input Row to let users type their own equipment */}
+              <View style={styles.equipmentInputRow}>
+                <TextInput
+                  style={styles.equipmentInput}
+                  placeholder="Nhập trang thiết bị, vật tư đã sử dụng..."
+                  placeholderTextColor="#94A3B8"
+                  value={equipmentInputText}
+                  onChangeText={setEquipmentInputText}
+                  onSubmitEditing={handleAddCustomEquipment}
+                  returnKeyType="done"
+                  editable={!isSubmitting}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[
+                    styles.addEquipmentBtn,
+                    !equipmentInputText.trim() && styles.addEquipmentBtnDisabled,
+                  ]}
+                  onPress={handleAddCustomEquipment}
+                  disabled={!equipmentInputText.trim() || isSubmitting}
+                >
+                  <Plus size={moderateScale(15)} color={equipmentInputText.trim() ? '#FFFFFF' : '#94A3B8'} />
+                  <Text
+                    style={[
+                      styles.addEquipmentBtnText,
+                      !equipmentInputText.trim() && styles.addEquipmentBtnTextDisabled,
+                    ]}
+                  >
+                    Thêm
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tag List of Added Equipment */}
+              {selectedEquipment.length > 0 && (
+                <View style={styles.selectedEquipmentWrap}>
+                  {selectedEquipment.map((item, index) => (
+                    <View key={`${item}-${index}`} style={styles.equipmentTag}>
+                      <Text style={styles.equipmentTagText} numberOfLines={1}>
                         {item}
                       </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleRemoveEquipment(index)}
+                        style={styles.removeTagBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <X size={moderateScale(12)} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Quick Suggestions below */}
+              <View style={styles.suggestionSection}>
+                <Text style={styles.suggestionTitle}>Gợi ý nhanh (chạm để thêm vào danh sách):</Text>
+                <View style={styles.chipsWrap}>
+                  {QUICK_SUGGESTIONS.map((item) => {
+                    const isAdded = selectedEquipment.includes(item);
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        activeOpacity={0.75}
+                        style={[
+                          styles.chip,
+                          isAdded && styles.chipAdded,
+                        ]}
+                        onPress={() => toggleSuggestion(item)}
+                        disabled={isSubmitting}
+                      >
+                        {isAdded ? (
+                          <CheckCircle2 size={moderateScale(12)} color="#059669" />
+                        ) : (
+                          <Plus size={moderateScale(12)} color="#64748B" />
+                        )}
+                        <Text
+                          style={[
+                            styles.chipText,
+                            isAdded && styles.chipTextAdded,
+                          ]}
+                        >
+                          {item}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </View>
 
@@ -383,6 +491,16 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                   editable={!isSubmitting}
                 />
               </View>
+            </View>
+
+            {/* 6. Digital Signature of On-Scene Commander / Handover Person */}
+            <View style={styles.formSection}>
+              <DigitalSignaturePad
+                title="CHỮ KÝ SỐ CỦA CHỈ HUY HIỆN TRƯỜNG / NGƯỜI BÀN GIAO"
+                placeholder="Ký trực tiếp bằng ngón tay vào đây"
+                onDrawingChange={setIsDrawingSignature}
+                onSignatureChange={(_hasSig, svgStr) => setSignatureData(svgStr)}
+              />
             </View>
           </ScrollView>
 
@@ -731,5 +849,88 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.4,
+  },
+  equipmentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    marginBottom: verticalScale(8),
+  },
+  equipmentInput: {
+    flex: 1,
+    height: verticalScale(38),
+    backgroundColor: '#F8FAFC',
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: scale(12),
+    fontSize: moderateScale(11.5),
+    color: '#0F172A',
+  },
+  addEquipmentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284C7',
+    height: verticalScale(38),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(10),
+    gap: scale(4),
+  },
+  addEquipmentBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  addEquipmentBtnText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  addEquipmentBtnTextDisabled: {
+    color: '#94A3B8',
+  },
+  selectedEquipmentWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: scale(6),
+    marginBottom: verticalScale(8),
+  },
+  equipmentTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    paddingVertical: verticalScale(4),
+    paddingLeft: scale(9),
+    paddingRight: scale(6),
+    borderRadius: moderateScale(14),
+    gap: scale(5),
+  },
+  equipmentTagText: {
+    fontSize: moderateScale(10.5),
+    fontWeight: '700',
+    color: '#065F46',
+    maxWidth: scale(180),
+  },
+  removeTagBtn: {
+    padding: scale(2),
+    borderRadius: moderateScale(8),
+    backgroundColor: '#FEE2E2',
+  },
+  suggestionSection: {
+    marginTop: verticalScale(2),
+  },
+  suggestionTitle: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: verticalScale(6),
+  },
+  chipAdded: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  chipTextAdded: {
+    color: '#065F46',
+    fontWeight: '800',
   },
 });

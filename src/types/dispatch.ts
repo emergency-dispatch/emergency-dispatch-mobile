@@ -165,6 +165,7 @@ export interface ResolveAssignmentPayload {
   handoverContactName?: string;
   handoverContactPhone?: string;
   handoverNotes?: string;
+  signatureSvg?: string;
 }
 
 export interface CompletionReportDto {
@@ -176,6 +177,7 @@ export interface CompletionReportDto {
   handoverContactName?: string;
   handoverContactPhone?: string;
   handoverNotes?: string;
+  signatureSvg?: string;
   submittedAt?: string;
 }
 

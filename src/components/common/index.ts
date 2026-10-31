@@ -5,4 +5,4 @@ export * from './ConfirmationModal';
 export * from './AppNotificationModal';
 export * from './LanguageSelectorModal';
 export * from './Avatar';
-
+export * from './DigitalSignaturePad';

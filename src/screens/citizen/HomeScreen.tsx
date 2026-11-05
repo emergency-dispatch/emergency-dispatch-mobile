@@ -14,11 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   MapPin,
-  Clock,
   Sparkles,
-  RefreshCw,
   Navigation as NavigationIcon,
-  Compass,
   RotateCcw,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -33,8 +30,6 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useLocationStore } from '../../store/useLocationStore';
 import { storage } from '../../services/storage';
-import { mapboxService } from '../../services/mapbox.service';
-import { locationService } from '../../services/location.service';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
@@ -50,13 +45,17 @@ export const HomeScreen: React.FC = () => {
 
   // Global Shared GPS Location State
   const {
-    coords: userCoords,
     address,
     isCustomLocation,
     isFetchingLocation: isRefreshingGps,
     refreshLocation,
     resetToGps,
   } = useLocationStore();
+
+  const displayAddress =
+    address === 'Đang xác định vị trí...'
+      ? t('common.locating', 'Đang xác định vị trí...')
+      : address;
 
   // Modals & triggers state
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
@@ -338,10 +337,10 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.gpsPill}>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={handleRefreshGps}
+            onPress={() => navigation.navigate('SafetyMapTab')}
             style={styles.gpsMainAction}
             accessible={true}
-            accessibilityLabel={`Vị trí: ${address}. Chạm để cập nhật GPS`}
+            accessibilityLabel={`${isCustomLocation ? 'Vị trí đã ghim' : 'Vị trí GPS'}: ${displayAddress}. Chạm để mở bản đồ`}
             accessibilityRole="button"
           >
             <View
@@ -378,12 +377,12 @@ export const HomeScreen: React.FC = () => {
                   styles.addressText,
                   {
                     fontSize: fontScale(isSmallDevice ? 11.5 : 12.5),
-                    lineHeight: fontScale(isSmallDevice ? 15 : 17),
+                    lineHeight: fontScale(isSmallDevice ? 17 : 19),
                   },
                 ]}
                 numberOfLines={2}
               >
-                {address}
+                {displayAddress}
               </Text>
             </View>
           </TouchableOpacity>
@@ -398,17 +397,25 @@ export const HomeScreen: React.FC = () => {
               accessible={true}
               accessibilityLabel={t('home.reset_gps_btn', 'GPS Gốc')}
             >
-              <RotateCcw size={16} color="#0284C7" />
+              {isRefreshingGps ? (
+                <ActivityIndicator size="small" color="#0284C7" />
+              ) : (
+                <RotateCcw size={16} color="#0284C7" />
+              )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.mapPickShortcutBtn}
-              onPress={() => navigation.navigate('SafetyMapTab')}
+              onPress={handleRefreshGps}
               activeOpacity={0.7}
               accessible={true}
-              accessibilityLabel={t('home.map_btn', 'Bản Đồ')}
+              accessibilityLabel={t('home.refresh_gps_btn', 'Làm mới GPS')}
             >
-              <Compass size={16} color="#DC2626" />
+              {isRefreshingGps ? (
+                <ActivityIndicator size="small" color="#16A34A" />
+              ) : (
+                <RotateCcw size={16} color="#16A34A" />
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -544,9 +551,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    minHeight: 52,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minHeight: 56,
     gap: 8,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
@@ -601,6 +608,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: '#0F172A',
+    paddingBottom: 2,
   },
   gpsActionsDivider: {
     width: 1,
@@ -622,9 +630,9 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#F0FDF4',
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: '#BBF7D0',
     alignItems: 'center',
     justifyContent: 'center',
   },

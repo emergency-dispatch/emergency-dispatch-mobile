@@ -28,6 +28,7 @@
     "pinned_location_badge": "VỊ TRÍ ĐÃ GHIM TRÊN BẢN ĐỒ",
     "gps_location_badge": "VỊ TRÍ GPS HIỆN TẠI",
     "reset_gps_btn": "GPS Gốc",
+    "refresh_gps_btn": "Làm mới GPS",
     "map_btn": "Bản Đồ"
   },
   "auth": {

@@ -53,8 +53,13 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // In development mode, auto-switch between LAN IP, localhost, and 10.0.2.2 if connection refused
-    if (__DEV__ && originalRequest && (!error.response || error.message === 'Network Error')) {
+    // Only fallback if user is targeting local development (localhost / 10.0.2.2)
+    const isLocalTarget =
+      AppConfig.API_BASE_URL.includes('localhost') ||
+      AppConfig.API_BASE_URL.includes('10.0.2.2') ||
+      AppConfig.API_BASE_URL.includes('127.0.0.1');
+
+    if (__DEV__ && isLocalTarget && originalRequest && (!error.response || error.message === 'Network Error')) {
       const triedIndex = originalRequest._devFallbackIndex ?? -1;
       const nextIndex = triedIndex + 1;
 
@@ -80,6 +85,8 @@ apiClient.interceptors.response.use(
         '1. Backend đang chạy tại cổng 5000.\n' +
         '2. Nếu dùng điện thoại thật qua Wi-Fi, hãy chạy lệnh:\n' +
         '   dotnet run --urls "http://0.0.0.0:5000"';
+    } else if (!error.response || error.message === 'Network Error') {
+      error.message = `Không thể kết nối đến máy chủ (${AppConfig.API_BASE_URL}). Vui lòng kiểm tra kết nối mạng.`;
     }
 
     // Handle 401 & attempt token refresh if not already retried

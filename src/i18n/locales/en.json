@@ -28,6 +28,7 @@
     "pinned_location_badge": "PINNED MAP LOCATION",
     "gps_location_badge": "CURRENT GPS LOCATION",
     "reset_gps_btn": "Reset GPS",
+    "refresh_gps_btn": "Refresh GPS",
     "map_btn": "Map"
   },
   "auth": {

@@ -502,8 +502,10 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     };
 
     onSave(updatedProfile);
-    Alert.alert('Thành Công', 'Đã lưu thông tin hồ sơ cứu hộ và đồng bộ dữ liệu.');
     onClose();
+    setTimeout(() => {
+      Alert.alert('Thành Công', 'Đã lưu thông tin hồ sơ cứu hộ và đồng bộ dữ liệu.');
+    }, 200);
   };
 
   return (

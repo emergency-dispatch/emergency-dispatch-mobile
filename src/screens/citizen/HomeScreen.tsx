@@ -17,6 +17,9 @@ import {
   Clock,
   Sparkles,
   RefreshCw,
+  Navigation as NavigationIcon,
+  Compass,
+  RotateCcw,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -49,8 +52,10 @@ export const HomeScreen: React.FC = () => {
   const {
     coords: userCoords,
     address,
+    isCustomLocation,
     isFetchingLocation: isRefreshingGps,
     refreshLocation,
+    resetToGps,
   } = useLocationStore();
 
   // Modals & triggers state
@@ -328,47 +333,85 @@ export const HomeScreen: React.FC = () => {
         { paddingHorizontal: moderateScale(isSmallDevice ? 12 : 16) },
       ]}
     >
-      {/* 1. Header: Full-Width Prominent GPS Address Bar */}
+      {/* 1. Header: Full-Width Prominent GPS Address Bar with Map Picker Shortcut */}
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleRefreshGps}
-          style={styles.gpsPill}
-          accessible={true}
-          accessibilityLabel={`Vị trí hiện tại: ${address}. Chạm để cập nhật GPS`}
-          accessibilityRole="button"
-        >
-          <View style={styles.gpsIndicatorWrapper}>
-            <Animated.View
-              style={[
-                styles.gpsPulseRing,
-                { transform: [{ scale: gpsPulseAnim }] },
-              ]}
-            />
-            <View style={styles.gpsDot} />
-          </View>
-
-          <MapPin size={moderateScale(18)} color="#DC2626" />
-
-          <Text
-            style={[
-              styles.addressText,
-              {
-                fontSize: fontScale(isSmallDevice ? 13 : 14.5),
-                lineHeight: fontScale(isSmallDevice ? 18 : 20),
-              },
-            ]}
-            numberOfLines={2}
+        <View style={styles.gpsPill}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleRefreshGps}
+            style={styles.gpsMainAction}
+            accessible={true}
+            accessibilityLabel={`Vị trí: ${address}. Chạm để cập nhật GPS`}
+            accessibilityRole="button"
           >
-            {address}
-          </Text>
+            <View
+              style={[
+                styles.locationIconBox,
+                isCustomLocation ? styles.locationIconBoxCustom : styles.locationIconBoxGps,
+              ]}
+            >
+              {isCustomLocation ? (
+                <MapPin size={17} color="#DC2626" />
+              ) : (
+                <>
+                  <Animated.View
+                    style={[
+                      styles.gpsPulseRing,
+                      { transform: [{ scale: gpsPulseAnim }] },
+                    ]}
+                  />
+                  <NavigationIcon size={14} color="#16A34A" />
+                </>
+              )}
+            </View>
 
-          <RefreshCw
-            size={moderateScale(16)}
-            color="#94A3B8"
-            style={isRefreshingGps ? styles.rotating : undefined}
-          />
-        </TouchableOpacity>
+            <View style={styles.addressInfoBlock}>
+              <View style={styles.customBadgeRow}>
+                <Text style={isCustomLocation ? styles.customBadgeText : styles.gpsBadgeText}>
+                  {isCustomLocation
+                    ? t('home.pinned_location_badge', 'VỊ TRÍ ĐÃ GHIM TRÊN BẢN ĐỒ')
+                    : t('home.gps_location_badge', 'VỊ TRÍ GPS HIỆN TẠI')}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.addressText,
+                  {
+                    fontSize: fontScale(isSmallDevice ? 11.5 : 12.5),
+                    lineHeight: fontScale(isSmallDevice ? 15 : 17),
+                  },
+                ]}
+                numberOfLines={2}
+              >
+                {address}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.gpsActionsDivider} />
+
+          {isCustomLocation ? (
+            <TouchableOpacity
+              style={styles.gpsResetCircleBtn}
+              onPress={() => resetToGps()}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel={t('home.reset_gps_btn', 'GPS Gốc')}
+            >
+              <RotateCcw size={16} color="#0284C7" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.mapPickShortcutBtn}
+              onPress={() => navigation.navigate('SafetyMapTab')}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel={t('home.map_btn', 'Bản Đồ')}
+            >
+              <Compass size={16} color="#DC2626" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Main Content Area */}
@@ -477,6 +520,7 @@ export const HomeScreen: React.FC = () => {
         distanceOutsideKm={outOfAreaInfo.distanceOutsideKm}
         latitude={outOfAreaInfo.latitude}
         longitude={outOfAreaInfo.longitude}
+        onPickOnMap={() => navigation.navigate('SafetyMapTab')}
       />
     </ScreenContainer>
   );
@@ -489,7 +533,8 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 10,
+    marginTop: 2,
   },
   gpsPill: {
     width: '100%',
@@ -499,39 +544,96 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    minHeight: 52,
+    gap: 8,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
   },
-  gpsIndicatorWrapper: {
-    width: 14,
-    height: 14,
+  gpsMainAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  locationIconBoxCustom: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  locationIconBoxGps: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  addressInfoBlock: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  customBadgeRow: {
+    marginBottom: 2,
+  },
+  customBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#DC2626',
+    letterSpacing: 0.3,
+  },
+  gpsBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#16A34A',
+    letterSpacing: 0.3,
+  },
+  addressText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  gpsActionsDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 2,
+  },
+  gpsResetCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPickShortcutBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   gpsPulseRing: {
     position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  gpsDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  addressText: {
-    flex: 1,
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: '#0F172A',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(22, 163, 74, 0.25)',
   },
   rotating: {
     transform: [{ rotate: '45deg' }],

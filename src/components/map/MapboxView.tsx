@@ -17,15 +17,32 @@ export interface RouteCoordinate {
   longitude: number;
 }
 
+export interface ServiceAreaCircle {
+  enabled?: boolean;
+  name?: string | null;
+  centerLat: number;
+  centerLng: number;
+  radiusKm: number;
+}
+
+export interface PickedLocationItem {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
 interface MapboxViewProps {
   userLatitude?: number;
   userLongitude?: number;
   markers?: MapMarkerItem[];
   routeCoordinates?: RouteCoordinate[];
   isApproximateRoute?: boolean;
+  serviceArea?: ServiceAreaCircle | null;
+  pickedLocation?: PickedLocationItem | null;
   fitBounds?: boolean;
   interactive?: boolean;
   mapStyle?: 'streets' | 'satellite' | 'dark';
+  language?: 'vi' | 'en';
   onMarkerPress?: (marker: MapMarkerItem) => void;
   onMapPress?: (coords: { latitude: number; longitude: number }) => void;
   style?: any;
@@ -39,9 +56,12 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       markers = [],
       routeCoordinates = [],
       isApproximateRoute = false,
+      serviceArea = null,
+      pickedLocation = null,
       fitBounds = false,
       interactive = true,
       mapStyle = 'satellite',
+      language = 'vi',
       onMarkerPress,
       onMapPress,
       style,
@@ -50,6 +70,32 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   ) => {
     const webViewRef = useRef<any>(null);
     const isMapReadyRef = useRef(false);
+
+    // Sync service area circle
+    useEffect(() => {
+      if (isMapReadyRef.current) {
+        const js = `
+          if (window.setServiceArea) {
+            window.setServiceArea(${JSON.stringify(serviceArea)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+    }, [serviceArea]);
+
+    // Sync picked fixed location marker
+    useEffect(() => {
+      if (isMapReadyRef.current) {
+        const js = `
+          if (window.setPickedLocation) {
+            window.setPickedLocation(${JSON.stringify(pickedLocation)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+    }, [pickedLocation]);
 
     // Sync markers whenever markers array changes without reloading the webview
     useEffect(() => {
@@ -154,9 +200,11 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         const payload = JSON.parse(event.nativeEvent.data);
         if (payload.type === 'MAP_READY') {
           isMapReadyRef.current = true;
-          // Initial push of markers, route, and user location
+          // Initial push of markers, route, user location, service area, and picked location
           const js = `
             if (window.setUserLocation) window.setUserLocation(${userLatitude}, ${userLongitude});
+            if (window.setServiceArea) window.setServiceArea(${JSON.stringify(serviceArea)});
+            if (window.setPickedLocation) window.setPickedLocation(${JSON.stringify(pickedLocation)});
             if (window.setMarkers) window.setMarkers(${JSON.stringify(markers)});
             if (window.setRoute) window.setRoute(${JSON.stringify(routeCoordinates)}, ${isApproximateRoute ? 'true' : 'false'});
             ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
@@ -430,11 +478,57 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       cursor: pointer;
       font-family: inherit;
     }
+
+    /* Picked location custom pin */
+    .picked-pin-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      filter: drop-shadow(0 4px 12px rgba(220, 38, 38, 0.6));
+      animation: bouncePin 0.4s ease-out;
+    }
+    .picked-marker-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 19px;
+      background: #DC2626;
+      border: 3px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      box-shadow: 0 0 14px rgba(220, 38, 38, 0.7);
+    }
+    .picked-marker-arrow {
+      width: 0;
+      height: 0;
+      margin-top: -3px;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 9px solid #DC2626;
+    }
+    .picked-pulse-ring {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(220, 38, 38, 0.45);
+      animation: pulseAnim 1.6s infinite ease-out;
+      pointer-events: none;
+    }
+    @keyframes bouncePin {
+      0% { transform: translateY(-24px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <script>
+    var isEn = '${language}' === 'en';
     var map = L.map('map', {
       center: [${userLatitude}, ${userLongitude}],
       zoom: 15,
@@ -498,6 +592,77 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     // Layer group for route polyline
     window.routeLayer = L.layerGroup().addTo(map);
 
+    // Layer group for service area boundary circle
+    window.serviceAreaLayer = L.layerGroup().addTo(map);
+
+    // Layer group for picked location marker
+    window.pickedLocationLayer = L.layerGroup().addTo(map);
+
+    // Service area circle updater
+    window.setServiceArea = function(area) {
+      window.serviceAreaLayer.clearLayers();
+      if (!area || area.enabled === false) return;
+      var centerLat = area.centerLat;
+      var centerLng = area.centerLng;
+      var radiusMeters = (area.radiusKm || 4.5) * 1000;
+      if (typeof centerLat !== 'number' || typeof centerLng !== 'number') return;
+
+      var circle = L.circle([centerLat, centerLng], {
+        radius: radiusMeters,
+        color: '#DC2626',
+        weight: 2.2,
+        dashArray: '6, 6',
+        fillColor: '#EF4444',
+        fillOpacity: 0.08
+      }).addTo(window.serviceAreaLayer);
+
+      var areaBadge = isEn ? 'OPERATIONAL BOUNDARY' : 'RANH GIỚI VẬN HÀNH';
+      var areaName = area.name || (isEn ? 'Emergency Service Area (IZ)' : 'Khu Vực Phục Vụ Cứu Hộ (KCN)');
+      var areaRadiusDesc = isEn ? 'Dispatch response radius: ' : 'Bán kính điều phối ứng cứu: ';
+      circle.bindPopup(
+        '<div class="popup-badge badge-red">' + areaBadge + '</div>' +
+        '<div class="popup-title">🛡️ ' + areaName + '</div>' +
+        '<div class="popup-desc">' + areaRadiusDesc + '<b>' + (area.radiusKm || 4.5) + ' km</b></div>'
+      );
+    };
+
+    // Picked fixed location marker updater
+    window.setPickedLocation = function(loc) {
+      window.pickedLocationLayer.clearLayers();
+      if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') return;
+
+      var pinIcon = L.divIcon({
+        className: '',
+        html: '<div class="picked-pin-wrap">' +
+          '<div class="picked-pulse-ring"></div>' +
+          '<div class="picked-marker-box">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>' +
+          '<circle cx="12" cy="10" r="3"/>' +
+          '</svg>' +
+          '</div>' +
+          '<div class="picked-marker-arrow"></div>' +
+          '</div>',
+        iconSize: [40, 48],
+        iconAnchor: [20, 48]
+      });
+
+      var pinBadge = isEn ? 'SELECTED SOS LOCATION' : 'ĐIỂM ĐÃ CHỌN BÁO SOS';
+      var pinTitle = isEn ? '📍 Selected Location' : '📍 Vị Trí Bạn Đã Chọn';
+      var coordsPrefix = isEn ? 'Coordinates: ' : 'Toạ độ: ';
+
+      var marker = L.marker([loc.latitude, loc.longitude], {
+        icon: pinIcon,
+        zIndexOffset: 3500
+      }).bindPopup(
+        '<div class="popup-badge badge-red">' + pinBadge + '</div>' +
+        '<div class="popup-title">' + pinTitle + '</div>' +
+        '<div class="popup-desc">' + (loc.address || coordsPrefix + loc.latitude.toFixed(5) + ', ' + loc.longitude.toFixed(5)) + '</div>'
+      ).addTo(window.pickedLocationLayer);
+
+      marker.openPopup();
+    };
+
     // User location marker
     var userMarker = null;
     window.setUserLocation = function(lat, lng) {
@@ -510,8 +675,10 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           iconSize: [22, 22],
           iconAnchor: [11, 11]
         });
+        var userTitle = isEn ? 'Your Location' : 'Vị Trí Của Bạn';
+        var userDesc = isEn ? 'High GPS accuracy' : 'Độ chính xác GPS cao';
         userMarker = L.marker([lat, lng], { icon: userIcon })
-          .bindPopup('<div class="popup-title">Vị Trí Của Bạn</div><div class="popup-desc">Độ chính xác GPS cao</div>')
+          .bindPopup('<div class="popup-title">' + userTitle + '</div><div class="popup-desc">' + userDesc + '</div>')
           .addTo(map);
       }
     };

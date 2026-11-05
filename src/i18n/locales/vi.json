@@ -24,7 +24,11 @@
   },
   "home": {
     "incident_prompt_title": "Khi có sự cố hoả hoạn hoặc tai nạn",
-    "hold_instruction": "Nhấn giữ “SOS” để báo cho lực lượng cứu hộ!"
+    "hold_instruction": "Nhấn giữ “SOS” để báo cho lực lượng cứu hộ!",
+    "pinned_location_badge": "VỊ TRÍ ĐÃ GHIM TRÊN BẢN ĐỒ",
+    "gps_location_badge": "VỊ TRÍ GPS HIỆN TẠI",
+    "reset_gps_btn": "GPS Gốc",
+    "map_btn": "Bản Đồ"
   },
   "auth": {
     "login_title_citizen": "Đăng Nhập Cứu Hộ",
@@ -166,7 +170,28 @@
     "safe_zones": "Khu vực an toàn",
     "navigating_to_incident": "Chỉ đường tới hiện trường",
     "navigate_btn": "DẪN ĐƯỜNG AN TOÀN TỚI ĐÂY",
-    "safe_route_active": "Đã kích hoạt tuyến đường an toàn tới: {{destination}}"
+    "safe_route_active": "Đã kích hoạt tuyến đường an toàn tới: {{destination}}",
+    "kcn_radius_badge": "Bán kính KCN ({{radius}} km)",
+    "picked_location_title": "Vị Trí Đã Chọn Báo SOS",
+    "inside_kcn_badge": "✅ Trong phạm vi KCN",
+    "outside_kcn_badge": "⚠️ Ngoài KCN (~{{distance}} km)",
+    "unpin_btn": "Bỏ ghim",
+    "sos_here_btn": "Báo SOS Tại Đây",
+    "sos_loading_title": "ĐANG KÍCH HOẠT CỨU HỘ SOS",
+    "sos_loading_text": "Đang gửi toạ độ đã chọn tới trung tâm điều phối...",
+    "cooldown_wait_title": "Vui Lòng Chờ",
+    "cooldown_wait_desc": "Bạn vừa gửi một yêu cầu cứu hộ. Vui lòng chờ {{min}}:{{sec}} trước khi gửi lại."
+  },
+  "out_of_area": {
+    "title": "Ngoài Phạm Vi Cứu Hộ KCN",
+    "message_part1": "Toạ độ hiện tại nằm ngoài khu vực hoạt động chuyên trách của ",
+    "message_part2": " khoảng ",
+    "message_part3": " (Bán kính hỗ trợ: {{radius}} km).",
+    "submessage": "Nếu bạn đang ở gần hoặc bị định vị lệch, hãy chọn vị trí cố định trên bản đồ hoặc gọi trực tiếp tổng đài khẩn cấp quốc gia:",
+    "call_114": "Gọi 114 (PCCC)",
+    "call_115": "Gọi 115 (Y Tế)",
+    "pick_on_map": "Chọn Vị Trí Trên Bản Đồ",
+    "understood_close": "Đã hiểu & Đóng"
   },
   "reports": {
     "title": "Lịch Sử Báo Cáo Cứu Hộ",

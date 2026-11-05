@@ -22,18 +22,29 @@ import {
   Phone,
   Clock,
   Truck,
+  Shield,
+  AlertTriangle,
 } from 'lucide-react-native';
 import { MapboxView, MapboxViewRef, RouteCoordinate } from '../../components/map/MapboxView';
+import {
+  SosConfirmModal,
+  SosSuccessModal,
+  OutOfServiceAreaModal,
+} from '../../components/citizen';
 import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
-import { incidentService } from '../../services/incident.service';
+import { incidentService, ServiceAreaDto } from '../../services/incident.service';
 import { staffDispatchService } from '../../services/staffDispatch.service';
+import { mediaService } from '../../services/media.service';
 import { storage } from '../../services/storage';
 import { useRoute } from '@react-navigation/native';
 import { useLocationStore } from '../../store/useLocationStore';
 import { useAppStore } from '../../store/useAppStore';
+import { useProfileStore } from '../../store/useProfileStore';
+import { IncidentResponseDto } from '../../types/incident';
 
 export const SafetyMapScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
   const mapRef = useRef<MapboxViewRef>(null);
   const route = useRoute<any>();
   const trackingIncidentId = route.params?.trackingIncidentId;
@@ -41,11 +52,39 @@ export const SafetyMapScreen: React.FC = () => {
   const {
     coords: userCoords,
     address: currentAddress,
+    isCustomLocation,
     refreshLocation,
     setLocation,
+    resetToGps,
   } = useLocationStore();
 
   const { isAuthenticated, user } = useAppStore();
+  const { profile } = useProfileStore();
+
+  const [serviceArea, setServiceArea] = useState<ServiceAreaDto | null>(null);
+  const [pickedLocation, setPickedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    isOutside?: boolean;
+    distanceOutsideKm?: number;
+  } | null>(null);
+
+  // SOS direct reporting state from map
+  const [isSosConfirmModalVisible, setIsSosConfirmModalVisible] = useState(false);
+  const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
+  const [activeReportedIncident, setActiveReportedIncident] = useState<IncidentResponseDto | null>(null);
+  const [pendingSosAsset, setPendingSosAsset] = useState<any | null>(null);
+  const [isSendingSos, setIsSendingSos] = useState(false);
+  const [outOfAreaInfo, setOutOfAreaInfo] = useState<{
+    visible: boolean;
+    areaName?: string | null;
+    radiusKm?: number;
+    distanceOutsideKm?: number;
+    latitude?: number;
+    longitude?: number;
+  }>({ visible: false });
+
   const [markers, setMarkers] = useState<MapMarkerItem[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
   const [isApproximateRoute, setIsApproximateRoute] = useState(false);
@@ -232,9 +271,8 @@ export const SafetyMapScreen: React.FC = () => {
               trackedVehicles.push({
                 id: tracking.rescueUnitId || `veh-${inc.id}`,
                 title: `${tracking.plateNumber || 'Xe cứu hộ'} (${tracking.unitTypeName || 'Đang phản ứng'})`,
-                description: `Trạm: ${tracking.stationName || 'Cứu hộ'} • Trạng thái: ${
-                  tracking.dispatchStatus || 'Đang di chuyển'
-                } • Dự kiến: ~${etaMins} phút`,
+                description: `Trạm: ${tracking.stationName || 'Cứu hộ'} • Trạng thái: ${tracking.dispatchStatus || 'Đang di chuyển'
+                  } • Dự kiến: ~${etaMins} phút`,
                 latitude: tracking.vehicleLat,
                 longitude: tracking.vehicleLng,
                 type: 'rescue_unit',
@@ -300,11 +338,16 @@ export const SafetyMapScreen: React.FC = () => {
         }
       }
 
-      // 4. Load public rescue units and stations
-      const [rescueUnitsRes, stationsRes] = await Promise.allSettled([
+      // 4. Load public rescue units, stations, and service area configuration
+      const [rescueUnitsRes, stationsRes, serviceAreaRes] = await Promise.allSettled([
         incidentService.getRescueUnits(),
         incidentService.getStations(),
+        incidentService.getServiceArea(),
       ]);
+
+      if (serviceAreaRes.status === 'fulfilled' && serviceAreaRes.value) {
+        setServiceArea(serviceAreaRes.value);
+      }
 
       const stationList = stationsRes.status === 'fulfilled' ? stationsRes.value || [] : [];
       const stationMarkers: MapMarkerItem[] = stationList
@@ -330,9 +373,8 @@ export const SafetyMapScreen: React.FC = () => {
       const publicUnitMarkers: MapMarkerItem[] = publicActiveUnits.map((u) => ({
         id: u.id,
         title: `${u.plateNumber || 'Xe cứu hộ'} (${u.unitTypeName || u.unitType || 'Cứu hộ'})`,
-        description: `Thuộc: ${u.stationName || 'Trạm'} • Trạng thái: ${
-          u.status === 'Dispatched' ? 'Đang điều phối' : u.status === 'OnScene' ? 'Tại hiện trường' : u.status
-        }`,
+        description: `Thuộc: ${u.stationName || 'Trạm'} • Trạng thái: ${u.status === 'Dispatched' ? 'Đang điều phối' : u.status === 'OnScene' ? 'Tại hiện trường' : u.status
+          }`,
         latitude: u.currentLat,
         longitude: u.currentLng,
         type: 'rescue_unit',
@@ -450,10 +492,18 @@ export const SafetyMapScreen: React.FC = () => {
     }, 400);
   };
 
-  const handleSelectSuggestion = (item: { name: string; latitude: number; longitude: number }) => {
+  const handleSelectSuggestion = async (item: { name: string; latitude: number; longitude: number }) => {
     setSuggestions([]);
     setSearchQuery(item.name);
-    setLocation(item.latitude, item.longitude, item.name);
+    const areaCheck = await incidentService.checkOutsideServiceArea(item.latitude, item.longitude);
+    setPickedLocation({
+      latitude: item.latitude,
+      longitude: item.longitude,
+      address: item.name,
+      isOutside: areaCheck.isOutside,
+      distanceOutsideKm: areaCheck.distanceOutsideKm,
+    });
+    setLocation(item.latitude, item.longitude, item.name, true);
     mapRef.current?.flyTo(item.latitude, item.longitude, 16);
     Keyboard.dismiss();
   };
@@ -474,7 +524,15 @@ export const SafetyMapScreen: React.FC = () => {
         Keyboard.dismiss();
         try {
           const addr = await mapboxService.reverseGeocode(lat, lng);
-          setLocation(lat, lng, addr);
+          const areaCheck = await incidentService.checkOutsideServiceArea(lat, lng);
+          setPickedLocation({
+            latitude: lat,
+            longitude: lng,
+            address: addr,
+            isOutside: areaCheck.isOutside,
+            distanceOutsideKm: areaCheck.distanceOutsideKm,
+          });
+          setLocation(lat, lng, addr, true);
           setSearchQuery(addr);
           mapRef.current?.flyTo(lat, lng, 16);
         } finally {
@@ -488,7 +546,7 @@ export const SafetyMapScreen: React.FC = () => {
     try {
       const results = await mapboxService.searchLocation(query);
       if (results.length > 0) {
-        handleSelectSuggestion(results[0]);
+        await handleSelectSuggestion(results[0]);
       } else {
         Alert.alert(t('common.notification', 'Thông báo'), 'Không tìm thấy địa điểm phù hợp');
       }
@@ -499,21 +557,171 @@ export const SafetyMapScreen: React.FC = () => {
     }
   };
 
-  // Map tap handler: dismiss overlays & keyboard without altering location
-  const handleMapPress = () => {
+  // Map tap handler: pick fixed location by tapping directly on the map
+  const handleMapPress = async (coords: { latitude: number; longitude: number }) => {
     setSuggestions([]);
     Keyboard.dismiss();
+    setIsGeocoding(true);
+    try {
+      const addr = await mapboxService.reverseGeocode(coords.latitude, coords.longitude);
+      const displayAddress = addr || `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+      const areaCheck = await incidentService.checkOutsideServiceArea(coords.latitude, coords.longitude);
+
+      setPickedLocation({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        address: displayAddress,
+        isOutside: areaCheck.isOutside,
+        distanceOutsideKm: areaCheck.distanceOutsideKm,
+      });
+
+      setLocation(coords.latitude, coords.longitude, displayAddress, true);
+      setSearchQuery(displayAddress);
+    } catch {
+      // ignore
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const handleRecenter = async () => {
     setSuggestions([]);
+    setPickedLocation(null);
     Keyboard.dismiss();
     try {
-      const loc = await refreshLocation(true);
+      const loc = await resetToGps();
       setSearchQuery(loc.address);
       mapRef.current?.flyTo(loc.latitude, loc.longitude, 16);
     } catch {
       mapRef.current?.recenter();
+    }
+  };
+
+  const recordIncidentId = async (id: string, incident?: IncidentResponseDto) => {
+    try {
+      const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
+      if (!existing.includes(id)) {
+        await storage.setItem('MY_REPORTED_INCIDENT_IDS', [id, ...existing]);
+      }
+      if (incident) {
+        const cached = (await storage.getItem<IncidentResponseDto[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
+        await storage.setItem('MY_REPORTED_INCIDENTS_CACHE', [incident, ...cached.filter((x) => x.id !== id)]);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCancelIncident = async (incidentId: string) => {
+    try {
+      const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
+      await storage.setItem('MY_REPORTED_INCIDENT_IDS', existing.filter((id) => id !== incidentId));
+      const cached = (await storage.getItem<any[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
+      await storage.setItem('MY_REPORTED_INCIDENTS_CACHE', cached.filter((x: any) => x.id !== incidentId));
+      try {
+        await incidentService.cancelIncident(incidentId, 'Người dân hủy báo động SOS');
+      } catch {
+        // ignore
+      }
+      setIsSosSuccessModalVisible(false);
+      setActiveReportedIncident(null);
+      loadMapData(false);
+    } catch {
+      setIsSosSuccessModalVisible(false);
+    }
+  };
+
+  const handleSosAtPickedLocation = async () => {
+    const targetLat = pickedLocation?.latitude ?? userCoords.latitude;
+    const targetLng = pickedLocation?.longitude ?? userCoords.longitude;
+
+    try {
+      const areaCheck = await incidentService.checkOutsideServiceArea(targetLat, targetLng);
+      if (areaCheck.isOutside) {
+        setOutOfAreaInfo({
+          visible: true,
+          areaName: areaCheck.area?.name,
+          radiusKm: areaCheck.area?.radiusKm,
+          distanceOutsideKm: areaCheck.distanceOutsideKm,
+          latitude: targetLat,
+          longitude: targetLng,
+        });
+        return;
+      }
+
+      // Check cooldown
+      const last = await storage.getItem<number>('LAST_SOS_REPORTED_AT');
+      if (last && Date.now() - Number(last) < 180000) {
+        const remaining = Math.ceil((180000 - (Date.now() - Number(last))) / 1000);
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        Alert.alert(
+          t('map.cooldown_wait_title', 'Vui Lòng Chờ'),
+          t('map.cooldown_wait_desc', 'Bạn vừa gửi một yêu cầu cứu hộ. Vui lòng chờ {{min}}:{{sec}} trước khi gửi lại.', {
+            min: m,
+            sec: s < 10 ? `0${s}` : s,
+          })
+        );
+        return;
+      }
+
+      const asset = await mediaService.pickFromCamera();
+      if (asset) setPendingSosAsset(asset);
+      setIsSosConfirmModalVisible(true);
+    } catch {
+      setIsSosConfirmModalVisible(true);
+    }
+  };
+
+  const handleConfirmSosDispatch = async (note: string) => {
+    setIsSosConfirmModalVisible(false);
+    setIsSendingSos(true);
+    try {
+      const targetLat = pickedLocation?.latitude ?? userCoords.latitude;
+      const targetLng = pickedLocation?.longitude ?? userCoords.longitude;
+      const targetAddr = pickedLocation?.address ?? currentAddress;
+
+      const areaCheck = await incidentService.checkOutsideServiceArea(targetLat, targetLng);
+      if (areaCheck.isOutside) {
+        setIsSendingSos(false);
+        setOutOfAreaInfo({
+          visible: true,
+          areaName: areaCheck.area?.name,
+          radiusKm: areaCheck.area?.radiusKm,
+          distanceOutsideKm: areaCheck.distanceOutsideKm,
+          latitude: targetLat,
+          longitude: targetLng,
+        });
+        return;
+      }
+
+      let mediaUrls: string[] = [];
+      if (pendingSosAsset) {
+        const url = await mediaService.uploadMedia(pendingSosAsset);
+        if (url) mediaUrls.push(url);
+      }
+
+      const created = await incidentService.createIncident({
+        title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
+        description: note.trim() || t('sos.default_description', 'Người dân chọn vị trí trên bản đồ báo SOS khẩn cấp.'),
+        latitude: targetLat,
+        longitude: targetLng,
+        locationAddress: targetAddr,
+        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        mediaUrls,
+      });
+
+      setActiveReportedIncident(created);
+      await recordIncidentId(created.id, created);
+      await storage.setItem('LAST_SOS_REPORTED_AT', Date.now());
+      setPendingSosAsset(null);
+      setIsSosSuccessModalVisible(true);
+      loadMapData(true);
+    } catch (err: any) {
+      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+    } finally {
+      setIsSendingSos(false);
     }
   };
 
@@ -599,11 +807,87 @@ export const SafetyMapScreen: React.FC = () => {
           markers={markers}
           routeCoordinates={routeCoordinates}
           isApproximateRoute={isApproximateRoute}
+          serviceArea={serviceArea}
+          pickedLocation={pickedLocation}
+          language={currentLang}
           onMarkerPress={handleMarkerSelect}
           onMapPress={handleMapPress}
           mapStyle="satellite"
           style={styles.mapboxView}
         />
+
+        {/* Floating KCN Service Area Badge */}
+        {serviceArea && (
+          <TouchableOpacity
+            style={styles.serviceAreaPill}
+            onPress={() => mapRef.current?.flyTo(serviceArea.centerLat, serviceArea.centerLng, 14)}
+            activeOpacity={0.8}
+            accessible={true}
+            accessibilityLabel={`Khu vực KCN: ${serviceArea.name || 'SHTP'}. Bán kính ${serviceArea.radiusKm} km`}
+          >
+            <Shield size={13} color="#DC2626" />
+            <Text style={styles.serviceAreaPillText} numberOfLines={1}>
+              {t('map.kcn_radius_badge', 'Bán kính KCN ({{radius}} km)', { radius: serviceArea.radiusKm })}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Floating Picked Location Card for SOS */}
+        {pickedLocation && (
+          <View style={styles.pickedLocationCard}>
+            <View style={styles.pickedHeaderRow}>
+              <View style={styles.pickedTitleWrapper}>
+                <MapPin size={15} color="#DC2626" />
+                <Text style={styles.pickedTitleText}>
+                  {t('map.picked_location_title', 'Vị Trí Đã Chọn Báo SOS')}
+                </Text>
+              </View>
+              {pickedLocation.isOutside ? (
+                <View style={styles.pickedBadgeOutside}>
+                  <Text style={styles.pickedBadgeTextOutside}>
+                    {t('map.outside_kcn_badge', '⚠️ Ngoài KCN (~{{distance}} km)', {
+                      distance: pickedLocation.distanceOutsideKm?.toFixed(1) || '1.0',
+                    })}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.pickedBadgeInside}>
+                  <Text style={styles.pickedBadgeTextInside}>
+                    {t('map.inside_kcn_badge', '✅ Trong phạm vi KCN')}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.pickedAddressText} numberOfLines={2}>
+              {pickedLocation.address}
+            </Text>
+
+            <View style={styles.pickedActionRow}>
+              <TouchableOpacity
+                style={styles.clearPickedBtn}
+                onPress={() => {
+                  setPickedLocation(null);
+                  resetToGps();
+                  if (currentAddress) setSearchQuery(currentAddress);
+                }}
+                activeOpacity={0.7}
+              >
+                <X size={15} color="#64748B" />
+                <Text style={styles.clearPickedBtnText}>{t('map.unpin_btn', 'Bỏ ghim')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sosAtLocationBtn}
+                onPress={handleSosAtPickedLocation}
+                activeOpacity={0.8}
+              >
+                <AlertTriangle size={15} color="#FFFFFF" />
+                <Text style={styles.sosAtLocationBtnText}>{t('map.sos_here_btn', 'Báo SOS Tại Đây')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Floating Live ETA Banner directly on map */}
         {activeTrackingEta && (
@@ -684,6 +968,69 @@ export const SafetyMapScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Fullscreen Emergency Loading Overlay */}
+      {isSendingSos && (
+        <View style={styles.emergencyLoadingOverlay}>
+          <View style={styles.emergencyLoadingCard}>
+            <ActivityIndicator size="large" color="#DC2626" />
+            <Text style={styles.emergencyLoadingTitle}>
+              {t('map.sos_loading_title', 'ĐANG KÍCH HOẠT CỨU HỘ SOS')}
+            </Text>
+            <Text style={styles.emergencyLoadingText}>
+              {t('map.sos_loading_text', 'Đang gửi toạ độ đã chọn tới trung tâm điều phối...')}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* SOS Confirm Modal */}
+      <SosConfirmModal
+        visible={isSosConfirmModalVisible}
+        onClose={() => {
+          setIsSosConfirmModalVisible(false);
+          setPendingSosAsset(null);
+        }}
+        photoUri={pendingSosAsset?.uri}
+        address={pickedLocation ? pickedLocation.address : currentAddress}
+        onConfirm={handleConfirmSosDispatch}
+        onRetakePhoto={async () => {
+          const asset = await mediaService.pickFromCamera();
+          if (asset) setPendingSosAsset(asset);
+        }}
+        onPickLibrary={async () => {
+          const asset = await mediaService.pickFromLibrary();
+          if (asset) setPendingSosAsset(asset);
+        }}
+        onRemovePhoto={() => setPendingSosAsset(null)}
+      />
+
+      {/* SOS Success Modal */}
+      <SosSuccessModal
+        visible={isSosSuccessModalVisible}
+        onClose={() => {
+          setIsSosSuccessModalVisible(false);
+          if (activeReportedIncident) {
+            mapRef.current?.flyTo(activeReportedIncident.latitude, activeReportedIncident.longitude, 16);
+            mapRef.current?.openMarkerPopup?.(activeReportedIncident.id);
+          }
+          setActiveReportedIncident(null);
+        }}
+        onCancelIncident={handleCancelIncident}
+        address={pickedLocation ? pickedLocation.address : currentAddress}
+        incident={activeReportedIncident}
+      />
+
+      {/* Out of Service Area Modal */}
+      <OutOfServiceAreaModal
+        visible={outOfAreaInfo.visible}
+        onClose={() => setOutOfAreaInfo((prev) => ({ ...prev, visible: false }))}
+        areaName={outOfAreaInfo.areaName}
+        radiusKm={outOfAreaInfo.radiusKm}
+        distanceOutsideKm={outOfAreaInfo.distanceOutsideKm}
+        latitude={outOfAreaInfo.latitude}
+        longitude={outOfAreaInfo.longitude}
+      />
     </ScreenContainer>
   );
 };
@@ -909,6 +1256,170 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748B',
   },
-
+  serviceAreaPill: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 20,
+  },
+  serviceAreaPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  pickedLocationCard: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    zIndex: 30,
+  },
+  pickedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  pickedTitleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pickedTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.2,
+  },
+  pickedBadgeInside: {
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  pickedBadgeTextInside: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  pickedBadgeOutside: {
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  pickedBadgeTextOutside: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  pickedAddressText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#334155',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  pickedActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  clearPickedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+  },
+  clearPickedBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  sosAtLocationBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#DC2626',
+    borderRadius: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sosAtLocationBtnText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emergencyLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  emergencyLoadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 280,
+  },
+  emergencyLoadingTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
+    marginTop: 12,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  emergencyLoadingText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
 });
 

@@ -24,7 +24,11 @@
   },
   "home": {
     "incident_prompt_title": "In case of fire or accident emergency",
-    "hold_instruction": "Press and hold “SOS” to alert emergency rescue forces!"
+    "hold_instruction": "Press and hold “SOS” to alert emergency rescue forces!",
+    "pinned_location_badge": "PINNED MAP LOCATION",
+    "gps_location_badge": "CURRENT GPS LOCATION",
+    "reset_gps_btn": "Reset GPS",
+    "map_btn": "Map"
   },
   "auth": {
     "login_title_citizen": "Emergency Sign In",
@@ -166,7 +170,28 @@
     "safe_zones": "Safe Zones",
     "navigating_to_incident": "Navigate to Incident",
     "navigate_btn": "SAFE ROUTE TO THIS LOCATION",
-    "safe_route_active": "Safe route navigation started to: {{destination}}"
+    "safe_route_active": "Safe route navigation started to: {{destination}}",
+    "kcn_radius_badge": "IZ Radius ({{radius}} km)",
+    "picked_location_title": "Selected SOS Location",
+    "inside_kcn_badge": "✅ Inside Industrial Zone",
+    "outside_kcn_badge": "⚠️ Outside IZ (~{{distance}} km)",
+    "unpin_btn": "Unpin",
+    "sos_here_btn": "Report SOS Here",
+    "sos_loading_title": "ACTIVATING EMERGENCY SOS",
+    "sos_loading_text": "Sending selected coordinates to dispatch center...",
+    "cooldown_wait_title": "Please Wait",
+    "cooldown_wait_desc": "You have recently submitted a rescue request. Please wait {{min}}:{{sec}} before retrying."
+  },
+  "out_of_area": {
+    "title": "Outside Operational Area",
+    "message_part1": "Your current location is outside the operational boundary of ",
+    "message_part2": " by approximately ",
+    "message_part3": " (Service radius: {{radius}} km).",
+    "submessage": "If you are nearby or experiencing GPS drift, please select a fixed position on the map or contact national emergency hotlines:",
+    "call_114": "Call 114 (Fire)",
+    "call_115": "Call 115 (Medical)",
+    "pick_on_map": "Pick Location on Map",
+    "understood_close": "Understood & Close"
   },
   "reports": {
     "title": "Rescue Report History",

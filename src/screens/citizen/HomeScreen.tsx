@@ -137,11 +137,16 @@ export const HomeScreen: React.FC = () => {
 
   const handleCancelIncident = async (incidentId: string) => {
     try {
-      // Remove from local storage list
+      // Remove from local storage list & cache
       const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
       await storage.setItem(
         'MY_REPORTED_INCIDENT_IDS',
         existing.filter((id) => id !== incidentId)
+      );
+      const cached = (await storage.getItem<any[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
+      await storage.setItem(
+        'MY_REPORTED_INCIDENTS_CACHE',
+        cached.filter((x: any) => x.id !== incidentId)
       );
 
       // Call backend cancel API if authenticated

@@ -104,6 +104,20 @@ export const SafetyMapScreen: React.FC = () => {
         category?: string;
       }> = [];
 
+      // Helper: check completed or cancelled status
+      const isCompletedOrCancelled = (s?: any) => {
+        const str = String(s || '').toLowerCase();
+        return (
+          str.includes('cancel') ||
+          str.includes('complet') ||
+          str.includes('resolv') ||
+          str.includes('closed') ||
+          str.includes('hủy') ||
+          str === '6' || // IncidentStatus.Completed
+          str === '7'    // IncidentStatus.Cancelled
+        );
+      };
+
       // 2a. Staff assignments
       if (isAuthenticated && user?.role === 'staff') {
         try {
@@ -140,43 +154,34 @@ export const SafetyMapScreen: React.FC = () => {
                 severity: i.severity,
                 status: i.status,
               }));
+
+              // Sync local storage: remove items deleted on server
+              const activeServerIds = new Set(res.items.map((i: any) => i.id));
+              const updatedCache = localCachedIncidents.filter((c: any) => activeServerIds.has(c.id));
+              await storage.setItem('MY_REPORTED_INCIDENTS_CACHE', updatedCache);
             }
           } catch {
             // ignore
           }
-        }
-
-        // Merge locally cached incidents (created on this device, guest SOS, etc.)
-        const idSet = new Set(incidentList.map((i) => i.id));
-        for (const cached of localCachedIncidents) {
-          if (!idSet.has(cached.id)) {
-            incidentList.push({
-              id: cached.id,
-              title: cached.title,
-              description: cached.description,
-              locationAddress: cached.locationAddress,
-              latitude: cached.latitude,
-              longitude: cached.longitude,
-              severity: cached.severity,
-              status: cached.status,
-            });
-            idSet.add(cached.id);
-          } else {
-            // If cached has lat/lng but incidentList doesn't, backfill it
-            const existing = incidentList.find((i) => i.id === cached.id);
-            if (existing && (!existing.latitude || !existing.longitude)) {
-              existing.latitude = cached.latitude;
-              existing.longitude = cached.longitude;
+        } else {
+          // Guest mode: only load non-cancelled cached items
+          for (const cached of localCachedIncidents) {
+            if (!isCompletedOrCancelled(cached.status)) {
+              incidentList.push({
+                id: cached.id,
+                title: cached.title,
+                description: cached.description,
+                locationAddress: cached.locationAddress,
+                latitude: cached.latitude,
+                longitude: cached.longitude,
+                severity: cached.severity,
+                status: cached.status,
+              });
             }
           }
         }
       }
 
-      // Filter out completed and cancelled incidents
-      const isCompletedOrCancelled = (s?: any) => {
-        const str = String(s || '').toLowerCase();
-        return str.includes('cancel') || str.includes('complet') || str.includes('resolv') || str === '3' || str === '6';
-      };
       let activeIncidents = incidentList.filter((inc) => !isCompletedOrCancelled(inc.status));
 
       // If a specific incident was requested from MyReports, prioritize it first

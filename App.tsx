@@ -20,15 +20,15 @@ Alert.alert = (title, message, buttons) => {
   if (buttons && buttons.length > 0) {
     if (buttons.length === 1) {
       confirmText = buttons[0].text || 'Đã Hiểu';
-      onConfirm = buttons[0].onPress;
+      onConfirm = buttons[0].onPress ? () => buttons[0].onPress!() : undefined;
       singleButton = true;
     } else {
       const cancelBtn = buttons.find((b) => b.style === 'cancel') || buttons[0];
       const confirmBtn = buttons.find((b) => b !== cancelBtn) || buttons[1];
       cancelText = cancelBtn.text || 'Hủy Bỏ';
-      onCancel = cancelBtn.onPress;
+      onCancel = cancelBtn.onPress ? () => cancelBtn.onPress!() : undefined;
       confirmText = confirmBtn.text || 'Xác Nhận';
-      onConfirm = confirmBtn.onPress;
+      onConfirm = confirmBtn.onPress ? () => confirmBtn.onPress!() : undefined;
       singleButton = false;
     }
   }

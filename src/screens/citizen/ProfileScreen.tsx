@@ -736,7 +736,9 @@ export const ProfileScreen: React.FC = () => {
         visible={isAvatarModalVisible}
         animationType="fade"
         transparent={true}
-        onRequestClose={() => !isUploadingAvatar && setIsAvatarModalVisible(false)}
+        onRequestClose={() => {
+          if (!isUploadingAvatar) setIsAvatarModalVisible(false);
+        }}
       >
         <View style={styles.avatarModalBackdrop}>
           <View style={styles.avatarModalCard}>

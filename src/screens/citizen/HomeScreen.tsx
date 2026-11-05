@@ -452,7 +452,11 @@ export const HomeScreen: React.FC = () => {
         visible={isSosSuccessModalVisible}
         onClose={() => {
           setIsSosSuccessModalVisible(false);
+          const incId = activeIncident?.id;
           setActiveIncident(null);
+          if (incId) {
+            (navigation as any).navigate('SafetyMapTab', { trackingIncidentId: incId });
+          }
         }}
         onCancelIncident={handleCancelIncident}
         address={address}

@@ -46,7 +46,11 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
       transparent={true}
       animationType="slide"
       statusBarTranslucent={true}
-      onRequestClose={() => !isLoading && onClose()}
+      onRequestClose={() => {
+        if (!isLoading) {
+          onClose();
+        }
+      }}
     >
       <View style={styles.overlay}>
         <View style={styles.card}>

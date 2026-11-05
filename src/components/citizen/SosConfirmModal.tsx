@@ -46,7 +46,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [note, setNote] = useState('');
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
   const handleConfirm = () => {
     onConfirm(note);

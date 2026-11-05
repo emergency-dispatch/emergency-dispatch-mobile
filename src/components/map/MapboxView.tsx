@@ -48,7 +48,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     },
     ref
   ) => {
-    const webViewRef = useRef<WebView>(null);
+    const webViewRef = useRef<any>(null);
     const isMapReadyRef = useRef(false);
 
     // Sync markers whenever markers array changes without reloading the webview
@@ -768,9 +768,11 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 </html>
     `;
 
+    const RNWebView = WebView as any;
+
     return (
       <View style={[styles.container, style]}>
-        <WebView
+        <RNWebView
           ref={webViewRef}
           source={{ html: htmlContent, baseUrl: 'https://unpkg.com' }}
           style={styles.webview}
@@ -785,7 +787,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           )}
           originWhitelist={['*']}
           mixedContentMode="always"
-          onShouldStartLoadWithRequest={(request) => {
+          onShouldStartLoadWithRequest={(request: any) => {
             if (request.url.startsWith('tel:')) {
               Linking.openURL(request.url).catch(() => {});
               return false;

@@ -210,20 +210,24 @@ export const incidentService = {
       const rawLat = area?.centerLat ?? (area as any)?.CenterLat;
       const rawLng = area?.centerLng ?? (area as any)?.CenterLng;
       const rawRad = area?.radiusKm ?? (area as any)?.RadiusKm;
+      const rawEnabled = area?.enabled ?? (area as any)?.Enabled ?? true;
 
       const centerLat = typeof rawLat === 'number' && rawLat !== 0 ? rawLat : DEFAULT_SERVICE_AREA.centerLat;
       const centerLng = typeof rawLng === 'number' && rawLng !== 0 ? rawLng : DEFAULT_SERVICE_AREA.centerLng;
-      // Bán kính hoạt động thực tế chỉ trong phạm vi KCN (tối đa 4.5 km)
-      const radiusKm = KCN_RADIUS_KM;
+      const radiusKm = typeof rawRad === 'number' && rawRad > 0 ? rawRad : DEFAULT_SERVICE_AREA.radiusKm;
       const areaName = area?.name || DEFAULT_SERVICE_AREA.name;
 
       const effectiveArea: ServiceAreaDto = {
-        enabled: true,
+        enabled: rawEnabled,
         name: areaName,
         centerLat,
         centerLng,
         radiusKm,
       };
+
+      if (!rawEnabled) {
+        return { isOutside: false, distanceOutsideKm: 0, area: effectiveArea };
+      }
 
       const dist = haversineDistanceKm(lat, lng, centerLat, centerLng);
       const outside = dist - radiusKm;

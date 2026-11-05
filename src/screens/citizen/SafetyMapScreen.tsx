@@ -411,14 +411,15 @@ export const SafetyMapScreen: React.FC = () => {
     }
   };
 
-  // Periodic background refresh (every 8s) to track live rescue units & routes
+  // Periodic background refresh (2.5s when tracking live incident, 8s otherwise)
   useEffect(() => {
     loadMapData(false);
+    const intervalMs = (trackingIncidentId || activeTrackingEta) ? 2500 : 8000;
     const timer = setInterval(() => {
       loadMapData(true);
-    }, 8000);
+    }, intervalMs);
     return () => clearInterval(timer);
-  }, [isAuthenticated, user?.role, trackingIncidentId]);
+  }, [isAuthenticated, user?.role, trackingIncidentId, Boolean(activeTrackingEta)]);
 
   const handleMarkerSelect = (marker: MapMarkerItem) => {
     mapRef.current?.flyTo(marker.latitude, marker.longitude, 16);

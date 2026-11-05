@@ -5,8 +5,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  NativeSyntheticEvent,
-  TextInputKeyPressEventData,
 } from 'react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { RotateCw } from 'lucide-react-native';
@@ -28,7 +26,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   onResend,
   initialCountdown = 60,
 }) => {
-  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const inputsRef = useRef<Array<any>>([]);
   const [countdown, setCountdown] = useState(initialCountdown);
   const [canResend, setCanResend] = useState(false);
 
@@ -87,7 +85,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   };
 
   const handleKeyPress = (
-    e: NativeSyntheticEvent<TextInputKeyPressEventData>,
+    e: any,
     index: number
   ) => {
     if (e.nativeEvent.key === 'Backspace') {

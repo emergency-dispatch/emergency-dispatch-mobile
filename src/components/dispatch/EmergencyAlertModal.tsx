@@ -232,7 +232,7 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
       transparent={false}
       statusBarTranslucent
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <StatusBar barStyle="dark-content" />
       <View
         style={[
           styles.modalRoot,

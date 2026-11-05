@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 
 const getInitialBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  let envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl) {
-    return envUrl;
+    envUrl = envUrl.trim().replace(/\/+$/, '');
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
   }
   return Platform.OS === 'android' ? 'http://10.0.2.2:5000/api' : 'http://localhost:5000/api';
 };

@@ -43,7 +43,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
         edges={edges ?? ['top', 'left', 'right', 'bottom']}
         style={[styles.container, { backgroundColor }, style]}
       >
-        <RNStatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+        <RNStatusBar barStyle={finalBarStyle} />
         <ExpoStatusBar style={expoStatusStyle} />
         {children}
       </SafeAreaView>
@@ -52,7 +52,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor }, style]}>
-      <RNStatusBar barStyle={finalBarStyle} backgroundColor={backgroundColor} />
+      <RNStatusBar barStyle={finalBarStyle} />
       <ExpoStatusBar style={expoStatusStyle} />
       {children}
     </View>

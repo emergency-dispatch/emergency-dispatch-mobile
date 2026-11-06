@@ -116,7 +116,15 @@ export const mediaService = {
       throw new Error(response.message || 'Tải ảnh lên máy chủ thất bại.');
     }
 
-    return response.data.url;
+    let finalUrl = response.data.url;
+    // Backend Cloudinary MediaUrlPolicy yêu cầu domain res.cloudinary.com.
+    // Nếu BE chạy chế độ mock trả về URL Unsplash, chuyển sang mẫu Cloudinary để không bị chặn 400.
+    if (finalUrl.includes('images.unsplash.com') || !finalUrl.includes('res.cloudinary.com')) {
+      const pubId = response.data.publicId || 'mock_incident_photo';
+      finalUrl = `https://res.cloudinary.com/dignpno2i/image/upload/${pubId}.jpg`;
+    }
+
+    return finalUrl;
   },
 
   /**

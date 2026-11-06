@@ -153,6 +153,11 @@ export const HomeScreen: React.FC = () => {
         cached.filter((x: any) => x.id !== incidentId)
       );
 
+      const cancelled = (await storage.getItem<string[]>('CANCELLED_INCIDENT_IDS')) || [];
+      if (!cancelled.includes(incidentId)) {
+        await storage.setItem('CANCELLED_INCIDENT_IDS', [incidentId, ...cancelled]);
+      }
+
       // Call backend cancel API if authenticated
       try {
         await incidentService.cancelIncident(incidentId, 'Người dân bấm nhầm nút SOS');
@@ -258,6 +263,9 @@ export const HomeScreen: React.FC = () => {
 
       setSosSendingLoadingText('Đang kết nối trung tâm & kích hoạt điều phối cứu hộ...');
 
+      const rawPhone = (user?.phone || profile.phoneNumber || '').trim().replace(/[\s.-]/g, '');
+      const validPhone = /^(0|\+84)[35789][0-9]{8}$/.test(rawPhone) ? rawPhone : undefined;
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.'),
@@ -265,7 +273,7 @@ export const HomeScreen: React.FC = () => {
         longitude: loc.longitude,
         locationAddress: loc.address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
-        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        reporterPhone: validPhone,
         mediaUrls,
       });
 
@@ -302,6 +310,9 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
+      const rawPhone = (user?.phone || profile.phoneNumber || '').trim().replace(/[\s.-]/g, '');
+      const validPhone = /^(0|\+84)[35789][0-9]{8}$/.test(rawPhone) ? rawPhone : undefined;
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: t('sos.default_description_no_media', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp tức thời (không kèm ảnh).'),
@@ -309,7 +320,7 @@ export const HomeScreen: React.FC = () => {
         longitude: loc.longitude,
         locationAddress: loc.address,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
-        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        reporterPhone: validPhone,
         mediaUrls: [],
       });
       setActiveIncident(created);

@@ -104,7 +104,8 @@ export const HomeScreen: React.FC = () => {
     refreshLocation();
 
     const checkCooldown = async () => {
-      const last = await storage.getItem<number>('LAST_SOS_REPORTED_AT');
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      const last = await storage.getItem<number>(cooldownKey);
       if (last) {
         const diff = Date.now() - Number(last);
         if (diff < 180000) {
@@ -118,7 +119,7 @@ export const HomeScreen: React.FC = () => {
     checkCooldown();
     const interval = setInterval(checkCooldown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.id]);
 
   const handleRefreshGps = () => {
     refreshLocation(true);
@@ -167,6 +168,8 @@ export const HomeScreen: React.FC = () => {
 
       setIsSosSuccessModalVisible(false);
       setActiveIncident(null);
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      await storage.removeItem(cooldownKey);
       await storage.removeItem('LAST_SOS_REPORTED_AT');
       setCooldownSeconds(0);
       Alert.alert('Đã Hủy Báo Động', 'Tín hiệu SOS đã được hủy bỏ thành công.');
@@ -234,7 +237,7 @@ export const HomeScreen: React.FC = () => {
     setPendingSosAsset(null);
   };
 
-  const handleConfirmSosDispatch = async (note: string) => {
+  const handleConfirmSosDispatch = async (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => {
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     setSosSendingLoadingText('Đang xác thực phạm vi cứu hộ...');
@@ -275,11 +278,17 @@ export const HomeScreen: React.FC = () => {
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
         reporterPhone: validPhone,
         mediaUrls,
+        reportedEventType: eventType,
       });
+
+      if (created.guestCancellationToken) {
+        await storage.setItem('GUEST_CANCEL_TOKEN_' + created.id, created.guestCancellationToken);
+      }
 
       setActiveIncident(created);
       await recordIncidentId(created.id, created);
-      await storage.setItem('LAST_SOS_REPORTED_AT', Date.now());
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      await storage.setItem(cooldownKey, Date.now());
       setCooldownSeconds(180);
       setPendingSosAsset(null);
       setIsSosSuccessModalVisible(true);
@@ -323,6 +332,9 @@ export const HomeScreen: React.FC = () => {
         reporterPhone: validPhone,
         mediaUrls: [],
       });
+      if (created.guestCancellationToken) {
+        await storage.setItem('GUEST_CANCEL_TOKEN_' + created.id, created.guestCancellationToken);
+      }
       setActiveIncident(created);
       await recordIncidentId(created.id, created);
       setIsSosSuccessModalVisible(true);
@@ -525,6 +537,11 @@ export const HomeScreen: React.FC = () => {
           }
         }}
         onCancelIncident={handleCancelIncident}
+        onTrackOriginal={(origId) => {
+          setIsSosSuccessModalVisible(false);
+          setActiveIncident(null);
+          (navigation as any).navigate('SafetyMapTab', { trackingIncidentId: origId });
+        }}
         address={address}
         incident={activeIncident}
       />

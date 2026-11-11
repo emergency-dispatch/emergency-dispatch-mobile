@@ -26,6 +26,9 @@ import {
   Truck,
   PhoneCall,
   X,
+  Link2,
+  Split,
+  PlusCircle,
 } from 'lucide-react-native';
 import { incidentService } from '../../services/incident.service';
 import { CitizenTracking, IncidentResponseDto, IncidentStatus, SeverityLevel } from '../../types/incident';
@@ -34,6 +37,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { storage } from '../../services/storage';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
+import { SupplementModal, CitizenTrackingModal } from '../../components/citizen';
 
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -44,6 +48,9 @@ export const MyReportsScreen: React.FC = () => {
   const [incidents, setIncidents] = useState<IncidentResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [supplementIncidentId, setSupplementIncidentId] = useState<string | null>(null);
+  const [trackingIncidentId, setTrackingIncidentId] = useState<string | null>(null);
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const fetchIncidents = useCallback(async () => {
     try {
@@ -73,6 +80,9 @@ export const MyReportsScreen: React.FC = () => {
               longitude: item.longitude || 0,
               status: item.status,
               severity: item.severity,
+              cancellationReason: item.cancellationReason,
+              linkedToIncidentId: item.linkedToIncidentId,
+              reportedEventType: item.reportedEventType,
               createdAt: item.reportedAt,
               updatedAt: item.reportedAt,
               verifiedAt: item.verifiedAt,
@@ -82,6 +92,33 @@ export const MyReportsScreen: React.FC = () => {
                 mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
               })),
             } as IncidentResponseDto));
+
+            // Nếu có sự cố Linked hoặc Cancelled vì Duplicate mà thiếu linkedToIncidentId, gọi chi tiết bù
+            const needDetail = items.filter(
+              (i) =>
+                (i.status === IncidentStatus.Linked ||
+                  (i.status as any) === 'Linked' ||
+                  i.status === IncidentStatus.Cancelled) &&
+                !i.linkedToIncidentId
+            );
+            if (needDetail.length > 0) {
+              const detailRes = await Promise.allSettled(
+                needDetail.slice(0, 5).map((i) => incidentService.getIncidentById(i.id))
+              );
+              detailRes.forEach((r) => {
+                if (r.status === 'fulfilled' && r.value) {
+                  const d = r.value;
+                  const idx = items.findIndex((x) => x.id === d.id);
+                  if (idx !== -1) {
+                    items[idx] = {
+                      ...items[idx],
+                      linkedToIncidentId: d.linkedToIncidentId,
+                      cancellationReason: d.cancellationReason || items[idx].cancellationReason,
+                    };
+                  }
+                }
+              });
+            }
           } catch (err) {
             console.warn('Lỗi tải my-reports:', err);
           }
@@ -116,9 +153,45 @@ export const MyReportsScreen: React.FC = () => {
     fetchIncidents();
   };
 
+  const handleUnlink = (incidentId: string) => {
+    Alert.alert(
+      t('reports.unlink_confirm_title', 'Tách báo cáo này?'),
+      t('reports.unlink_confirm_desc', 'Báo cáo sẽ được chuyển về hàng đợi để điều phối viên xử lý độc lập.'),
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận tách',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUnlinkingId(incidentId);
+              const guestToken = await storage.getItem<string>('GUEST_CANCEL_TOKEN_' + incidentId);
+              await incidentService.unlinkIncident(incidentId, undefined, guestToken || undefined);
+              Alert.alert('Thành công', t('reports.unlink_success', 'Đã tách báo cáo.'));
+              fetchIncidents();
+            } catch (err: any) {
+              Alert.alert('Lỗi', err.message || 'Không thể tách báo cáo.');
+            } finally {
+              setUnlinkingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const getStatusBadge = (status: IncidentStatus) => {
     switch (status) {
+      case IncidentStatus.Linked:
+      case 'Linked' as any:
+        return (
+          <View style={[styles.statusBadge, { backgroundColor: 'rgba(99, 102, 241, 0.12)' }]}>
+            <Link2 size={13} color="#6366F1" />
+            <Text style={[styles.statusText, { color: '#6366F1' }]}>
+              {t('reports.status_linked', 'Đã gộp vào sự cố đang xử lý')}
+            </Text>
+          </View>
+        );
       case IncidentStatus.Cancelled:
         return (
           <View style={[styles.statusBadge, { backgroundColor: '#F1F5F9' }]}>
@@ -226,7 +299,7 @@ export const MyReportsScreen: React.FC = () => {
   };
 
   const handleOpenTracking = (incident: IncidentResponseDto) => {
-    navigation.navigate('SafetyMapTab', { trackingIncidentId: incident.id });
+    setTrackingIncidentId(incident.id);
   };
 
   const formatDate = (iso: string) => {
@@ -328,24 +401,112 @@ export const MyReportsScreen: React.FC = () => {
                   )}
                 </View>
 
-                {/* Actions row: Tracking */}
-                {(item.status === IncidentStatus.Dispatched || item.status === IncidentStatus.InProgress) && (
-                  <View style={styles.actionRowContainer}>
+                {/* Linked to original banner */}
+                {((item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') ||
+                  (item.status === IncidentStatus.Cancelled &&
+                    (item.cancellationReason === 'Duplicate' ||
+                      (item.cancellationReason as any) === 4 ||
+                      item.cancellationReason === 'duplicate'))) &&
+                  item.linkedToIncidentId && (
+                    <View style={styles.linkedBanner}>
+                      <Link2 size={13} color="#4F46E5" />
+                      <Text style={styles.linkedBannerText}>
+                        {t('reports.linked_to_original', {
+                          id: item.linkedToIncidentId.slice(0, 8).toUpperCase(),
+                        })}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setTrackingIncidentId(item.linkedToIncidentId!)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.linkedBannerLink}>
+                          {t('reports.btn_track_original', 'Xem sự cố gốc')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                {/* Actions row: Tracking / Unlink / Supplement */}
+                <View style={styles.actionsContainer}>
+                  {(item.status === IncidentStatus.Dispatched ||
+                    item.status === IncidentStatus.InProgress) && (
                     <TouchableOpacity
                       style={styles.trackingBtn}
                       activeOpacity={0.8}
                       onPress={() => handleOpenTracking(item)}
                     >
                       <Navigation size={13} color="#FFFFFF" />
-                      <Text style={styles.trackingBtnText}>{t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}</Text>
+                      <Text style={styles.trackingBtnText}>
+                        {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
+                      </Text>
                     </TouchableOpacity>
-                  </View>
-                )}
+                  )}
+
+                  {/* If Linked: show "Đây là sự cố khác" button */}
+                  {(item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') && (
+                    <TouchableOpacity
+                      style={styles.unlinkBtn}
+                      activeOpacity={0.8}
+                      onPress={() => handleUnlink(item.id)}
+                      disabled={unlinkingId === item.id}
+                    >
+                      {unlinkingId === item.id ? (
+                        <ActivityIndicator size="small" color="#DC2626" />
+                      ) : (
+                        <>
+                          <Split size={13} color="#DC2626" />
+                          <Text style={styles.unlinkBtnText}>
+                            {t('reports.btn_unlink', 'Đây là sự cố khác')}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {/* "Bổ sung thông tin" button: show unless Completed or Cancelled */}
+                  {item.status !== IncidentStatus.Completed &&
+                    item.status !== IncidentStatus.Cancelled && (
+                      <TouchableOpacity
+                        style={styles.supplementBtn}
+                        activeOpacity={0.8}
+                        onPress={() => setSupplementIncidentId(item.id)}
+                      >
+                        <PlusCircle size={13} color="#0284C7" />
+                        <Text style={styles.supplementBtnText}>
+                          {t('reports.btn_supplement', 'Bổ sung thông tin')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                </View>
               </View>
             </View>
           )}
         />
       )}
+
+      {/* Supplement Modal */}
+      {supplementIncidentId && (
+        <SupplementModal
+          visible={Boolean(supplementIncidentId)}
+          onClose={() => setSupplementIncidentId(null)}
+          incidentId={supplementIncidentId}
+        />
+      )}
+
+      {/* Incident Tracking Modal (Xem sự cố gốc & theo dõi xe cứu hộ tại chỗ) */}
+      <CitizenTrackingModal
+        visible={Boolean(trackingIncidentId)}
+        incidentId={trackingIncidentId}
+        onClose={() => setTrackingIncidentId(null)}
+        onOpenSupplement={(id) => {
+          setTrackingIncidentId(null);
+          setSupplementIncidentId(id);
+        }}
+        onOpenMap={(id) => {
+          setTrackingIncidentId(null);
+          navigation.navigate('SafetyMapTab', { trackingIncidentId: id });
+        }}
+      />
 
     </ScreenContainer>
   );
@@ -736,5 +897,69 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontWeight: '700',
     fontSize: 12,
+  },
+  linkedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 6,
+  },
+  linkedBannerText: {
+    flex: 1,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#3730A3',
+  },
+  linkedBannerLink: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#4F46E5',
+    textDecorationLine: 'underline',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  unlinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 5,
+  },
+  unlinkBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  supplementBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 5,
+  },
+  supplementBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0284C7',
   },
 });

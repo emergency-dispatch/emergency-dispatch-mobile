@@ -5,3 +5,5 @@ export * from './SosSuccessModal';
 export * from './SosActionModal';
 export * from './SosConfirmModal';
 export * from './OutOfServiceAreaModal';
+export * from './SupplementModal';
+export * from './CitizenTrackingModal';

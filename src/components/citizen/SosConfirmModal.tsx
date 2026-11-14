@@ -21,6 +21,9 @@ import {
   Trash2,
   X,
   Send,
+  Flame,
+  Car,
+  HelpCircle,
 } from 'lucide-react-native';
 
 interface SosConfirmModalProps {
@@ -28,7 +31,7 @@ interface SosConfirmModalProps {
   onClose: () => void;
   photoUri?: string | null;
   address: string;
-  onConfirm: (note: string) => void;
+  onConfirm: (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => void;
   onRetakePhoto: () => void;
   onPickLibrary: () => void;
   onRemovePhoto: () => void;
@@ -46,15 +49,18 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [note, setNote] = useState('');
+  const [reportedEventType, setReportedEventType] = useState<'FireExplosion' | 'TrafficAccident' | undefined>(undefined);
   const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
   const handleConfirm = () => {
-    onConfirm(note);
+    onConfirm(note, reportedEventType);
     setNote('');
+    setReportedEventType(undefined);
   };
 
   const handleClose = () => {
     setNote('');
+    setReportedEventType(undefined);
     onClose();
   };
 
@@ -159,6 +165,73 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                   </View>
                 </View>
               )}
+
+              {/* Event Type Selector */}
+              <View style={styles.eventTypeSection}>
+                <Text style={styles.noteLabel}>Loại sự cố khẩn cấp</Text>
+                <View style={styles.eventTypeRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.eventTypeChip,
+                      reportedEventType === 'FireExplosion' && styles.eventTypeChipActiveFire,
+                    ]}
+                    onPress={() =>
+                      setReportedEventType((prev) => (prev === 'FireExplosion' ? undefined : 'FireExplosion'))
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Flame size={15} color={reportedEventType === 'FireExplosion' ? '#DC2626' : '#64748B'} />
+                    <Text
+                      style={[
+                        styles.eventTypeText,
+                        reportedEventType === 'FireExplosion' && styles.eventTypeTextActiveFire,
+                      ]}
+                    >
+                      Cháy nổ
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.eventTypeChip,
+                      reportedEventType === 'TrafficAccident' && styles.eventTypeChipActiveCrash,
+                    ]}
+                    onPress={() =>
+                      setReportedEventType((prev) => (prev === 'TrafficAccident' ? undefined : 'TrafficAccident'))
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Car size={15} color={reportedEventType === 'TrafficAccident' ? '#2563EB' : '#64748B'} />
+                    <Text
+                      style={[
+                        styles.eventTypeText,
+                        reportedEventType === 'TrafficAccident' && styles.eventTypeTextActiveCrash,
+                      ]}
+                    >
+                      Tai nạn
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.eventTypeChip,
+                      reportedEventType === undefined && styles.eventTypeChipActiveNeutral,
+                    ]}
+                    onPress={() => setReportedEventType(undefined)}
+                    activeOpacity={0.7}
+                  >
+                    <HelpCircle size={15} color={reportedEventType === undefined ? '#475569' : '#64748B'} />
+                    <Text
+                      style={[
+                        styles.eventTypeText,
+                        reportedEventType === undefined && styles.eventTypeTextActiveNeutral,
+                      ]}
+                    >
+                      Không rõ
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               {/* Note Section */}
               <View style={styles.noteSection}>
@@ -370,6 +443,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#0284C7',
+  },
+  eventTypeSection: {
+    marginBottom: 12,
+  },
+  eventTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  eventTypeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  eventTypeChipActiveFire: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#F87171',
+  },
+  eventTypeChipActiveCrash: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#60A5FA',
+  },
+  eventTypeChipActiveNeutral: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#94A3B8',
+  },
+  eventTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  eventTypeTextActiveFire: {
+    color: '#DC2626',
+    fontWeight: '800',
+  },
+  eventTypeTextActiveCrash: {
+    color: '#2563EB',
+    fontWeight: '800',
+  },
+  eventTypeTextActiveNeutral: {
+    color: '#334155',
+    fontWeight: '800',
   },
   noteSection: {
     marginBottom: 14,

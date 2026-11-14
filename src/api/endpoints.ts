@@ -57,6 +57,8 @@ export const Endpoints = {
     CANCEL: (id: string) => `/incidents/${id}/cancel`,
     MY_REPORTS: '/incidents/my-reports',
     REVEAL_PHONE: (id: string) => `/incidents/${id}/reveal-phone`,
+    UNLINK: (id: string) => `/incidents/${id}/unlink`,
+    SUPPLEMENTS: (id: string) => `/incidents/${id}/supplements`,
   },
   MEDIA: {
     UPLOAD: '/media/upload',

@@ -12,6 +12,7 @@ export enum IncidentStatus {
   Completed = 'Completed',
   Cancelled = 'Cancelled',
   Escalated = 'Escalated',
+  Linked = 'Linked',
 }
 
 export enum SeverityLevel {
@@ -48,6 +49,27 @@ export interface CreateIncidentDto {
   reporterName?: string;
   reporterPhone?: string;
   mediaUrls?: string[];
+  reportedEventType?: 'FireExplosion' | 'TrafficAccident';
+}
+
+export interface LinkedToIncidentDto {
+  incidentId: string;
+  title: string;
+  locationAddress: string;
+  eventType?: string;
+  status?: IncidentStatus | string;
+  distanceMeters: number;
+  assignedUnitPlates: string[];
+}
+
+export interface IncidentSupplementDto {
+  id: string;
+  incidentId: string;
+  targetIncidentId: string;
+  note: string;
+  mediaUrls: string[];
+  reporterName?: string | null;
+  createdAt: string;
 }
 
 export interface IncidentResponseDto {
@@ -72,6 +94,12 @@ export interface IncidentResponseDto {
   mediaItems: IncidentMediaDto[];
   mediaUrls?: string[];
   aiClassification?: AiClassificationResultDto | null;
+  reportedEventType?: string | null;
+  linkedReportCount?: number;
+  linkedToIncidentId?: string | null;
+  linkedTo?: LinkedToIncidentDto | null;
+  cancellationReason?: string | null;
+  guestCancellationToken?: string | null;
 }
 
 export interface PaginatedResultDto<T> {
@@ -102,6 +130,8 @@ export interface MyReportDto {
   severity: SeverityLevel;
   resolutionSummary?: string | null;
   cancellationReason?: string | null;
+  linkedToIncidentId?: string | null;
+  reportedEventType?: string | null;
   mediaUrls: string[];
   reportedAt: string;
   verifiedAt?: string | null;

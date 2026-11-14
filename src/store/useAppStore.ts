@@ -122,6 +122,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   logout: async () => {
     const currentRefresh = get().refreshToken;
+    const currentUser = get().user;
     set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
     try {
       await Promise.all([
@@ -129,6 +130,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         storage.removeItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
         storage.removeItem(AppConfig.STORAGE_KEYS.USER_INFO),
         storage.removeItem('@emergency_user_profile'),
+        storage.removeItem('LAST_SOS_REPORTED_AT'),
+        currentUser?.id ? storage.removeItem(`LAST_SOS_REPORTED_AT_${currentUser.id}`) : Promise.resolve(),
         currentRefresh ? authService.logout(currentRefresh) : Promise.resolve(),
       ]);
     } catch {

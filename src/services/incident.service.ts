@@ -5,6 +5,7 @@ import {
   CitizenTracking,
   CreateIncidentDto,
   IncidentResponseDto,
+  IncidentSupplementDto,
   MyReportDto,
   PaginatedResultDto,
   RescueUnitDto,
@@ -121,15 +122,68 @@ export const incidentService = {
    * PUT /api/incidents/{id}/cancel — Hủy sự cố (bấm nhầm / báo sai)
    * Phù hợp với BE hiện hành: [HttpPut("{id}/cancel")] nhận [FromBody] string reason
    */
-  async cancelIncident(id: string, reason?: string): Promise<IncidentResponseDto> {
+  async cancelIncident(id: string, reason?: string, guestCancellationToken?: string): Promise<IncidentResponseDto> {
     const reasonText = reason || 'Người dân bấm nhầm nút SOS';
     const response = await apiService.put<BackendApiResponse<IncidentResponseDto>>(
       Endpoints.INCIDENTS.CANCEL(id),
-      { reason: reasonText }
+      { reason: reasonText, guestCancellationToken: guestCancellationToken || undefined }
     );
 
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Không thể hủy sự cố.');
+    }
+
+    return response.data;
+  },
+
+  /**
+   * PUT /api/incidents/{id}/unlink — Tách báo cáo khỏi sự cố gốc (xác nhận sự cố khác)
+   */
+  async unlinkIncident(id: string, reason?: string, guestCancellationToken?: string): Promise<IncidentResponseDto> {
+    const response = await apiService.put<BackendApiResponse<IncidentResponseDto>>(
+      Endpoints.INCIDENTS.UNLINK(id),
+      {
+        reason: reason || undefined,
+        guestCancellationToken: guestCancellationToken || undefined,
+      }
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể tách báo cáo.');
+    }
+
+    return response.data;
+  },
+
+  /**
+   * POST /api/incidents/{id}/supplements — Bổ sung thông tin (ghi chú / ảnh)
+   */
+  async addSupplement(
+    id: string,
+    dto: { note?: string; mediaUrls?: string[]; guestCancellationToken?: string }
+  ): Promise<IncidentSupplementDto> {
+    const response = await apiService.post<BackendApiResponse<IncidentSupplementDto>>(
+      Endpoints.INCIDENTS.SUPPLEMENTS(id),
+      dto
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể gửi thông tin bổ sung.');
+    }
+
+    return response.data;
+  },
+
+  /**
+   * GET /api/incidents/{id}/supplements — Lấy danh sách thông tin bổ sung (yêu cầu đăng nhập)
+   */
+  async getSupplements(id: string): Promise<IncidentSupplementDto[]> {
+    const response = await apiService.get<BackendApiResponse<IncidentSupplementDto[]>>(
+      Endpoints.INCIDENTS.SUPPLEMENTS(id)
+    );
+
+    if (!response.success || !response.data) {
+      return [];
     }
 
     return response.data;

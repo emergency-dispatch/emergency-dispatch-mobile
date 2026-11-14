@@ -24,19 +24,21 @@ import {
   Truck,
   Shield,
   AlertTriangle,
+  PlusCircle,
 } from 'lucide-react-native';
 import { MapboxView, MapboxViewRef, RouteCoordinate } from '../../components/map/MapboxView';
 import {
   SosConfirmModal,
   SosSuccessModal,
   OutOfServiceAreaModal,
+  SupplementModal,
 } from '../../components/citizen';
 import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
 import { incidentService, ServiceAreaDto } from '../../services/incident.service';
 import { staffDispatchService } from '../../services/staffDispatch.service';
 import { mediaService } from '../../services/media.service';
 import { storage } from '../../services/storage';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { useLocationStore } from '../../store/useLocationStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -45,6 +47,7 @@ import { IncidentResponseDto } from '../../types/incident';
 export const SafetyMapScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
+  const navigation = useNavigation<any>();
   const mapRef = useRef<MapboxViewRef>(null);
   const route = useRoute<any>();
   const trackingIncidentId = route.params?.trackingIncidentId;
@@ -101,6 +104,12 @@ export const SafetyMapScreen: React.FC = () => {
     distanceKm?: number;
     isApproximate?: boolean;
   } | null>(null);
+  const [pendingIncident, setPendingIncident] = useState<{
+    incidentId: string;
+    title?: string;
+    status: string;
+  } | null>(null);
+  const [supplementIncidentId, setSupplementIncidentId] = useState<string | null>(null);
 
   // Manual location search & map pick state
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,8 +132,10 @@ export const SafetyMapScreen: React.FC = () => {
   }, [currentAddress]);
 
   // Load real user GPS & real incidents, rescue units, stations from backend
-  const loadMapData = async (isSilent = false) => {
+  const loadMapData = async (isSilent = false, overrideTrackingId?: string | null) => {
     if (!isSilent) setIsRefreshing(true);
+    const activeTrackingTargetId =
+      overrideTrackingId !== undefined ? (overrideTrackingId || undefined) : trackingIncidentId;
     try {
       // 1. Shared GPS location
       await refreshLocation();
@@ -144,7 +155,9 @@ export const SafetyMapScreen: React.FC = () => {
       }> = [];
 
       // Helper: check completed or cancelled status
-      const isCompletedOrCancelled = (s?: any) => {
+      const cancelledIds = (await storage.getItem<string[]>('CANCELLED_INCIDENT_IDS')) || [];
+      const isCompletedOrCancelled = (id?: string, s?: any) => {
+        if (id && cancelledIds.includes(id)) return true;
         const str = String(s || '').toLowerCase();
         return (
           str.includes('cancel') ||
@@ -205,7 +218,7 @@ export const SafetyMapScreen: React.FC = () => {
         } else {
           // Guest mode: only load non-cancelled cached items
           for (const cached of localCachedIncidents) {
-            if (!isCompletedOrCancelled(cached.status)) {
+            if (!isCompletedOrCancelled(cached.id, cached.status)) {
               incidentList.push({
                 id: cached.id,
                 title: cached.title,
@@ -221,16 +234,20 @@ export const SafetyMapScreen: React.FC = () => {
         }
       }
 
-      let activeIncidents = incidentList.filter((inc) => !isCompletedOrCancelled(inc.status));
+      let activeIncidents = incidentList.filter((inc) => !isCompletedOrCancelled(inc.id, inc.status));
 
-      // If a specific incident was requested from MyReports, prioritize it first
-      if (trackingIncidentId) {
-        const matchIdx = activeIncidents.findIndex((i) => i.id === trackingIncidentId);
-        if (matchIdx > 0) {
-          const [targeted] = activeIncidents.splice(matchIdx, 1);
-          activeIncidents.unshift(targeted);
-        } else if (matchIdx === -1) {
-          activeIncidents.unshift({ id: trackingIncidentId } as any);
+      // If a specific incident was requested from MyReports, prioritize it first (nếu vẫn còn active)
+      if (activeTrackingTargetId) {
+        if (isCompletedOrCancelled(activeTrackingTargetId)) {
+          navigation.setParams({ trackingIncidentId: undefined });
+        } else {
+          const matchIdx = activeIncidents.findIndex((i) => i.id === activeTrackingTargetId);
+          if (matchIdx > 0) {
+            const [targeted] = activeIncidents.splice(matchIdx, 1);
+            activeIncidents.unshift(targeted);
+          } else if (matchIdx === -1) {
+            activeIncidents.unshift({ id: activeTrackingTargetId } as any);
+          }
         }
       }
 
@@ -249,11 +266,21 @@ export const SafetyMapScreen: React.FC = () => {
         distanceKm?: number;
         isApproximate?: boolean;
       } | null = null;
+      let pendingIncidentInfo: {
+        incidentId: string;
+        title?: string;
+        status: string;
+      } | null = null;
 
       for (const inc of activeIncidents.slice(0, 5)) {
         try {
           const tracking = await incidentService.getTracking(inc.id);
           if (tracking) {
+            if (isCompletedOrCancelled(inc.id, tracking.incidentStatus)) {
+              inc.status = 'Cancelled';
+              continue;
+            }
+
             // Backfill incident coordinates if missing from getMyReports
             if ((!inc.latitude || !inc.longitude) && tracking.incidentLat && tracking.incidentLng) {
               inc.latitude = tracking.incidentLat;
@@ -263,59 +290,82 @@ export const SafetyMapScreen: React.FC = () => {
               inc.title = tracking.incidentTitle;
             }
 
-            const etaMins = tracking.estimatedArrivalMinutes || 5;
-            const distKm = tracking.distanceKm;
+            // CHỈ hiển thị xe và ETA khi sự cố thực sự đã được điều phối và có xe cứu hộ được giao
+            const isDispatched =
+              inc.status === 'Dispatched' ||
+              inc.status === 'InProgress' ||
+              (Boolean(tracking.dispatchStatus) &&
+                tracking.dispatchStatus !== 'PendingDispatch' &&
+                tracking.dispatchStatus !== 'Cancelled' &&
+                tracking.dispatchStatus !== 'Completed');
 
-            // Create marker for the responding rescue unit
-            if (tracking.vehicleLat && tracking.vehicleLng) {
-              trackedVehicles.push({
-                id: tracking.rescueUnitId || `veh-${inc.id}`,
-                title: `${tracking.plateNumber || 'Xe cứu hộ'} (${tracking.unitTypeName || 'Đang phản ứng'})`,
-                description: `Trạm: ${tracking.stationName || 'Cứu hộ'} • Trạng thái: ${tracking.dispatchStatus || 'Đang di chuyển'
+            const hasAssignedUnit = Boolean(
+              (tracking.rescueUnitId && tracking.rescueUnitId.trim() !== '') ||
+              (tracking.vehicleLat && tracking.vehicleLng && tracking.plateNumber)
+            );
+
+            if (isDispatched && hasAssignedUnit) {
+              const etaMins = tracking.estimatedArrivalMinutes || 5;
+              const distKm = tracking.distanceKm;
+
+              // Create marker for the responding rescue unit
+              if (tracking.vehicleLat && tracking.vehicleLng) {
+                trackedVehicles.push({
+                  id: tracking.rescueUnitId || `veh-${inc.id}`,
+                  title: `${tracking.plateNumber || 'Xe cứu hộ'} (${tracking.unitTypeName || 'Đang phản ứng'})`,
+                  description: `Trạm: ${tracking.stationName || 'Cứu hộ'} • Trạng thái: ${
+                    tracking.dispatchStatus || 'Đang di chuyển'
                   } • Dự kiến: ~${etaMins} phút`,
-                latitude: tracking.vehicleLat,
-                longitude: tracking.vehicleLng,
-                type: 'rescue_unit',
-                unitType: tracking.unitTypeName || 'rescue',
-                status: tracking.dispatchStatus || 'EnRoute',
-                plateNumber: tracking.plateNumber,
-                phoneNumber: tracking.stationPhoneNumber,
-                etaMinutes: etaMins,
-                distanceKm: distKm,
-              });
-            }
+                  latitude: tracking.vehicleLat,
+                  longitude: tracking.vehicleLng,
+                  type: 'rescue_unit',
+                  unitType: tracking.unitTypeName || 'rescue',
+                  status: tracking.dispatchStatus || 'EnRoute',
+                  plateNumber: tracking.plateNumber,
+                  phoneNumber: tracking.stationPhoneNumber,
+                  etaMinutes: etaMins,
+                  distanceKm: distKm,
+                });
+              }
 
-            if (!latestEtaInfo || inc.id === trackingIncidentId) {
-              latestEtaInfo = {
+              if (!latestEtaInfo || inc.id === activeTrackingTargetId) {
+                latestEtaInfo = {
+                  incidentId: inc.id,
+                  incidentTitle: inc.title || tracking.incidentTitle,
+                  rescueUnitId: tracking.rescueUnitId,
+                  plateNumber: tracking.plateNumber,
+                  unitTypeName: tracking.unitTypeName,
+                  stationName: tracking.stationName,
+                  status: tracking.dispatchStatus,
+                  etaMinutes: etaMins,
+                  distanceKm: distKm,
+                  isApproximate: !!tracking.isApproximateRoute,
+                };
+              }
+
+              // Route trajectory from backend
+              if (tracking.routeTrajectory && tracking.routeTrajectory.length > 1 && calculatedRoute.length === 0) {
+                calculatedRoute = tracking.routeTrajectory;
+                setIsApproximateRoute(!!tracking.isApproximateRoute);
+              } else if (
+                calculatedRoute.length === 0 &&
+                tracking.vehicleLat &&
+                tracking.vehicleLng &&
+                inc.latitude &&
+                inc.longitude
+              ) {
+                calculatedRoute = await mapboxService.getRoute(
+                  { latitude: tracking.vehicleLat, longitude: tracking.vehicleLng },
+                  { latitude: inc.latitude, longitude: inc.longitude }
+                );
+                setIsApproximateRoute(false);
+              }
+            } else if (!pendingIncidentInfo) {
+              pendingIncidentInfo = {
                 incidentId: inc.id,
-                incidentTitle: inc.title || tracking.incidentTitle,
-                rescueUnitId: tracking.rescueUnitId,
-                plateNumber: tracking.plateNumber,
-                unitTypeName: tracking.unitTypeName,
-                stationName: tracking.stationName,
-                status: tracking.dispatchStatus,
-                etaMinutes: etaMins,
-                distanceKm: distKm,
-                isApproximate: !!tracking.isApproximateRoute,
+                title: inc.title || tracking.incidentTitle || 'Sự Cố Đang Chờ Điều Phối',
+                status: inc.status || 'Pending',
               };
-            }
-
-            // Route trajectory from backend
-            if (tracking.routeTrajectory && tracking.routeTrajectory.length > 1 && calculatedRoute.length === 0) {
-              calculatedRoute = tracking.routeTrajectory;
-              setIsApproximateRoute(!!tracking.isApproximateRoute);
-            } else if (
-              calculatedRoute.length === 0 &&
-              tracking.vehicleLat &&
-              tracking.vehicleLng &&
-              inc.latitude &&
-              inc.longitude
-            ) {
-              calculatedRoute = await mapboxService.getRoute(
-                { latitude: tracking.vehicleLat, longitude: tracking.vehicleLng },
-                { latitude: inc.latitude, longitude: inc.longitude }
-              );
-              setIsApproximateRoute(false);
             }
           }
         } catch {
@@ -328,6 +378,10 @@ export const SafetyMapScreen: React.FC = () => {
         if (!inc.latitude || !inc.longitude) {
           try {
             const detail = await incidentService.getIncidentById(inc.id);
+            if (isCompletedOrCancelled(inc.id, detail?.status)) {
+              inc.status = 'Cancelled';
+              continue;
+            }
             if (detail?.latitude && detail?.longitude) {
               inc.latitude = detail.latitude;
               inc.longitude = detail.longitude;
@@ -337,6 +391,8 @@ export const SafetyMapScreen: React.FC = () => {
           }
         }
       }
+
+      activeIncidents = activeIncidents.filter((inc) => !isCompletedOrCancelled(inc.id, inc.status));
 
       // 4. Load public rescue units, stations, and service area configuration
       const [rescueUnitsRes, stationsRes, serviceAreaRes] = await Promise.allSettled([
@@ -411,30 +467,17 @@ export const SafetyMapScreen: React.FC = () => {
           };
         });
 
-      // 6. Route fallback if not already provided by tracking
-      if (calculatedRoute.length === 0 && incidentMarkers.length > 0 && unitMarkers.length > 0) {
-        const primeUnit = unitMarkers[0];
-        const primeInc = incidentMarkers[0];
-        try {
-          calculatedRoute = await mapboxService.getRoute(
-            { latitude: primeUnit.latitude, longitude: primeUnit.longitude },
-            { latitude: primeInc.latitude, longitude: primeInc.longitude }
-          );
-        } catch {
-          // ignore
-        }
-      }
-
       setMarkers([...stationMarkers, ...unitMarkers, ...incidentMarkers]);
       setRouteCoordinates(calculatedRoute);
       setActiveTrackingEta(latestEtaInfo);
+      setPendingIncident(pendingIncidentInfo);
 
       // Only auto-center and fly on initial entry; never interrupt user while panning/zooming during background refresh
       if (!hasInitialCenteredRef.current) {
         hasInitialCenteredRef.current = true;
-        if (trackingIncidentId) {
+        if (activeTrackingTargetId) {
           const targetVehicle =
-            trackedVehicles.find((v) => v.id.includes(trackingIncidentId) || v.id === `veh-${trackingIncidentId}`) ||
+            trackedVehicles.find((v) => v.id.includes(activeTrackingTargetId) || v.id === `veh-${activeTrackingTargetId}`) ||
             trackedVehicles[0] ||
             unitMarkers[0];
 
@@ -442,7 +485,7 @@ export const SafetyMapScreen: React.FC = () => {
             mapRef.current?.flyTo(targetVehicle.latitude, targetVehicle.longitude, 16);
             mapRef.current?.openMarkerPopup?.(targetVehicle.id);
           } else if (incidentMarkers.length > 0) {
-            const targetInc = incidentMarkers.find((i) => i.id === trackingIncidentId) || incidentMarkers[0];
+            const targetInc = incidentMarkers.find((i) => i.id === activeTrackingTargetId) || incidentMarkers[0];
             mapRef.current?.flyTo(targetInc.latitude, targetInc.longitude, 16);
             mapRef.current?.openMarkerPopup?.(targetInc.id);
           }
@@ -597,6 +640,40 @@ export const SafetyMapScreen: React.FC = () => {
     }
   };
 
+  const handleFullReload = async () => {
+    setIsRefreshing(true);
+    setSuggestions([]);
+    Keyboard.dismiss();
+    try {
+      // 1. Gỡ bỏ target theo dõi sự cố trùng nếu được truyền từ màn khác sang
+      if (trackingIncidentId) {
+        navigation.setParams({ trackingIncidentId: undefined });
+      }
+
+      // 2. Reset vị trí về GPS thực của thiết bị
+      setPickedLocation(null);
+      const loc = await resetToGps().catch(() => null);
+      if (loc?.address) {
+        setSearchQuery(loc.address);
+      }
+
+      // 3. Reset flag căn giữa để bản đồ tự động bay về sự cố mới / GPS
+      hasInitialCenteredRef.current = false;
+
+      // 4. Tải lại toàn bộ dữ liệu từ server, overrideTrackingId = null để không bị gán lại ID cũ
+      await loadMapData(false, null);
+
+      // 5. Nếu không có sự cố nào cần theo dõi, bay về tọa độ GPS hiện tại
+      if (loc) {
+        mapRef.current?.flyTo(loc.latitude, loc.longitude, 16);
+      }
+    } catch {
+      mapRef.current?.recenter();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const recordIncidentId = async (id: string, incident?: IncidentResponseDto) => {
     try {
       const existing = (await storage.getItem<string[]>('MY_REPORTED_INCIDENT_IDS')) || [];
@@ -618,13 +695,28 @@ export const SafetyMapScreen: React.FC = () => {
       await storage.setItem('MY_REPORTED_INCIDENT_IDS', existing.filter((id) => id !== incidentId));
       const cached = (await storage.getItem<any[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
       await storage.setItem('MY_REPORTED_INCIDENTS_CACHE', cached.filter((x: any) => x.id !== incidentId));
+
+      const cancelled = (await storage.getItem<string[]>('CANCELLED_INCIDENT_IDS')) || [];
+      if (!cancelled.includes(incidentId)) {
+        await storage.setItem('CANCELLED_INCIDENT_IDS', [incidentId, ...cancelled]);
+      }
+
       try {
         await incidentService.cancelIncident(incidentId, 'Người dân hủy báo động SOS');
       } catch {
         // ignore
       }
+
+      navigation.setParams({ trackingIncidentId: undefined });
       setIsSosSuccessModalVisible(false);
       setActiveReportedIncident(null);
+      setActiveTrackingEta(null);
+      setPendingIncident(null);
+      setRouteCoordinates([]);
+      setMarkers((prev) => prev.filter((m) => m.id !== incidentId && !m.id.includes(incidentId)));
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      await storage.removeItem(cooldownKey);
+      await storage.removeItem('LAST_SOS_REPORTED_AT');
       loadMapData(false);
     } catch {
       setIsSosSuccessModalVisible(false);
@@ -650,7 +742,8 @@ export const SafetyMapScreen: React.FC = () => {
       }
 
       // Check cooldown
-      const last = await storage.getItem<number>('LAST_SOS_REPORTED_AT');
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      const last = await storage.getItem<number>(cooldownKey);
       if (last && Date.now() - Number(last) < 180000) {
         const remaining = Math.ceil((180000 - (Date.now() - Number(last))) / 1000);
         const m = Math.floor(remaining / 60);
@@ -673,7 +766,7 @@ export const SafetyMapScreen: React.FC = () => {
     }
   };
 
-  const handleConfirmSosDispatch = async (note: string) => {
+  const handleConfirmSosDispatch = async (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => {
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     try {
@@ -701,6 +794,9 @@ export const SafetyMapScreen: React.FC = () => {
         if (url) mediaUrls.push(url);
       }
 
+      const rawPhone = (user?.phone || profile.phoneNumber || '').trim().replace(/[\s.-]/g, '');
+      const validPhone = /^(0|\+84)[35789][0-9]{8}$/.test(rawPhone) ? rawPhone : undefined;
+
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
         description: note.trim() || t('sos.default_description', 'Người dân chọn vị trí trên bản đồ báo SOS khẩn cấp.'),
@@ -708,13 +804,19 @@ export const SafetyMapScreen: React.FC = () => {
         longitude: targetLng,
         locationAddress: targetAddr,
         reporterName: user?.name || profile.fullName || 'Công dân SOS',
-        reporterPhone: user?.phone || profile.phoneNumber || undefined,
+        reporterPhone: validPhone,
         mediaUrls,
+        reportedEventType: eventType,
       });
+
+      if (created.guestCancellationToken) {
+        await storage.setItem('GUEST_CANCEL_TOKEN_' + created.id, created.guestCancellationToken);
+      }
 
       setActiveReportedIncident(created);
       await recordIncidentId(created.id, created);
-      await storage.setItem('LAST_SOS_REPORTED_AT', Date.now());
+      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+      await storage.setItem(cooldownKey, Date.now());
       setPendingSosAsset(null);
       setIsSosSuccessModalVisible(true);
       loadMapData(true);
@@ -767,11 +869,15 @@ export const SafetyMapScreen: React.FC = () => {
 
           <TouchableOpacity
             style={styles.refreshBtn}
-            onPress={() => loadMapData(false)}
+            onPress={handleFullReload}
             disabled={isRefreshing}
             activeOpacity={0.7}
           >
-            <RefreshCw size={16} color="#0F172A" />
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color="#0F172A" />
+            ) : (
+              <RefreshCw size={16} color="#0F172A" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -889,45 +995,85 @@ export const SafetyMapScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Floating Live ETA Banner directly on map */}
-        {activeTrackingEta && (
-          <TouchableOpacity
-            style={styles.floatingEtaCard}
-            activeOpacity={0.9}
-            onPress={() => {
-              const v = markers.find((m) => m.type === 'rescue_unit');
-              if (v) {
-                mapRef.current?.flyTo(v.latitude, v.longitude, 16);
-                mapRef.current?.openMarkerPopup?.(v.id);
-              }
-            }}
-          >
-            <View style={styles.etaHeaderLeft}>
-              <View style={styles.etaPulseDot} />
-              <Truck size={17} color="#2563EB" strokeWidth={2.4} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.etaTitle} numberOfLines={1}>
-                  {activeTrackingEta.plateNumber ? `Xe ${activeTrackingEta.plateNumber}` : 'Xe Cứu Hộ'}
-                  {activeTrackingEta.unitTypeName ? ` • ${activeTrackingEta.unitTypeName}` : ''}
-                </Text>
-                <Text style={styles.etaSub} numberOfLines={1}>
-                  {activeTrackingEta.status === 'OnScene'
-                    ? 'Đã tới hiện trường'
-                    : activeTrackingEta.stationName
-                      ? `Từ: ${activeTrackingEta.stationName}`
-                      : 'Đang di chuyển tới vị trí của bạn'}
-                </Text>
+        {/* Floating Live ETA Banner directly on map (CHỈ hiện khi đã có xe điều phối) */}
+        {activeTrackingEta ? (
+          <View style={styles.floatingEtaCard}>
+            <TouchableOpacity
+              style={styles.etaMainRow}
+              activeOpacity={0.9}
+              onPress={() => {
+                const v = markers.find((m) => m.type === 'rescue_unit');
+                if (v) {
+                  mapRef.current?.flyTo(v.latitude, v.longitude, 16);
+                  mapRef.current?.openMarkerPopup?.(v.id);
+                }
+              }}
+            >
+              <View style={styles.etaHeaderLeft}>
+                <View style={styles.etaPulseDot} />
+                <Truck size={17} color="#2563EB" strokeWidth={2.4} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.etaTitle} numberOfLines={1}>
+                    {activeTrackingEta.plateNumber ? `Xe ${activeTrackingEta.plateNumber}` : 'Xe Cứu Hộ'}
+                    {activeTrackingEta.unitTypeName ? ` • ${activeTrackingEta.unitTypeName}` : ''}
+                  </Text>
+                  <Text style={styles.etaSub} numberOfLines={1}>
+                    {activeTrackingEta.status === 'OnScene'
+                      ? 'Đã tới hiện trường'
+                      : activeTrackingEta.stationName
+                        ? `Từ: ${activeTrackingEta.stationName}`
+                        : 'Đang di chuyển tới vị trí của bạn'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.etaBadgeRight}>
+                <Text style={styles.etaBadgeLabel}>DỰ KIẾN TỚI</Text>
+                <Text style={styles.etaTime}>~{activeTrackingEta.etaMinutes} phút</Text>
+                {typeof activeTrackingEta.distanceKm === 'number' && (
+                  <Text style={styles.etaDistance}>{activeTrackingEta.distanceKm.toFixed(1)} km</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.etaSupplementRow}
+              activeOpacity={0.8}
+              onPress={() => setSupplementIncidentId(activeTrackingEta.incidentId)}
+            >
+              <PlusCircle size={13} color="#0284C7" />
+              <Text style={styles.etaSupplementText}>Bổ sung thông tin hiện trường</Text>
+            </TouchableOpacity>
+          </View>
+        ) : pendingIncident ? (
+          <View style={styles.floatingEtaCard}>
+            <View style={styles.etaMainRow}>
+              <View style={styles.etaHeaderLeft}>
+                <ActivityIndicator size="small" color="#D97706" />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.etaTitle} numberOfLines={1}>
+                    {pendingIncident.title || 'Tín hiệu cứu nạn SOS'}
+                  </Text>
+                  <Text style={[styles.etaSub, { color: '#B45309' }]} numberOfLines={1}>
+                    Đang tiếp nhận • Chờ điều phối viên giao xe cứu hộ
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.etaBadgeRight, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                <Text style={[styles.etaBadgeLabel, { color: '#92400E' }]}>TRẠNG THÁI</Text>
+                <Text style={[styles.etaTime, { color: '#B45309', fontSize: 13 }]}>CHỜ TIẾP NHẬN</Text>
               </View>
             </View>
-            <View style={styles.etaBadgeRight}>
-              <Text style={styles.etaBadgeLabel}>DỰ KIẾN TỚI</Text>
-              <Text style={styles.etaTime}>~{activeTrackingEta.etaMinutes} phút</Text>
-              {typeof activeTrackingEta.distanceKm === 'number' && (
-                <Text style={styles.etaDistance}>{activeTrackingEta.distanceKm.toFixed(1)} km</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+
+            <TouchableOpacity
+              style={styles.etaSupplementRow}
+              activeOpacity={0.8}
+              onPress={() => setSupplementIncidentId(pendingIncident.incidentId)}
+            >
+              <PlusCircle size={13} color="#0284C7" />
+              <Text style={styles.etaSupplementText}>Bổ sung thông tin hiện trường</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Floating Zoom & Recenter Controls Stack */}
         <View style={styles.mapControlsWrapper}>
@@ -1017,6 +1163,13 @@ export const SafetyMapScreen: React.FC = () => {
           setActiveReportedIncident(null);
         }}
         onCancelIncident={handleCancelIncident}
+        onUnlink={async () => {
+          loadMapData(true);
+        }}
+        onTrackOriginal={(origId) => {
+          navigation.setParams({ trackingIncidentId: origId });
+          loadMapData(true);
+        }}
         address={pickedLocation ? pickedLocation.address : currentAddress}
         incident={activeReportedIncident}
       />
@@ -1031,6 +1184,15 @@ export const SafetyMapScreen: React.FC = () => {
         latitude={outOfAreaInfo.latitude}
         longitude={outOfAreaInfo.longitude}
       />
+
+      {/* Supplement Modal */}
+      {supplementIncidentId && (
+        <SupplementModal
+          visible={Boolean(supplementIncidentId)}
+          onClose={() => setSupplementIncidentId(null)}
+          incidentId={supplementIncidentId}
+        />
+      )}
     </ScreenContainer>
   );
 };
@@ -1197,15 +1359,36 @@ const styles = StyleSheet.create({
     borderColor: '#93C5FD',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
     zIndex: 40,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 6,
+  },
+  etaMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  etaSupplementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    width: '100%',
+    paddingTop: 6,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  etaSupplementText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0284C7',
   },
   etaHeaderLeft: {
     flexDirection: 'row',

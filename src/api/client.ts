@@ -87,6 +87,22 @@ apiClient.interceptors.response.use(
         '   dotnet run --urls "http://0.0.0.0:5000"';
     } else if (!error.response || error.message === 'Network Error') {
       error.message = `Không thể kết nối đến máy chủ (${AppConfig.API_BASE_URL}). Vui lòng kiểm tra kết nối mạng.`;
+    } else if (error.response?.data) {
+      const data = error.response.data;
+      if (typeof data === 'string' && data.trim()) {
+        error.message = data;
+      } else if (Array.isArray(data.errors) && data.errors.length > 0) {
+        error.message = data.errors.join('\n');
+      } else if (typeof data.errors === 'object' && data.errors !== null) {
+        const msgs = Object.values(data.errors).flat().filter(Boolean);
+        if (msgs.length > 0) {
+          error.message = msgs.join('\n');
+        } else if (data.message) {
+          error.message = data.message;
+        }
+      } else if (data.message) {
+        error.message = data.message;
+      }
     }
 
     // Handle 401 & attempt token refresh if not already retried

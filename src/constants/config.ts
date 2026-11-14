@@ -17,7 +17,7 @@ export const AppConfig = {
   GOOGLE_CLIENT_ID:
     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
     '905860478642-qn2i8h65ouunbv3tqm40gs1muprtbide.apps.googleusercontent.com',
-  TIMEOUT: 30000,
+  TIMEOUT: 60000,
   STORAGE_KEYS: {
     AUTH_TOKEN: '@auth_token',
     REFRESH_TOKEN: '@refresh_token',

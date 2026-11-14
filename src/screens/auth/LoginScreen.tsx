@@ -39,7 +39,7 @@ import { Button } from '../../components/common/Button';
 import { LanguageSelectorModal } from '../../components/common/LanguageSelectorModal';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore, mapBackendUser } from '../../store/useAppStore';
-import { UserRole, DEMO_CITIZEN_USER, DEMO_STAFF_USER } from '../../types/models';
+import { UserRole } from '../../types/models';
 import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useResponsive } from '../../utils/responsive';
@@ -55,7 +55,7 @@ type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 export const LoginScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<LoginNavProp>();
-  const { setAuth, switchDemoRole } = useAppStore();
+  const { setAuth } = useAppStore();
   const { isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
 
@@ -202,57 +202,43 @@ export const LoginScreen: React.FC = () => {
 
       (navigation as any).navigate('Main');
     } catch (error: any) {
-      // Offline fallback for demo accounts if backend is unreachable
-      const lowerAccount = account.trim().toLowerCase();
-      if (
-        lowerAccount === 'staff@emergencydispatch.com' ||
-        lowerAccount === 'cuuho@emergency.vn' ||
-        lowerAccount.includes('staff') ||
-        lowerAccount.includes('cuuho')
-      ) {
-        switchDemoRole('staff');
-        (navigation as any).navigate('Main');
-        return;
-      } else if (
-        lowerAccount === 'citizen@emergencydispatch.com' ||
-        lowerAccount.includes('citizen')
-      ) {
-        switchDemoRole('citizen');
-        (navigation as any).navigate('Main');
-        return;
-      }
-
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
-        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin.';
-      Alert.alert('Lỗi đăng nhập', errorMsg);
+        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin hoặc kết nối mạng.';
+      Alert.alert('Đăng nhập thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Quick Fast-Login helper for testing
+  // Quick Fast-Login helper for testing (fills valid credentials and calls real BE API)
   const handleFastLogin = async (role: UserRole) => {
-    setIsLoading(true);
-    const demoEmail =
+    const testEmail =
       role === 'staff'
         ? 'staff@emergencydispatch.com'
         : 'citizen@emergencydispatch.com';
-    const demoPassword = role === 'staff' ? 'Staff@123456' : 'Citizen@123456';
+    const testPassword = role === 'staff' ? 'Staff@123456' : 'Citizen@123456';
+
+    setAccount(testEmail);
+    setPassword(testPassword);
+    setErrors({});
+    setIsLoading(true);
 
     try {
       const authData = await authService.login({
-        email: demoEmail,
-        password: demoPassword,
+        email: testEmail,
+        password: testPassword,
       });
       const mappedUser = mapBackendUser(authData.user);
       await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
       (navigation as any).navigate('Main');
-    } catch {
-      // Fallback to offline demo mode if backend is unreachable
-      switchDemoRole(role);
-      (navigation as any).navigate('Main');
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra xem Backend đã khởi động chưa.';
+      Alert.alert('Đăng nhập thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +246,6 @@ export const LoginScreen: React.FC = () => {
 
   // Guest SOS Emergency Bypass (no login required for life-threatening events)
   const handleGuestSosBypass = () => {
-    switchDemoRole('citizen');
     (navigation as any).navigate('Main');
   };
 

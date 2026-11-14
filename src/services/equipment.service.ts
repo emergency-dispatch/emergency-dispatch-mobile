@@ -52,7 +52,7 @@ export const equipmentService = {
   }): Promise<EquipmentDto[]> {
     const response = await apiService.get<BackendApiResponse<EquipmentDto[]>>(
       Endpoints.EQUIPMENT.BASE,
-      params
+      { params }
     );
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Không thể tải danh sách trang thiết bị.');

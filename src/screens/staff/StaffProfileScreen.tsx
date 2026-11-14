@@ -1,24 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Switch,
   Alert,
   Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
-  Shield,
   ShieldCheck,
   Truck,
-  Phone,
-  Radio,
-  Clock,
-  Award,
   Users,
   Building2,
   FileCheck2,
@@ -29,12 +23,10 @@ import {
   Sparkles,
   PhoneCall,
   Flame,
-  KeyRound,
-  FileText,
-  BadgeAlert,
   Sliders,
   Languages,
   CalendarDays,
+  Package,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -42,52 +34,206 @@ import { ConfirmationModal, LanguageSelectorModal } from '../../components/commo
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
 import { staffDispatchService } from '../../services/staffDispatch.service';
+import { equipmentService, EquipmentDto } from '../../services/equipment.service';
 import {
   StationDetailDto,
   RescueUnitDetailDto,
   StationStaffMemberDto,
+  MyTeamDto,
+  DispatchAssignmentResponseDto,
 } from '../../types/dispatch';
 
 export const StaffProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAppStore();
+  const { user, logout, updateUser } = useAppStore();
 
-  // Settings states
+  // Settings states (Local App Preferences)
   const [autoSirenOnCodeRed, setAutoSirenOnCodeRed] = useState(true);
   const [highAccuracyGps, setHighAccuracyGps] = useState(true);
-  const [radioChannel, setRadioChannel] = useState('Kênh 04 (154.250 MHz)');
 
   // Modal states
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isHandoverModalVisible, setIsHandoverModalVisible] = useState(false);
-  const [isRadioModalVisible, setIsRadioModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
-  // Real Backend Data for Station, Vehicle & Staff
+  // Real Backend Data for Station, Vehicle, Squad & Equipment
   const [stationDetail, setStationDetail] = useState<StationDetailDto | null>(null);
   const [rescueUnitDetail, setRescueUnitDetail] = useState<RescueUnitDetailDto | null>(null);
   const [stationStaffMembers, setStationStaffMembers] = useState<StationStaffMemberDto[]>([]);
+  const [myTeam, setMyTeam] = useState<MyTeamDto | null>(null);
+  const [equipments, setEquipments] = useState<EquipmentDto[]>([]);
+  const [assignments, setAssignments] = useState<DispatchAssignmentResponseDto[]>([]);
 
   useEffect(() => {
     let isMounted = true;
-    if (user?.stationId) {
-      staffDispatchService.getStationById(user.stationId).then((st) => {
-        if (isMounted && st) setStationDetail(st);
-      });
-      staffDispatchService.getStationStaff(user.stationId).then((staff) => {
-        if (isMounted && staff && staff.length > 0) setStationStaffMembers(staff);
-      });
-    }
-    if (user?.rescueUnitId) {
-      staffDispatchService.getRescueUnitById(user.rescueUnitId).then((ru) => {
-        if (isMounted && ru) setRescueUnitDetail(ru);
-      });
-    }
+
+    const loadStaffProfileData = async () => {
+      try {
+        const [teamRes, assignRes] = await Promise.all([
+          staffDispatchService.getMyTeam(),
+          staffDispatchService.getMyAssignments(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (assignRes) {
+          setAssignments(assignRes);
+        }
+
+        const effectiveStationId = user?.stationId || teamRes?.stationId;
+        const effectiveRescueUnitId = user?.rescueUnitId || teamRes?.myTeamRescueUnitId;
+
+        if (teamRes) {
+          setMyTeam(teamRes);
+          if (!user?.stationId || !user?.rescueUnitId) {
+            updateUser({
+              stationId: teamRes.stationId,
+              stationName: teamRes.stationName,
+              rescueUnitId: teamRes.myTeamRescueUnitId || undefined,
+              vehiclePlate: teamRes.myTeamRescueUnitPlate || undefined,
+              teamName: teamRes.myTeamName || undefined,
+              crewRole: teamRes.myCrewRole || undefined,
+              stationOperatorPhone: teamRes.stationOperator?.phoneNumber || undefined,
+              stationOperatorName: teamRes.stationOperator?.fullName || undefined,
+            });
+          }
+        }
+
+        if (effectiveStationId) {
+          staffDispatchService.getStationById(effectiveStationId).then((st) => {
+            if (isMounted && st) setStationDetail(st);
+          });
+          staffDispatchService.getStationStaff(effectiveStationId).then((staff) => {
+            if (isMounted && staff && staff.length > 0) setStationStaffMembers(staff);
+          });
+          equipmentService
+            .listEquipment({ stationId: effectiveStationId })
+            .then((eq) => {
+              if (isMounted && eq) setEquipments(eq);
+            })
+            .catch(() => {});
+        } else {
+          equipmentService
+            .listEquipment()
+            .then((eq) => {
+              if (isMounted && eq) setEquipments(eq);
+            })
+            .catch(() => {});
+        }
+
+        if (effectiveRescueUnitId) {
+          staffDispatchService.getRescueUnitById(effectiveRescueUnitId).then((ru) => {
+            if (isMounted && ru) setRescueUnitDetail(ru);
+          });
+        }
+      } catch (err) {
+        console.warn('Error loading staff profile data:', err);
+      }
+    };
+
+    loadStaffProfileData();
+
     return () => {
       isMounted = false;
     };
-  }, [user?.stationId, user?.rescueUnitId]);
+  }, [user?.stationId, user?.rescueUnitId, updateUser]);
+
+  // Helper for crew role display
+  const formatCrewRole = (role?: string | null) => {
+    if (!role) return 'Chiến Sĩ Cứu Hộ';
+    const lower = role.toLowerCase();
+    if (lower.includes('commander') || lower.includes('chỉ huy')) return 'Chỉ Huy Kíp Trực';
+    if (lower.includes('driver') || lower.includes('lái')) return 'Lái Xe Cứu Hộ & Vận Hành';
+    if (lower.includes('medic') || lower.includes('y tế') || lower.includes('nurse')) return 'Y Tế Cấp Cứu';
+    if (lower.includes('fire') || lower.includes('cháy')) return 'Chiến Sĩ Chữa Cháy';
+    if (lower.includes('rescuer') || lower.includes('cứu')) return 'Chiến Sĩ Cứu Nạn Cứu Hộ';
+    return role;
+  };
+
+  // Helper for crew avatar initials
+  const getInitials = (name?: string) => {
+    if (!name) return 'CH';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
+  // Crew list derived from real Backend API data (MyTeam or StationStaff)
+  const crewList = useMemo(() => {
+    if (myTeam?.myTeamMembers && myTeam.myTeamMembers.length > 0) {
+      return myTeam.myTeamMembers.map((m) => {
+        const isSelf =
+          m.staffId === user?.id ||
+          m.fullName.toLowerCase() === (user?.name || '').toLowerCase() ||
+          (!!m.phoneNumber && !!user?.phone && m.phoneNumber === user.phone);
+        return {
+          id: m.staffId,
+          fullName: m.fullName,
+          phoneNumber: m.phoneNumber,
+          crewRole: formatCrewRole(m.crewRole),
+          isSelf,
+        };
+      });
+    }
+
+    if (stationStaffMembers.length > 0) {
+      return stationStaffMembers.map((m) => {
+        const isSelf =
+          m.id === user?.id ||
+          m.email === user?.email ||
+          m.fullName.toLowerCase() === (user?.name || '').toLowerCase() ||
+          (!!m.phoneNumber && !!user?.phone && m.phoneNumber === user.phone);
+        return {
+          id: m.id,
+          fullName: m.fullName,
+          phoneNumber: m.phoneNumber,
+          crewRole: formatCrewRole(m.crewRole || m.role),
+          isSelf,
+        };
+      });
+    }
+
+    return [
+      {
+        id: user?.id || 'self',
+        fullName: user?.name || 'Chiến sĩ cứu hộ',
+        phoneNumber: user?.phone || '',
+        crewRole: formatCrewRole(user?.crewRole),
+        isSelf: true,
+      },
+    ];
+  }, [myTeam?.myTeamMembers, stationStaffMembers, user]);
+
+  // Mission stats calculated from real assignments from API
+  const missionStats = useMemo(() => {
+    const total = assignments.length;
+    const resolved = assignments.filter((a) => a.status === 'Completed').length;
+    const active = assignments.filter(
+      (a) => a.status === 'Accepted' || a.status === 'EnRoute' || a.status === 'OnScene'
+    ).length;
+    const rate = total > 0 ? Math.round((resolved / total) * 100) : 100;
+    return { total, resolved, active, rate };
+  }, [assignments]);
+
+  // Vehicle status styling config based on real RescueUnit status
+  const vehicleStatusConfig = useMemo(() => {
+    const status = rescueUnitDetail?.status;
+    switch (status) {
+      case 'Available':
+        return { label: 'Sẵn Sàng Làm Nhiệm Vụ', color: '#059669', bg: '#ECFDF5' };
+      case 'Dispatched':
+        return { label: 'Đang Di Chuyển', color: '#D97706', bg: '#FFFBEB' };
+      case 'OnScene':
+        return { label: 'Tác Chiến Tại Hiện Trường', color: '#DC2626', bg: '#FEF2F2' };
+      case 'Maintenance':
+        return { label: 'Đang Bảo Trì Kỹ Thuật', color: '#64748B', bg: '#F1F5F9' };
+      case 'CoolDown':
+        return { label: 'Đang Hồi Sức / Vệ Sinh', color: '#0284C7', bg: '#F0F9FF' };
+      default:
+        return { label: 'Sẵn Sàng Làm Nhiệm Vụ', color: '#059669', bg: '#ECFDF5' };
+    }
+  }, [rescueUnitDetail?.status]);
 
   // Crew member call
   const handleCallCrew = (name: string, phone: string) => {
@@ -174,28 +320,12 @@ export const StaffProfileScreen: React.FC = () => {
 
             <View style={styles.heroTextInfo}>
               <View style={styles.staffIdPill}>
-                <Text style={styles.staffIdText}>MÃ NV: {user?.staffId || 'ST-8821'}</Text>
+                <Text style={styles.staffIdText}>MÃ NV: {user?.staffId || 'ST-RESCUE'}</Text>
               </View>
-              <Text style={styles.heroName}>{user?.name || 'Đội Trưởng Lê Quốc Huy'}</Text>
+              <Text style={styles.heroName}>{user?.name || 'Chiến Sĩ Cứu Hộ'}</Text>
               <Text style={styles.heroRole}>
-                {user?.crewRole ? `Kíp Cứu Hộ • ${user.crewRole}` : 'Chỉ Huy Kíp Cứu Hộ & Kỹ Thuật Viên'}
+                {user?.crewRole ? `Kíp Cứu Hộ • ${formatCrewRole(user.crewRole)}` : 'Chiến Sĩ Kíp Trực Cứu Hộ'}
               </Text>
-            </View>
-          </View>
-
-          {/* Credentials Badges */}
-          <View style={styles.credentialsRow}>
-            <View style={styles.credBadge}>
-              <Award size={moderateScale(12)} color="#D97706" />
-              <Text style={styles.credBadgeText}>5 Năm KCN</Text>
-            </View>
-            <View style={styles.credBadge}>
-              <Zap size={moderateScale(12)} color="#DC2626" />
-              <Text style={styles.credBadgeText}>Hazmat Cấp A</Text>
-            </View>
-            <View style={styles.credBadge}>
-              <Activity size={moderateScale(12)} color="#059669" />
-              <Text style={styles.credBadgeText}>Chỉ Huy PCCC Xưởng</Text>
             </View>
           </View>
 
@@ -205,14 +335,14 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.stationRow}>
             <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
-              {stationDetail ? `${stationDetail.name} • ${stationDetail.address}` : (user?.stationName || 'Trạm Cứu Hộ & PCCC (TP.HCM)')}
+              {stationDetail ? `${stationDetail.name} • ${stationDetail.address}` : (myTeam?.stationName || user?.stationName || 'Trạm Cứu Hộ & PCCC')}
             </Text>
           </View>
-          {!!stationDetail?.headOperatorName && (
+          {!!(stationDetail?.headOperatorName || myTeam?.stationOperator?.fullName) && (
             <View style={[styles.stationRow, { marginTop: verticalScale(4) }]}>
               <Users size={moderateScale(13)} color="#0284C7" />
               <Text style={[styles.stationText, { color: '#0369A1' }]} numberOfLines={1}>
-                Operator phụ trách: {stationDetail.headOperatorName} ({stationDetail.headOperatorPhone || 'N/A'})
+                Operator phụ trách: {stationDetail?.headOperatorName || myTeam?.stationOperator?.fullName} ({stationDetail?.headOperatorPhone || myTeam?.stationOperator?.phoneNumber || 'N/A'})
               </Text>
             </View>
           )}
@@ -225,46 +355,71 @@ export const StaffProfileScreen: React.FC = () => {
               <Truck size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Phương Tiện & Trang Bị KCN Quản Lý</Text>
-              <Text style={styles.sectionSub}>Giao trách nhiệm bảo quản ca trực</Text>
+              <Text style={styles.sectionTitle}>Phương Tiện & Trang Thiết Bị Cứu Hộ</Text>
+              <Text style={styles.sectionSub}>Phương tiện & danh mục trang bị do trạm quản lý</Text>
             </View>
           </View>
 
           <View style={styles.vehicleDetailsBox}>
             <View style={styles.vehiclePlateRow}>
               <Text style={styles.vehicleName}>
-                {rescueUnitDetail ? `Xe ${rescueUnitDetail.unitType} #${rescueUnitDetail.plateNumber}` : 'Xe Cứu Hộ & Hazmat Chuyên Dụng KCN'}
+                {rescueUnitDetail?.unitType ? `Xe ${rescueUnitDetail.unitType}` : 'Xe Cứu Hộ Chuyên Dụng'}
               </Text>
               <View style={styles.plateBadge}>
-                <Text style={styles.plateText}>{rescueUnitDetail?.plateNumber || user?.vehiclePlate || '51A-999.99'}</Text>
+                <Text style={styles.plateText}>
+                  {rescueUnitDetail?.plateNumber || myTeam?.myTeamRescueUnitPlate || user?.vehiclePlate || 'ST-UNIT'}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.vehicleMetricsGrid}>
-              <View style={styles.vehicleMetricItem}>
-                <Text style={styles.vMetricLabel}>Bình Nhiên Liệu</Text>
-                <Text style={[styles.vMetricValue, { color: '#059669' }]}>85% (Đầy)</Text>
+            {/* Vehicle Status from Backend API */}
+            <View style={styles.vehicleStatusRow}>
+              <View style={[styles.vehicleStatusBadge, { backgroundColor: vehicleStatusConfig.bg }]}>
+                <View style={[styles.vehicleStatusDot, { backgroundColor: vehicleStatusConfig.color }]} />
+                <Text style={[styles.vehicleStatusText, { color: vehicleStatusConfig.color }]}>
+                  {vehicleStatusConfig.label}
+                </Text>
               </View>
-              <View style={styles.vehicleMetricItem}>
-                <Text style={styles.vMetricLabel}>Bình Thở SCBA</Text>
-                <Text style={[styles.vMetricValue, { color: '#DC2626' }]}>300 Bar (Chuẩn)</Text>
-              </View>
-              <View style={styles.vehicleMetricItem}>
-                <Text style={styles.vMetricLabel}>Đo Khí Độc</Text>
-                <Text style={[styles.vMetricValue, { color: '#D97706' }]}>4-Gas Online</Text>
-              </View>
-            </View>
-
-            <View style={styles.gearListRow}>
-              <Text style={styles.gearListLabel}>Thiết bị chính:</Text>
-              <Text style={styles.gearListText}>
-                Đồ Hazmat Cấp A • Bình SCBA Scott 300 Bar • Máy đo khí độc 4-Gas • Kìm cắt thủy lực Lukas
+              <Text style={styles.vehicleStationText} numberOfLines={1}>
+                {stationDetail?.name || myTeam?.stationName || user?.stationName || 'Trạm Điều Phối'}
               </Text>
+            </View>
+
+            {/* Real Equipment List from GET /api/equipment */}
+            <View style={styles.equipmentSection}>
+              <View style={styles.equipmentHeaderRow}>
+                <Package size={moderateScale(14)} color="#DC2626" />
+                <Text style={styles.equipmentSectionTitle}>Trang thiết bị chuyên dụng:</Text>
+                <Text style={styles.equipmentCountBadge}>{equipments.length} danh mục</Text>
+              </View>
+
+              {equipments.length > 0 ? (
+                <View style={styles.equipmentGrid}>
+                  {equipments.slice(0, 8).map((eq) => (
+                    <View key={eq.id} style={styles.equipmentChip}>
+                      <View
+                        style={[
+                          styles.eqStatusDot,
+                          { backgroundColor: eq.status === 'Available' ? '#10B981' : '#F59E0B' },
+                        ]}
+                      />
+                      <Text style={styles.equipmentChipText} numberOfLines={1}>
+                        {eq.name}
+                      </Text>
+                      <Text style={styles.equipmentChipQty}>x{eq.quantity}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.equipmentEmptyText}>
+                  Đang tải danh mục trang thiết bị từ máy chủ điều phối...
+                </Text>
+              )}
             </View>
           </View>
         </View>
 
-        {/* 4. Duty Squad Crew Members */}
+        {/* 4. Duty Squad Crew Members (Real API from GET /api/users/my-team or /api/stations/{id}/staff) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionIconWrap, { backgroundColor: '#FEF2F2' }]}>
@@ -272,59 +427,46 @@ export const StaffProfileScreen: React.FC = () => {
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Thành Viên Kíp Trực Phân Xưởng</Text>
-              <Text style={styles.sectionSub}>Đội Cứu Hộ KCN Tân Bình • Ca Trực 8 Giờ</Text>
+              <Text style={styles.sectionSub}>
+                {myTeam?.myTeamName || stationDetail?.name || myTeam?.stationName || user?.stationName || 'Kíp Trực Cứu Hộ'}
+              </Text>
             </View>
           </View>
 
-          {/* Member 1: Hazmat Specialist */}
-          <View style={styles.crewMemberRow}>
-            <View style={styles.crewAvatarWrap}>
-              <Text style={styles.crewAvatarText}>KT</Text>
-            </View>
-            <View style={styles.crewInfoGroup}>
-              <Text style={styles.crewName}>KTV. Trần Văn Minh</Text>
-              <Text style={styles.crewRole}>Chuyên Viên Xử Lý Hóa Chất Hazmat</Text>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.crewCallBtn}
-              onPress={() => handleCallCrew('KTV. Trần Văn Minh', '0908112233')}
+          {crewList.map((member) => (
+            <View
+              key={member.id}
+              style={[styles.crewMemberRow, member.isSelf && styles.crewMemberRowSelf]}
             >
-              <PhoneCall size={moderateScale(14)} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Member 2: Occupational Nurse */}
-          <View style={styles.crewMemberRow}>
-            <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>YT</Text>
+              <View style={[styles.crewAvatarWrap, member.isSelf && { backgroundColor: '#FEF2F2' }]}>
+                <Text style={[styles.crewAvatarText, member.isSelf && { color: '#DC2626' }]}>
+                  {getInitials(member.fullName)}
+                </Text>
+              </View>
+              <View style={styles.crewInfoGroup}>
+                <Text style={styles.crewName}>
+                  {member.fullName} {member.isSelf ? '(Chính bạn)' : ''}
+                </Text>
+                <Text style={styles.crewRole}>{member.crewRole}</Text>
+                {!!member.phoneNumber && !member.isSelf && (
+                  <Text style={styles.crewPhoneText}>{member.phoneNumber}</Text>
+                )}
+              </View>
+              {member.isSelf ? (
+                <View style={styles.selfBadge}>
+                  <Text style={styles.selfBadgeText}>BẠN</Text>
+                </View>
+              ) : member.phoneNumber ? (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.crewCallBtn}
+                  onPress={() => handleCallCrew(member.fullName, member.phoneNumber)}
+                >
+                  <PhoneCall size={moderateScale(14)} color="#10B981" />
+                </TouchableOpacity>
+              ) : null}
             </View>
-            <View style={styles.crewInfoGroup}>
-              <Text style={styles.crewName}>ĐD. Nguyễn Thị Lan</Text>
-              <Text style={styles.crewRole}>Y Tế Lao Động & Cấp Cứu Phân Xưởng</Text>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.crewCallBtn}
-              onPress={() => handleCallCrew('ĐD. Nguyễn Thị Lan', '0912445566')}
-            >
-              <PhoneCall size={moderateScale(14)} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Member 3: Team Lead / Driver (You) */}
-          <View style={[styles.crewMemberRow, styles.crewMemberRowSelf]}>
-            <View style={[styles.crewAvatarWrap, { backgroundColor: '#FEF2F2' }]}>
-              <Text style={[styles.crewAvatarText, { color: '#DC2626' }]}>CH</Text>
-            </View>
-            <View style={styles.crewInfoGroup}>
-              <Text style={styles.crewName}>{user?.name || 'Lê Quốc Huy'} (Chính bạn)</Text>
-              <Text style={styles.crewRole}>Chỉ Huy Kíp Trực & Lái Xe Cứu Hộ KCN</Text>
-            </View>
-            <View style={styles.selfBadge}>
-              <Text style={styles.selfBadgeText}>BẠN</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
         {/* 4.5. Work Shift Registration Banner Card */}
@@ -354,7 +496,7 @@ export const StaffProfileScreen: React.FC = () => {
           <ChevronRight size={moderateScale(18)} color="#DC2626" />
         </TouchableOpacity>
 
-        {/* 5. Performance & Shift Stats */}
+        {/* 5. Performance & Shift Stats (Calculated from Real Assignments) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionIconWrap, { backgroundColor: '#FEF2F2' }]}>
@@ -362,26 +504,26 @@ export const StaffProfileScreen: React.FC = () => {
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>Hiệu Suất Phản Ứng Cứu Hộ</Text>
-              <Text style={styles.sectionSub}>Thống kê ghi nhận tháng này</Text>
+              <Text style={styles.sectionSub}>Dữ liệu nhiệm vụ điều phối thực tế</Text>
             </View>
           </View>
 
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>42</Text>
+              <Text style={styles.statNumber}>{missionStats.resolved}</Text>
               <Text style={styles.statLabel}>Ca Hoàn Thành</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#DC2626' }]}>6.4m</Text>
-              <Text style={styles.statLabel}>ETA Trung Bình</Text>
+              <Text style={[styles.statNumber, { color: '#DC2626' }]}>{missionStats.active}</Text>
+              <Text style={styles.statLabel}>Đang Xử Lý</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#059669' }]}>98.6%</Text>
-              <Text style={styles.statLabel}>Đúng Giờ</Text>
+              <Text style={[styles.statNumber, { color: '#0284C7' }]}>{missionStats.total}</Text>
+              <Text style={styles.statLabel}>Tổng Phân Công</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: '#D97706' }]}>4.9★</Text>
-              <Text style={styles.statLabel}>Đánh Giá</Text>
+              <Text style={[styles.statNumber, { color: '#059669' }]}>{missionStats.rate}%</Text>
+              <Text style={styles.statLabel}>Tỷ Lệ Đạt</Text>
             </View>
           </View>
         </View>
@@ -394,7 +536,7 @@ export const StaffProfileScreen: React.FC = () => {
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>{t('staff.settings_title')}</Text>
-              <Text style={styles.sectionSub}>Tùy chỉnh thông báo, ngôn ngữ và kết nối bộ đàm</Text>
+              <Text style={styles.sectionSub}>Tùy chỉnh thông báo và ngôn ngữ hiển thị</Text>
             </View>
           </View>
 
@@ -411,22 +553,6 @@ export const StaffProfileScreen: React.FC = () => {
                 <Text style={styles.settingItemSub}>
                   {i18n.language?.startsWith('vi') ? '🇻🇳 Tiếng Việt (Mặc định)' : '🇬🇧 English'}
                 </Text>
-              </View>
-            </View>
-            <ChevronRight size={moderateScale(16)} color="#64748B" />
-          </TouchableOpacity>
-
-          {/* Radio Channel Setting */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.settingItemRow}
-            onPress={() => setIsRadioModalVisible(true)}
-          >
-            <View style={styles.settingItemLeft}>
-              <Radio size={moderateScale(16)} color="#DC2626" />
-              <View>
-                <Text style={styles.settingItemTitle}>{t('staff.radio_channel')}</Text>
-                <Text style={styles.settingItemSub}>{radioChannel}</Text>
               </View>
             </View>
             <ChevronRight size={moderateScale(16)} color="#64748B" />
@@ -496,9 +622,9 @@ export const StaffProfileScreen: React.FC = () => {
         visible={isHandoverModalVisible}
         type="warning"
         title="Bàn Giao Ca Trực KCN"
-        description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu hộ KCN 51A-999.99 cùng trang thiết bị Hazmat & SCBA cho kíp trực tiếp theo."
-        highlightBadge="BÀN GIAO XE KCN 51A-999.99"
-        highlightText="Vui lòng đảm bảo bình thở SCBA đạt trên 280 Bar và vệ sinh khử khuẩn thiết bị bảo hộ Hazmat."
+        description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu hộ KCN cùng trang thiết bị cho kíp trực tiếp theo."
+        highlightBadge="BÀN GIAO XE CỨU HỘ"
+        highlightText="Vui lòng kiểm tra vệ sinh khử khuẩn và hiện trạng trang thiết bị trước khi bàn giao."
         confirmText="Xác Nhận Bàn Giao"
         cancelText="Hủy Bỏ"
         onConfirm={handleConfirmHandover}
@@ -515,20 +641,6 @@ export const StaffProfileScreen: React.FC = () => {
         cancelText="Ở Lại Trực"
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutModalVisible(false)}
-      />
-
-      {/* Confirmation Modal: Radio Frequency Info */}
-      <ConfirmationModal
-        visible={isRadioModalVisible}
-        type="info"
-        title="Tần Số Vô Tuyến Cứu Hộ"
-        description="Kênh vô tuyến chỉ huy trực ban Cứu hộ TP.HCM:"
-        highlightBadge="TẦN SỐ: 154.250 MHZ"
-        highlightText="Kênh 04 (Chỉ huy Vùng 2 - Quận 10 / Quận 3 / Quận 5). Bộ đàm luôn ở chế độ mở khi xe lăn bánh."
-        singleButton
-        confirmText="Đã Rõ"
-        onConfirm={() => setIsRadioModalVisible(false)}
-        onCancel={() => setIsRadioModalVisible(false)}
       />
 
       {/* Language Selector Modal */}
@@ -674,28 +786,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: verticalScale(1),
   },
-  credentialsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: moderateScale(6),
-    marginTop: verticalScale(10),
-  },
-  credBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingVertical: verticalScale(3),
-    paddingHorizontal: scale(7),
-    borderRadius: moderateScale(6),
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: scale(4),
-  },
-  credBadgeText: {
-    fontSize: moderateScale(10),
-    fontWeight: '700',
-    color: '#334155',
-  },
   heroDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
@@ -781,42 +871,100 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'monospace',
   },
-  vehicleMetricsGrid: {
+  vehicleStatusRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(10),
+    gap: scale(8),
+  },
+  vehicleStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(3),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(6),
+    gap: scale(5),
+  },
+  vehicleStatusDot: {
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
+  },
+  vehicleStatusText: {
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+  },
+  vehicleStationText: {
+    fontSize: moderateScale(10),
+    color: '#64748B',
+    flex: 1,
+    textAlign: 'right',
+  },
+  equipmentSection: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: moderateScale(8),
-    paddingVertical: verticalScale(6),
-    justifyContent: 'space-around',
+    padding: moderateScale(10),
+  },
+  equipmentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
     marginBottom: verticalScale(8),
   },
-  vehicleMetricItem: {
-    alignItems: 'center',
+  equipmentSectionTitle: {
+    fontSize: moderateScale(11),
+    fontWeight: '700',
+    color: '#1E293B',
+    flex: 1,
   },
-  vMetricLabel: {
+  equipmentCountBadge: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: verticalScale(1),
+    paddingHorizontal: scale(6),
+    borderRadius: moderateScale(4),
+  },
+  equipmentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: moderateScale(6),
+  },
+  equipmentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: moderateScale(6),
+    paddingVertical: verticalScale(4),
+    paddingHorizontal: scale(7),
+    gap: scale(5),
+  },
+  eqStatusDot: {
+    width: moderateScale(5),
+    height: moderateScale(5),
+    borderRadius: moderateScale(2.5),
+  },
+  equipmentChipText: {
+    fontSize: moderateScale(10),
+    color: '#334155',
+    fontWeight: '600',
+    maxWidth: scale(110),
+  },
+  equipmentChipQty: {
     fontSize: moderateScale(9),
     color: '#64748B',
-    fontWeight: '600',
-  },
-  vMetricValue: {
-    fontSize: moderateScale(11.5),
-    fontWeight: '800',
-    marginTop: verticalScale(1),
-  },
-  gearListRow: {
-    flexDirection: 'row',
-    gap: scale(4),
-  },
-  gearListLabel: {
-    fontSize: moderateScale(10),
     fontWeight: '700',
-    color: '#334155',
   },
-  gearListText: {
+  equipmentEmptyText: {
     fontSize: moderateScale(10),
-    color: '#64748B',
-    flex: 1,
+    color: '#94A3B8',
+    fontStyle: 'italic',
   },
   crewMemberRow: {
     flexDirection: 'row',
@@ -858,6 +1006,12 @@ const styles = StyleSheet.create({
   crewRole: {
     fontSize: moderateScale(9.5),
     color: '#64748B',
+  },
+  crewPhoneText: {
+    fontSize: moderateScale(9.5),
+    color: '#0284C7',
+    fontWeight: '600',
+    marginTop: verticalScale(1),
   },
   crewCallBtn: {
     width: moderateScale(30),

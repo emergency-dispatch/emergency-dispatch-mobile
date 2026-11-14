@@ -36,6 +36,7 @@ import {
   ChevronDown,
   ChevronUp,
   LogOut,
+  LogIn,
   Camera,
   X,
   Mail,
@@ -72,7 +73,7 @@ import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { logout } = useAppStore();
+  const { logout, isAuthenticated, user } = useAppStore();
   const {
     profile,
     loadProfile,
@@ -110,9 +111,9 @@ export const ProfileScreen: React.FC = () => {
       setTempAvatarUrl(url);
       await updateProfile({ avatarUrl: url });
       setIsAvatarModalVisible(false);
-      Alert.alert('Thành công', 'Đã chụp và cập nhật ảnh đại diện mới!');
+      Alert.alert(t('profile.alert_success_title'), t('profile.alert_update_avatar_success'));
     } catch (err: any) {
-      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh đại diện lên máy chủ.');
+      Alert.alert(t('profile.alert_upload_avatar_fail'), err.message || t('profile.avatar_loading'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -127,9 +128,9 @@ export const ProfileScreen: React.FC = () => {
       setTempAvatarUrl(url);
       await updateProfile({ avatarUrl: url });
       setIsAvatarModalVisible(false);
-      Alert.alert('Thành công', 'Đã tải ảnh lên và cập nhật ảnh đại diện mới!');
+      Alert.alert(t('profile.alert_success_title'), t('profile.alert_upload_avatar_success'));
     } catch (err: any) {
-      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh đại diện lên máy chủ.');
+      Alert.alert(t('profile.alert_upload_avatar_fail'), err.message || t('profile.avatar_loading'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -158,8 +159,10 @@ export const ProfileScreen: React.FC = () => {
   });
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    if (isAuthenticated) {
+      loadProfile();
+    }
+  }, [loadProfile, isAuthenticated]);
 
   const { medicalId, ice, specialInfo } = profile;
 
@@ -190,10 +193,8 @@ export const ProfileScreen: React.FC = () => {
   const handleToggleSms = (val: boolean) => {
     toggleAutoSendSms(val);
     Alert.alert(
-      val ? 'Đã bật tự động gửi SMS' : 'Đã tắt tự động gửi SMS',
-      val
-        ? 'Khi bạn nhấn SOS, toạ độ GPS chính xác sẽ được tự động gửi qua tin nhắn SMS đến các liên hệ ICE.'
-        : 'Hệ thống sẽ không tự động gửi tin nhắn SMS khi bạn kích hoạt SOS.'
+      val ? t('profile.alert_sms_on_title') : t('profile.alert_sms_off_title'),
+      val ? t('profile.alert_sms_on_desc') : t('profile.alert_sms_off_desc')
     );
   };
 
@@ -223,9 +224,134 @@ export const ProfileScreen: React.FC = () => {
   ];
 
   const specialBadges: SummaryBadgeItem[] = [
-    { text: specialInfo.preferredLanguage || (i18n.language?.startsWith('vi') ? 'Tiếng Việt' : 'English'), color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
+    { text: specialInfo.preferredLanguage || (i18n.language?.startsWith('vi') ? t('profile.lang_vi') : t('profile.lang_en')), color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
     { text: specialInfo.dependentsNote ? t('profile.badge_has_dependents') : t('profile.badge_no_dependents'), color: '#334155', bg: '#F1F5F9', borderColor: '#E2E8F0' },
   ];
+
+  if (!isAuthenticated) {
+    return (
+      <ScreenContainer
+        backgroundColor="#F8FAFC"
+        edges={['top', 'left', 'right']}
+        style={styles.container}
+      >
+        {/* 1. Header Bar */}
+        <View style={styles.headerBar}>
+          <View style={styles.headerTextGroup}>
+            <Text
+              style={styles.headerTitle}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1.2}
+            >
+              {t('profile.header_title', 'Hồ Sơ Cứu Hộ')}
+            </Text>
+            <Text
+              style={styles.headerSubtitle}
+              numberOfLines={1}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1.2}
+            >
+              {t('profile.header_subtitle', 'Medical ID & Thông Tin Định Danh')}
+            </Text>
+          </View>
+
+          {/* Quick Language Toggle Flag Button */}
+          <TouchableOpacity
+            style={styles.headerLangBtn}
+            onPress={() => setIsLanguageModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Languages size={14} color="#DC2626" />
+            <Text style={styles.headerLangText}>
+              {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.unauthScrollContent}
+        >
+          {/* Main Card: Request Login */}
+          <View style={styles.unauthCard}>
+            <View style={styles.unauthIconCircle}>
+              <HeartPulse size={moderateScale(38)} color="#DC2626" />
+            </View>
+
+            <Text style={styles.unauthTitle}>{t('profile.unauth_title')}</Text>
+            <Text style={styles.unauthDescription}>
+              {t('profile.unauth_desc')}
+            </Text>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={styles.unauthLoginBtn}
+              activeOpacity={0.85}
+              onPress={() => (navigation as any).navigate('Auth', { screen: 'Login' })}
+            >
+              <LogIn size={moderateScale(18)} color="#FFFFFF" />
+              <Text style={styles.unauthLoginBtnText}>{t('profile.unauth_login_btn')}</Text>
+            </TouchableOpacity>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={styles.unauthRegisterBtn}
+              activeOpacity={0.85}
+              onPress={() => (navigation as any).navigate('Auth', { screen: 'Register' })}
+            >
+              <Text style={styles.unauthRegisterBtnText}>{t('profile.unauth_register_btn')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Benefits List */}
+          <View style={styles.unauthBenefitsSection}>
+            <Text style={styles.unauthBenefitsTitle}>{t('profile.unauth_benefits_title')}</Text>
+
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIconWrap, { backgroundColor: '#FEE2E2' }]}>
+                <ShieldCheck size={moderateScale(16)} color="#DC2626" />
+              </View>
+              <View style={styles.benefitTextCol}>
+                <Text style={styles.benefitItemTitle}>{t('profile.unauth_benefit_medical_title')}</Text>
+                <Text style={styles.benefitItemDesc}>
+                  {t('profile.unauth_benefit_medical_desc')}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                <PhoneCall size={moderateScale(16)} color="#059669" />
+              </View>
+              <View style={styles.benefitTextCol}>
+                <Text style={styles.benefitItemTitle}>{t('profile.unauth_benefit_ice_title')}</Text>
+                <Text style={styles.benefitItemDesc}>
+                  {t('profile.unauth_benefit_ice_desc')}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Sparkles size={moderateScale(16)} color="#0284C7" />
+              </View>
+              <View style={styles.benefitTextCol}>
+                <Text style={styles.benefitItemTitle}>{t('profile.unauth_benefit_sync_title')}</Text>
+                <Text style={styles.benefitItemDesc}>
+                  {t('profile.unauth_benefit_sync_desc')}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        <LanguageSelectorModal
+          visible={isLanguageModalVisible}
+          onClose={() => setIsLanguageModalVisible(false)}
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer
@@ -1520,6 +1646,134 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  unauthScrollContent: {
+    padding: scale(14),
+    paddingBottom: verticalScale(32),
+  },
+  unauthCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(16),
+    padding: moderateScale(20),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: verticalScale(16),
+  },
+  unauthIconCircle: {
+    width: moderateScale(68),
+    height: moderateScale(68),
+    borderRadius: moderateScale(34),
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(14),
+  },
+  unauthTitle: {
+    fontSize: moderateScale(17),
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: verticalScale(8),
+    textAlign: 'center',
+  },
+  unauthDescription: {
+    fontSize: moderateScale(12),
+    color: '#64748B',
+    lineHeight: moderateScale(18),
+    textAlign: 'center',
+    marginBottom: verticalScale(18),
+    paddingHorizontal: scale(6),
+  },
+  unauthLoginBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: scale(20),
+    borderRadius: moderateScale(12),
+    width: '100%',
+    gap: scale(8),
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+    marginBottom: verticalScale(10),
+  },
+  unauthLoginBtnText: {
+    fontSize: moderateScale(13.5),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  unauthRegisterBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    paddingVertical: verticalScale(11),
+    paddingHorizontal: scale(20),
+    borderRadius: moderateScale(12),
+    width: '100%',
+  },
+  unauthRegisterBtnText: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#334155',
+  },
+  unauthBenefitsSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(16),
+    padding: moderateScale(16),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  unauthBenefitsTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: verticalScale(12),
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: scale(10),
+    marginBottom: verticalScale(12),
+  },
+  benefitIconWrap: {
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: verticalScale(2),
+  },
+  benefitTextCol: {
+    flex: 1,
+  },
+  benefitItemTitle: {
+    fontSize: moderateScale(12),
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: verticalScale(2),
+  },
+  benefitItemDesc: {
+    fontSize: moderateScale(11),
+    color: '#64748B',
+    lineHeight: moderateScale(16),
   },
 });
 

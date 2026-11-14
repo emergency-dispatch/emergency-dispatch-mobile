@@ -7,3 +7,4 @@ export * from './mapbox.service';
 export * from './location.service';
 export * from './schedule.service';
 export * from './staffDispatch.service';
+export * from './equipment.service';

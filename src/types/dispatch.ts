@@ -165,6 +165,7 @@ export interface ResolveAssignmentPayload {
   handoverContactName?: string;
   handoverContactPhone?: string;
   handoverNotes?: string;
+  signatureUrl?: string; // Bắt buộc Mục 26.2: Link ảnh PNG chữ ký upload qua POST /api/media/upload
   signatureSvg?: string;
 }
 
@@ -177,6 +178,7 @@ export interface CompletionReportDto {
   handoverContactName?: string;
   handoverContactPhone?: string;
   handoverNotes?: string;
+  signatureUrl?: string;
   signatureSvg?: string;
   submittedAt?: string;
 }
@@ -197,6 +199,7 @@ export interface DispatchAssignmentResponseDto {
   rejectionNotes?: string | null;
   distanceKm?: number;
   estimatedArrivalMinutes?: number;
+  assignedByUserId?: string | null;
   completionReport?: CompletionReportDto | null;
   incidentTitle?: string;
   incidentAddress?: string;
@@ -326,6 +329,8 @@ export interface MyTeamDto {
   myTeamId?: string | null;
   myTeamName?: string | null;
   myCrewRole?: string | null;
+  myTeamRescueUnitIds?: string[];
+  myTeamRescueUnitPlates?: string[];
   myTeamRescueUnitId?: string | null;
   myTeamRescueUnitPlate?: string | null;
   myTeamMembers: StationTeamMemberDto[];
@@ -402,4 +407,100 @@ export interface AppNotificationDto {
   isRead: boolean;
   readAt?: string | null;
   createdAt: string;
+}
+
+// §21.2 & 12.2: Yêu cầu chi viện và hỗ trợ hiện trường
+export type FieldRequestType = 'Backup' | 'Other';
+export type FieldRequestStatus = 'Open' | 'Acknowledged' | 'Fulfilled' | 'Declined' | 'Cancelled';
+
+export interface CreateFieldRequestPayload {
+  type: FieldRequestType;
+  requestedUnitType?: string | null;
+  quantity?: number;
+  description?: string | null;
+}
+
+export interface FieldRequestDto {
+  id: string;
+  incidentId: string;
+  incidentTitle?: string | null;
+  incidentAddress?: string | null;
+  assignmentId: string;
+  rescueUnitId: string;
+  plateNumber?: string | null;
+  unitStationId: string;
+  unitTeamId?: string | null;
+  requestedByUserId: string;
+  requestedByName?: string | null;
+  type: FieldRequestType;
+  status: FieldRequestStatus;
+  requestedUnitType?: string | null;
+  quantity: number;
+  description?: string | null;
+  createdAt: string;
+  acknowledgedByUserId?: string | null;
+  acknowledgedAt?: string | null;
+  resolvedByUserId?: string | null;
+  resolvedAt?: string | null;
+  responseNote?: string | null;
+  escalatedAt?: string | null;
+  ageMinutes?: number;
+}
+
+export interface FieldRequestEventDto {
+  action: 'Created' | 'Acknowledged' | 'Fulfilled' | 'Declined' | 'Cancelled' | 'Escalated';
+  request: FieldRequestDto;
+  changedAt: string;
+}
+
+// §20: Nhiệm vụ giải tỏa điểm nghẽn giao thông (Traffic Hotspot & Task)
+export type TrafficCongestionLevel = 'Low' | 'Moderate' | 'Severe' | 'Blocked';
+
+export interface TrafficHotspotResponseDto {
+  id: string;
+  title: string;
+  description: string | null;
+  latitude: number;
+  longitude: number;
+  locationAddress: string;
+  congestionLevel?: TrafficCongestionLevel;
+  congestionLevelName?: string;
+  mediaUrl: string | null;
+  createdAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  status?: 'Active' | 'Assigned' | 'Resolved' | 'Expired';
+  responsibleStationId?: string | null;
+  responsibleStationName?: string | null;
+  assignedRescueUnitId?: string | null;
+  assignedUnitPlate?: string | null;
+  assignedUnitStationId?: string | null;
+  assignedAt?: string | null;
+  escalatedAt?: string | null;
+  resolvedAt?: string | null;
+  resolutionNote?: string | null;
+  sourceIncidentId?: string | null;
+}
+
+export interface TrafficTaskEventDto {
+  action: 'Assigned' | 'Unassigned' | 'Resolved';
+  rescueUnitId: string;
+  plateNumber?: string | null;
+  unitStationId: string;
+  notes?: string | null;
+  hotspot: TrafficHotspotResponseDto;
+  changedAt: string;
+}
+
+export interface ReportTrafficHotspotPayload {
+  title: string;
+  description?: string | null;
+  latitude: number;
+  longitude: number;
+  locationAddress: string;
+  congestionLevel?: TrafficCongestionLevel;
+  mediaUrl?: string | null;
+  reporterName?: string | null;
+  reporterPhone?: string | null;
+  ttlMinutes?: number;
 }

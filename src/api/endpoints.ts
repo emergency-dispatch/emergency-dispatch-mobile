@@ -70,6 +70,15 @@ export const Endpoints = {
   AI: {
     ANALYZE: '/ai/analyze',
   },
+  FIELD_REQUESTS: {
+    CREATE: (assignmentId: string) => `/dispatch/assignments/${assignmentId}/requests`,
+    BY_INCIDENT: (incidentId: string) => `/incidents/${incidentId}/field-requests`,
+    CANCEL: (id: string) => `/field-requests/${id}/cancel`,
+  },
+  EQUIPMENT: {
+    BASE: '/equipment',
+    STATUS: (id: string) => `/equipment/${id}/status`,
+  },
   SETTINGS: {
     SERVICE_AREA: '/settings/service-area',
   },

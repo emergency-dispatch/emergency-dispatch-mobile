@@ -13,6 +13,10 @@ import {
   RescueUnitDetailDto,
   StationStaffMemberDto,
   StationDetailDto,
+  CreateFieldRequestPayload,
+  FieldRequestDto,
+  TrafficHotspotResponseDto,
+  ReportTrafficHotspotPayload,
 } from '../types/dispatch';
 import { CitizenTracking, IncidentResponseDto } from '../types/incident';
 
@@ -82,20 +86,20 @@ export const staffDispatchService = {
   },
 
   /**
-   * POST /api/dispatch/assignments/{id}/reject
-   * Từ chối lệnh điều động (kèm reason enum & notes)
+   * PUT /api/dispatch/assignments/{id}/reject
+   * Từ chối lệnh điều phối kèm lý do
    */
   async rejectAssignment(
     id: string,
     payload: RejectAssignmentPayload
   ): Promise<DispatchAssignmentResponseDto> {
     cachedMyAssignments = null;
-    const response = await apiService.post<BackendApiResponse<DispatchAssignmentResponseDto>>(
+    const response = await apiService.put<BackendApiResponse<DispatchAssignmentResponseDto>>(
       Endpoints.DISPATCH.ASSIGNMENT_REJECT(id),
       payload
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể từ chối nhiệm vụ.');
+      throw new Error(response.message || 'Không thể từ chối phân công.');
     }
     return response.data;
   },
@@ -115,6 +119,104 @@ export const staffDispatchService = {
     );
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Không thể nghiệm thu đóng nhiệm vụ.');
+    }
+    return response.data;
+  },
+
+  /**
+   * POST /api/dispatch/assignments/{assignmentId}/requests
+   * §21.2 Staff gửi yêu cầu chi viện xe (Backup) hoặc vấn đề khác (Other)
+   */
+  async createFieldRequest(
+    assignmentId: string,
+    payload: CreateFieldRequestPayload
+  ): Promise<FieldRequestDto> {
+    const response = await apiService.post<BackendApiResponse<FieldRequestDto>>(
+      Endpoints.FIELD_REQUESTS.CREATE(assignmentId),
+      payload
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể gửi yêu cầu về trung tâm.');
+    }
+    return response.data;
+  },
+
+  /**
+   * GET /api/incidents/{incidentId}/field-requests
+   * Lấy danh sách yêu cầu hiện trường của sự cố
+   */
+  async getFieldRequestsByIncident(incidentId: string): Promise<FieldRequestDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<FieldRequestDto[]>>(
+        Endpoints.FIELD_REQUESTS.BY_INCIDENT(incidentId)
+      );
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * PUT /api/field-requests/{id}/cancel
+   * Staff tự hủy yêu cầu của đội mình
+   */
+  async cancelFieldRequest(id: string, note?: string): Promise<FieldRequestDto> {
+    const response = await apiService.put<BackendApiResponse<FieldRequestDto>>(
+      Endpoints.FIELD_REQUESTS.CANCEL(id),
+      { note: note || undefined }
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể hủy yêu cầu.');
+    }
+    return response.data;
+  },
+
+  /**
+   * POST /api/traffic/report
+   * §20 & §6.1: Staff báo cáo điểm nghẽn hoặc chướng ngại vật giao thông
+   */
+  async reportTrafficHotspot(
+    payload: ReportTrafficHotspotPayload
+  ): Promise<TrafficHotspotResponseDto> {
+    const response = await apiService.post<BackendApiResponse<TrafficHotspotResponseDto>>(
+      Endpoints.TRAFFIC.REPORT,
+      payload
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể gửi báo cáo điểm nghẽn.');
+    }
+    return response.data;
+  },
+
+  /**
+   * GET /api/traffic/active
+   * Lấy danh sách điểm nghẽn đang hoạt động
+   */
+  async getActiveTrafficHotspots(): Promise<TrafficHotspotResponseDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<TrafficHotspotResponseDto[]>>(
+        Endpoints.TRAFFIC.ACTIVE
+      );
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * PUT /api/traffic/{id}/resolve
+   * §20: Staff báo cáo đã giải tỏa điểm nghẽn hoàn thành
+   */
+  async resolveTrafficHotspot(
+    id: string,
+    note?: string
+  ): Promise<TrafficHotspotResponseDto> {
+    const response = await apiService.put<BackendApiResponse<TrafficHotspotResponseDto>>(
+      Endpoints.TRAFFIC.RESOLVE(id),
+      { note: note || undefined }
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể cập nhật giải tỏa điểm nghẽn.');
     }
     return response.data;
   },

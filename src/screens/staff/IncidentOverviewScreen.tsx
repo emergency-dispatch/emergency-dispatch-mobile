@@ -228,9 +228,11 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
         const isRouteValid =
           tracking.distanceKm < 150 &&
-          isValidVietnamRoute(tracking.routeTrajectory);
+          isValidVietnamRoute(tracking.routeTrajectory) &&
+          tracking.routeTrajectory.length > 2 &&
+          !tracking.isApproximateRoute;
 
-        if (isRouteValid && tracking.routeTrajectory && tracking.routeTrajectory.length > 0) {
+        if (isRouteValid && tracking.routeTrajectory && tracking.routeTrajectory.length > 2) {
           newTrajectory = tracking.routeTrajectory;
           newDistanceKm = tracking.distanceKm;
           newEtaMinutes = tracking.estimatedArrivalMinutes;
@@ -260,8 +262,8 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         cooperating = assignments.filter((u) => u.id !== (myAssignment?.id || activeAssignmentId));
       }
 
-      // If no valid tracking route from backend, use fast local routing
-      if (!newTrajectory && (!routeTrajectory || routeTrajectory.length === 0)) {
+      // If no valid tracking route from backend or only fallback straight line (<= 2 points), use fast local routing along streets
+      if (!newTrajectory || newTrajectory.length <= 2) {
         try {
           const safeOrigin =
             activeIncidentData &&
@@ -284,7 +286,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   label: activeIncidentData?.address || 'Hiện trường',
                 };
           const localRoute = await mapboxService.getRouteWithDetails(safeOrigin, safeTarget);
-          if (isMounted) {
+          if (isMounted && localRoute.points.length > 2) {
             newTrajectory = localRoute.points;
             newDistanceKm = localRoute.distanceKm;
             newEtaMinutes = localRoute.durationMinutes;

@@ -91,11 +91,11 @@ export const IncidentTacticalMap: React.FC<IncidentTacticalMapProps> = ({
     ];
   }, [assignedUnit, safeOrigin, incidentTitle, incidentAddress, safeTarget]);
 
-  // Use backend OSRM route trajectory if valid, otherwise fallback to local route
+  // Use backend OSRM route trajectory if valid and has detailed path (> 2 points), otherwise fallback to local street route
   useEffect(() => {
     if (
       backendRouteTrajectory &&
-      backendRouteTrajectory.length > 0 &&
+      backendRouteTrajectory.length > 2 &&
       isValidVietnamRoute(backendRouteTrajectory)
     ) {
       setRouteCoordinates(backendRouteTrajectory);

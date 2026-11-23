@@ -37,18 +37,34 @@ export interface RoutePoint {
 const routeCache = new Map<string, { result: RouteDetailResult; timestamp: number }>();
 const ROUTE_CACHE_TTL_MS = 60000; // 60s in-memory route cache
 
+// Mặc định ưu tiên Khu Công nghệ cao (SHTP) & TP.HCM khi tìm địa chỉ
+const SHTP_ANCHOR = { latitude: 10.8441, longitude: 106.8089 };
+// Khung TP.HCM + TP. Thủ Đức + Khu CNC + vùng giáp ranh: minLng, minLat, maxLng, maxLat
+const HCM_BBOX = '106.35,10.35,107.03,11.16';
+// Nominatim viewbox theo chuẩn minLng,maxLat,maxLng,minLat
+const HCM_NOMINATIM_VIEWBOX = '106.35,11.16,107.03,10.35';
+const SEARCH_CACHE_TTL_MS = 120000;
+const searchCache = new Map<string, { items: Array<{ name: string; latitude: number; longitude: number }>; ts: number }>();
+
+const sqDistToAnchor = (lat: number, lng: number, anchor: { latitude: number; longitude: number }) =>
+  (lat - anchor.latitude) ** 2 + (lng - anchor.longitude) ** 2;
+
 class MapboxService {
+  private mapboxGeocodeDisabled = false;
+
   /**
    * Reverse geocode coordinates to human-readable Vietnamese address.
    * Uses Mapbox Geocoding with transparent OpenStreetMap fallback.
    */
   async reverseGeocode(latitude: number, longitude: number): Promise<string> {
     // 1. Try Mapbox Geocoding API
-    if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy')) {
+    if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy') && !this.mapboxGeocodeDisabled) {
       try {
         const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi`;
         const res = await fetch(mapboxUrl);
-        if (res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          this.mapboxGeocodeDisabled = true;
+        } else if (res.ok) {
           const data = await res.json();
           if (data.features && data.features.length > 0) {
             return data.features[0].place_name;
@@ -83,64 +99,99 @@ class MapboxService {
   }
 
   /**
-   * Search for location or address using Mapbox Places forward geocoding.
-   * - Khi đang gõ (options?.allowNominatim = false, mặc định): CHỈ DÙNG Mapbox, TUYỆT ĐỐI KHÔNG gọi Nominatim (tuân thủ chính sách OSM).
-   * - options?.proximity: ưu tiên kết quả gần vị trí hiện tại (kinh độ, vĩ độ).
-   * - Khi người dân bấm nút tìm (options?.allowNominatim = true): nếu Mapbox không tìm thấy mới gọi Nominatim một lần duy nhất.
+   * Tìm kiếm địa điểm ưu tiên TP.HCM & Khu Công nghệ cao (SHTP) để kết quả nhanh và không nhảy sang tỉnh khác.
    */
   async searchLocation(
     query: string,
     options?: {
       allowNominatim?: boolean;
       proximity?: { latitude: number; longitude: number };
+      boundedToHcm?: boolean;
     }
   ): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
     const trimmed = query.trim();
     if (!trimmed) return [];
 
-    const allowNominatim = options?.allowNominatim ?? false;
-    const proximity = options?.proximity;
+    const allowNominatim = options?.allowNominatim ?? true;
+    const boundedToHcm = options?.boundedToHcm ?? true;
+    const anchor =
+      options?.proximity && !isNaN(options.proximity.latitude) && !isNaN(options.proximity.longitude) && options.proximity.latitude !== 0
+        ? options.proximity
+        : SHTP_ANCHOR;
 
-    // 1. Try Mapbox Forward Geocoding API
-    if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy')) {
+    const cacheKey = `${trimmed.toLowerCase()}|${boundedToHcm ? 1 : 0}|${anchor.latitude.toFixed(2)},${anchor.longitude.toFixed(2)}`;
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL_MS) {
+      return cached.items;
+    }
+
+    const sortByAnchor = (items: Array<{ name: string; latitude: number; longitude: number }>) =>
+      [...items].sort((a, b) => sqDistToAnchor(a.latitude, a.longitude, anchor) - sqDistToAnchor(b.latitude, b.longitude, anchor));
+
+    // 1. Try Mapbox Forward Geocoding API (bỏ qua ngay nếu token từng trả 401/403 để không tốn thời gian chờ)
+    if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy') && !this.mapboxGeocodeDisabled) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       try {
-        let mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi&limit=5`;
-        if (proximity && !isNaN(proximity.latitude) && !isNaN(proximity.longitude)) {
-          mapboxUrl += `&proximity=${proximity.longitude},${proximity.latitude}`;
-        }
-        const res = await fetch(mapboxUrl);
-        if (res.ok) {
+        let mapboxUrl =
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json` +
+          `?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi&limit=5&proximity=${anchor.longitude},${anchor.latitude}`;
+        if (boundedToHcm) mapboxUrl += `&bbox=${HCM_BBOX}`;
+        const res = await fetch(mapboxUrl, { signal: controller.signal });
+        if (res.status === 401 || res.status === 403) {
+          this.mapboxGeocodeDisabled = true;
+        } else if (res.ok) {
           const data = await res.json();
           if (data.features && data.features.length > 0) {
-            return data.features.map((feat: any) => ({
-              name: feat.place_name,
-              latitude: feat.center[1],
-              longitude: feat.center[0],
-            }));
+            const mapped = sortByAnchor(
+              data.features.map((feat: any) => ({
+                name: feat.place_name,
+                latitude: feat.center[1],
+                longitude: feat.center[0],
+              }))
+            );
+            searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
+            return mapped;
           }
         }
       } catch {
-        // Fallback below only if allowNominatim is true
+        // Fallback below
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
-    // 2. Fallback via Nominatim CHỈ KHI được cho phép (người dân bấm nút tìm)
+    // 2. Fallback via Nominatim giới hạn viewbox TP.HCM & Khu Công nghệ cao
     if (allowNominatim) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       try {
-        const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&countrycodes=vn&limit=5&accept-language=vi`;
+        const osmUrl =
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}` +
+          `&format=json&countrycodes=vn&limit=5&accept-language=vi&viewbox=${HCM_NOMINATIM_VIEWBOX}` +
+          (boundedToHcm ? '&bounded=1' : '');
         const res = await fetch(osmUrl, {
           headers: { 'User-Agent': 'EmergencyDispatchApp/1.0' },
+          signal: controller.signal,
         });
         if (res.ok) {
           const list = await res.json();
-          return list.map((item: any) => ({
-            name: item.display_name,
-            latitude: parseFloat(item.lat),
-            longitude: parseFloat(item.lon),
-          }));
+          const mapped = sortByAnchor(
+            list.map((item: any) => ({
+              name: item.display_name,
+              latitude: parseFloat(item.lat),
+              longitude: parseFloat(item.lon),
+            }))
+          );
+          if (mapped.length > 0) {
+            searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
+            return mapped;
+          }
         }
       } catch {
         // ignore
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
@@ -149,13 +200,23 @@ class MapboxService {
 
   /**
    * Tìm kiếm khi người dân bấm nút tìm (explicit submit).
-   * Cho phép fallback sang Nominatim một lần duy nhất nếu Mapbox không tìm thấy.
+   * Thử TP.HCM + Khu CNC trước; nếu không có kết quả mới mở rộng tìm toàn Việt Nam.
    */
   async searchLocationExplicit(
     query: string,
     options?: { proximity?: { latitude: number; longitude: number } }
   ): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
-    return this.searchLocation(query, { allowNominatim: true, proximity: options?.proximity });
+    const hcmResults = await this.searchLocation(query, {
+      allowNominatim: true,
+      boundedToHcm: true,
+      proximity: options?.proximity,
+    });
+    if (hcmResults.length > 0) return hcmResults;
+    return this.searchLocation(query, {
+      allowNominatim: true,
+      boundedToHcm: false,
+      proximity: options?.proximity,
+    });
   }
 
   /**

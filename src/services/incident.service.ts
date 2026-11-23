@@ -14,10 +14,63 @@ import {
 
 export interface ServiceAreaDto {
   enabled: boolean;
+  rejectOutside?: boolean;
   name: string | null;
   centerLat: number;
   centerLng: number;
   radiusKm: number;
+  boundaryGeoJson?: string | null;
+}
+
+type RingCoords = Array<[number, number]>;
+type PolygonRings = RingCoords[];
+
+function parseBoundaryPolygons(json?: string | null): PolygonRings[] {
+  if (!json?.trim()) return [];
+  try {
+    const geo = JSON.parse(json) as { type?: string; coordinates?: unknown };
+    const isRing = (r: unknown): r is RingCoords =>
+      Array.isArray(r) && r.every((p) => Array.isArray(p) && p.length >= 2 && typeof p[0] === 'number' && typeof p[1] === 'number');
+    const isPoly = (p: unknown): p is PolygonRings => Array.isArray(p) && p.length > 0 && p.every(isRing);
+    if (geo?.type === 'Polygon' && isPoly(geo.coordinates)) return [geo.coordinates];
+    if (geo?.type === 'MultiPolygon' && Array.isArray(geo.coordinates) && geo.coordinates.every(isPoly)) {
+      return geo.coordinates as PolygonRings[];
+    }
+  } catch {
+    // ignore malformed GeoJSON
+  }
+  return [];
+}
+
+function pointInRing(lng: number, lat: number, ring: RingCoords): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygons(lat: number, lng: number, polygons: PolygonRings[]): boolean {
+  return polygons.some(([outer, ...holes]) => !!outer && pointInRing(lng, lat, outer) && !holes.some((h) => pointInRing(lng, lat, h)));
+}
+
+function distanceToPolygonsKm(lat: number, lng: number, polygons: PolygonRings[]): number {
+  const kx = 111.32 * Math.cos((lat * Math.PI) / 180);
+  const ky = 110.574;
+  let best = Infinity;
+  for (const ring of polygons.flat()) {
+    for (let i = 1; i < ring.length; i++) {
+      const [ax, ay] = [(ring[i - 1][0] - lng) * kx, (ring[i - 1][1] - lat) * ky];
+      const [bx, by] = [(ring[i][0] - lng) * kx, (ring[i][1] - lat) * ky];
+      const [dx, dy] = [bx - ax, by - ay];
+      const lenSq = dx * dx + dy * dy;
+      const t = lenSq > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lenSq)) : 0;
+      best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+    }
+  }
+  return best;
 }
 
 function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -265,6 +318,8 @@ export const incidentService = {
       const rawLng = area?.centerLng ?? (area as any)?.CenterLng;
       const rawRad = area?.radiusKm ?? (area as any)?.RadiusKm;
       const rawEnabled = area?.enabled ?? (area as any)?.Enabled ?? true;
+      const rawRejectOutside = area?.rejectOutside ?? (area as any)?.RejectOutside ?? true;
+      const rawBoundaryGeoJson = area?.boundaryGeoJson ?? (area as any)?.BoundaryGeoJson ?? null;
 
       const centerLat = typeof rawLat === 'number' && rawLat !== 0 ? rawLat : DEFAULT_SERVICE_AREA.centerLat;
       const centerLng = typeof rawLng === 'number' && rawLng !== 0 ? rawLng : DEFAULT_SERVICE_AREA.centerLng;
@@ -273,22 +328,29 @@ export const incidentService = {
 
       const effectiveArea: ServiceAreaDto = {
         enabled: rawEnabled,
+        rejectOutside: rawRejectOutside,
         name: areaName,
         centerLat,
         centerLng,
         radiusKm,
+        boundaryGeoJson: rawBoundaryGeoJson,
       };
 
-      if (!rawEnabled) {
+      if (!rawEnabled || !rawRejectOutside) {
         return { isOutside: false, distanceOutsideKm: 0, area: effectiveArea };
       }
 
-      const dist = haversineDistanceKm(lat, lng, centerLat, centerLng);
-      const outside = dist - radiusKm;
+      const polygons = parseBoundaryPolygons(rawBoundaryGeoJson);
+      const outside =
+        polygons.length > 0
+          ? pointInPolygons(lat, lng, polygons)
+            ? 0
+            : distanceToPolygonsKm(lat, lng, polygons)
+          : haversineDistanceKm(lat, lng, centerLat, centerLng) - radiusKm;
       if (outside > 0) {
         return {
           isOutside: true,
-          distanceOutsideKm: Math.round(outside * 10) / 10,
+          distanceOutsideKm: Math.max(0.1, Math.round(outside * 10) / 10),
           area: effectiveArea,
         };
       }

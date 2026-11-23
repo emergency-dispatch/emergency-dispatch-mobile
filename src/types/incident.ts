@@ -54,6 +54,7 @@ export interface CreateIncidentDto {
 
 export interface LinkedToIncidentDto {
   incidentId: string;
+  code?: string;
   title: string;
   locationAddress: string;
   eventType?: string;
@@ -74,6 +75,7 @@ export interface IncidentSupplementDto {
 
 export interface IncidentResponseDto {
   id: string;
+  code?: string;
   title: string;
   description: string;
   latitude: number;
@@ -121,6 +123,7 @@ export interface MyReportUnitDto {
 
 export interface MyReportDto {
   id: string;
+  code?: string;
   title: string;
   description: string;
   locationAddress: string;
@@ -131,6 +134,10 @@ export interface MyReportDto {
   resolutionSummary?: string | null;
   cancellationReason?: string | null;
   linkedToIncidentId?: string | null;
+  linkedToIncidentCode?: string | null;
+  linkedToIncidentTitle?: string | null;
+  linkedToIncidentAddress?: string | null;
+  linkedToIncidentStatus?: IncidentStatus | null;
   reportedEventType?: string | null;
   mediaUrls: string[];
   reportedAt: string;

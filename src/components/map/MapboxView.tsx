@@ -398,69 +398,44 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       font-weight: 700;
     }
 
-    @keyframes vehiclePulse {
-      from { box-shadow: 0 0 6px rgba(37, 99, 235, 0.5); }
-      to { box-shadow: 0 0 18px rgba(37, 99, 235, 0.95); }
+    @keyframes glowPing {
+      0% { transform: scale(1); opacity: 0.65; }
+      75%, 100% { transform: scale(2); opacity: 0; }
     }
-
-    /* Standard Incident Marker with Severity Badge */
-    .incident-marker-wrap {
-      position: relative;
-      width: 36px;
-      height: 36px;
-      border-radius: 18px;
-      border: 2.5px solid #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      cursor: pointer;
-      animation: alertPulse 1.2s infinite alternate;
-      box-shadow: 0 3px 12px rgba(220, 38, 38, 0.6);
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.22; }
+      50% { opacity: 0.1; }
     }
-    .incident-cat-fire { background: #DC2626; box-shadow: 0 0 10px 2px rgba(220, 38, 38, 0.6); }
-    .incident-cat-accident { background: #F97316; box-shadow: 0 0 10px 2px rgba(249, 115, 22, 0.6); }
-    .incident-cat-medical { background: #059669; }
-    .incident-cat-other { background: #7C3AED; }
-
-    .incident-ping-ring {
+    .glow-ping { animation: glowPing 1.2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    .glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
+    .vehicle-eta-pill {
       position: absolute;
-      inset: -6px;
-      border-radius: 50%;
-      background: inherit;
-      opacity: 0.45;
-      animation: pingRing 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
-      pointer-events: none;
-    }
-    @keyframes pingRing {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
-
-    .incident-sev-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 17px;
-      height: 17px;
-      border-radius: 9px;
-      border: 2px solid #FFFFFF;
-      font-size: 10px;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #38BDF8;
+      font-size: 9.5px;
       font-weight: 800;
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
+      padding: 1px 5px;
+      border-radius: 6px;
+      border: 1.2px solid #38BDF8;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      line-height: 12px;
+      pointer-events: none;
+      z-index: 2;
     }
-    .sev-bg-3 { background: #DC2626; }
-    .sev-bg-2 { background: #EA580C; }
-    .sev-bg-1 { background: #10B981; }
-    .sev-bg-0 { background: #7C3AED; }
 
-    @keyframes alertPulse {
-      from { box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); }
-      to { box-shadow: 0 0 20px rgba(220, 38, 38, 0.95); }
+    .popup-eta-box {
+      margin-top: 6px;
+      padding: 5px 8px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #1D4ED8;
+      font-weight: 700;
     }
 
     /* Custom popup styling */
@@ -729,6 +704,86 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       });
     };
 
+    // Shared 3D & Glow SVG icons matching web src/assets/map-icons & map-icons-3d
+    var SVG_ICONS = {
+      pickPin: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 40" width="30" height="40" style="display:block;overflow:visible">' +
+        '<path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.3 15 39 15 39s14-13.7 14-24.1C29 7.2 22.7 1 15 1z" fill="#0F172A" stroke="#F87171" stroke-width="2.5"/>' +
+        '<path d="M15 9.8v10.4 M9.8 15h10.4" stroke="#FCA5A5" stroke-width="2.8" stroke-linecap="round"/></svg>',
+      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path fill="currentColor" fill-rule="evenodd" d="M12.6 2.5c.6 3.2-1.3 5-2.9 6.7C8.2 10.8 6.5 12.8 6.5 15.6A5.6 5.6 0 0 0 12 21.5a5.6 5.6 0 0 0 5.5-5.8c0-2.2-.9-3.9-2.1-5.3.1 1.6-.6 2.8-1.7 3.4.7-3.9-.2-7.8-1.1-11.3Z M12 14.2c1.3 1.4 2.3 2.5 2.3 3.8a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.4 2.3-3.8Z"/></svg>',
+      accident: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' +
+        '<path fill="currentColor" d="M5.93 1.48 7.34 4.47 9.58 3.25 8.64 5.62 11.6 6.64 8.56 7.36 9.02 9.49 7.15 8.37 5.55 10.83 5.48 7.9 3.12 7.96 4.8 6.3 2.94 4.3 5.63 4.78Z"/>' +
+        '<g transform="translate(17.2 10.2) rotate(25) scale(.55) translate(-12 -12.25)"><path fill="currentColor" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>' +
+        '<g transform="translate(-.5 10.5) scale(.6)"><path fill="currentColor" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g></svg>',
+      other: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M12 3.4 21.6 20H2.4Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 9.6v4.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.45" fill="currentColor"/></svg>',
+      unknown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M8.6 8.6a3.4 3.4 0 1 1 5 3c-1 .5-1.6 1.2-1.6 2.3v1" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="18.8" r="1.6" fill="currentColor"/></svg>',
+      stationMine: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
+        '<ellipse cx="34.7" cy="34.3" rx="22" ry="9" fill="#0F172A" opacity="0.24"/>' +
+        '<polygon points="6.3,30.5 36.6,45.7 36.6,43.9 6.3,28.7" fill="#94A3B8"/><polygon points="58.3,34.8 36.6,45.7 36.6,43.9 58.3,33.0" fill="#7C8BA1"/><polygon points="28.0,17.8 58.3,33.0 36.6,43.9 6.3,28.7" fill="#E2E8F0"/>' +
+        '<polygon points="13.0,26.9 20.4,30.6 20.4,22.0 13.0,18.3" fill="#E2E8F0"/><polygon points="32.7,24.5 20.4,30.6 20.4,22.0 32.7,15.9" fill="#B6C2D2"/><polygon points="25.3,12.2 32.7,15.9 20.4,22.0 13.0,18.3" fill="#EF4444"/>' +
+        '<polygon points="18.4,31.7 30.7,37.8 30.7,21.0 18.4,14.8" fill="#E2E8F0"/><polygon points="47.1,29.6 30.7,37.8 30.7,21.0 47.1,12.8" fill="#B6C2D2"/><polygon points="34.8,6.6 47.1,12.8 30.7,21.0 18.4,14.8" fill="#F8FAFC"/>' +
+        '<polygon points="45.4,21.6 42.3,23.2 42.3,20.5 45.4,18.9" fill="#2B5797"/><polygon points="40.7,24.0 37.6,25.5 37.6,22.8 40.7,21.3" fill="#2B5797"/><polygon points="36.0,26.3 32.9,27.9 32.9,25.2 36.0,23.7" fill="#2B5797"/>' +
+        '<polygon points="45.4,17.1 42.3,18.6 42.3,16.0 45.4,14.4" fill="#2B5797"/><polygon points="40.7,19.5 37.6,21.0 37.6,18.3 40.7,16.8" fill="#2B5797"/><polygon points="36.0,21.8 32.9,23.4 32.9,20.7 36.0,19.2" fill="#2B5797"/>' +
+        '<polygon points="20.0,32.5 29.0,37.0 29.0,29.8 20.0,25.3" fill="#475569"/><line x1="20.0" y1="30.7" x2="29.0" y2="35.2" stroke="#94A3B8" stroke-width="0.45"/><line x1="20.0" y1="29.0" x2="29.0" y2="33.5" stroke="#94A3B8" stroke-width="0.45"/><line x1="20.0" y1="27.2" x2="29.0" y2="31.8" stroke="#94A3B8" stroke-width="0.45"/>' +
+        '<polygon points="20.0,22.8 23.1,24.4 23.1,21.5 20.0,20.0" fill="#3B6FB6"/><polygon points="25.9,25.8 29.0,27.4 29.0,24.5 25.9,22.9" fill="#3B6FB6"/>' +
+        '<polygon points="17.1,14.8 30.7,21.6 30.7,19.8 17.1,13.0" fill="#B91C1C"/><polygon points="48.3,12.8 30.7,21.6 30.7,19.8 48.3,11.0" fill="#991B1B"/><polygon points="34.8,4.2 48.3,11.0 30.7,19.8 17.1,13.0" fill="#EF4444"/><polyline points="17.1,13.0 30.7,19.8 48.3,11.0" fill="none" stroke="#FCA5A5" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/>' +
+        '<polygon points="30.0,12.1 32.5,13.3 32.5,11.1 30.0,9.8" fill="#B91C1C"/><polygon points="35.8,11.7 32.5,13.3 32.5,11.1 35.8,9.4" fill="#991B1B"/><polygon points="33.3,8.2 35.8,9.4 32.5,11.1 30.0,9.8" fill="#EF4444"/><polyline points="30.0,9.8 32.5,11.1 35.8,9.4" fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/>' +
+        '<polygon points="32.7,36.8 40.1,40.5 40.1,31.9 32.7,28.2" fill="#E2E8F0"/><polygon points="52.4,34.3 40.1,40.5 40.1,31.9 52.4,25.7" fill="#B6C2D2"/><polygon points="45.0,22.0 52.4,25.7 40.1,31.9 32.7,28.2" fill="#F8FAFC"/>' +
+        '<polygon points="50.5,31.8 47.5,33.3 47.5,30.6 50.5,29.1" fill="#2B5797"/><polygon points="45.4,34.3 42.3,35.9 42.3,33.2 45.4,31.7" fill="#2B5797"/>' +
+        '<polygon points="31.9,28.2 40.1,32.3 40.1,30.8 31.9,26.7" fill="#B91C1C"/><polygon points="53.2,25.7 40.1,32.3 40.1,30.8 53.2,24.3" fill="#991B1B"/><polygon points="45.0,20.2 53.2,24.3 40.1,30.8 31.9,26.7" fill="#EF4444"/><polyline points="31.9,26.7 40.1,30.8 53.2,24.3" fill="none" stroke="#FCA5A5" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/></svg>',
+      stationOther: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
+        '<ellipse cx="34.7" cy="34.3" rx="22" ry="9" fill="#0F172A" opacity="0.24"/>' +
+        '<polygon points="6.3,30.5 36.6,45.7 36.6,43.9 6.3,28.7" fill="#94A3B8"/><polygon points="58.3,34.8 36.6,45.7 36.6,43.9 58.3,33.0" fill="#7C8BA1"/><polygon points="28.0,17.8 58.3,33.0 36.6,43.9 6.3,28.7" fill="#E2E8F0"/>' +
+        '<polygon points="13.0,26.9 20.4,30.6 20.4,22.0 13.0,18.3" fill="#E2E8F0"/><polygon points="32.7,24.5 20.4,30.6 20.4,22.0 32.7,15.9" fill="#B6C2D2"/><polygon points="25.3,12.2 32.7,15.9 20.4,22.0 13.0,18.3" fill="#94A3B8"/>' +
+        '<polygon points="18.4,31.7 30.7,37.8 30.7,21.0 18.4,14.8" fill="#E2E8F0"/><polygon points="47.1,29.6 30.7,37.8 30.7,21.0 47.1,12.8" fill="#B6C2D2"/><polygon points="34.8,6.6 47.1,12.8 30.7,21.0 18.4,14.8" fill="#F8FAFC"/>' +
+        '<polygon points="45.4,21.6 42.3,23.2 42.3,20.5 45.4,18.9" fill="#2B5797"/><polygon points="40.7,24.0 37.6,25.5 37.6,22.8 40.7,21.3" fill="#2B5797"/><polygon points="36.0,26.3 32.9,27.9 32.9,25.2 36.0,23.7" fill="#2B5797"/>' +
+        '<polygon points="45.4,17.1 42.3,18.6 42.3,16.0 45.4,14.4" fill="#2B5797"/><polygon points="40.7,19.5 37.6,21.0 37.6,18.3 40.7,16.8" fill="#2B5797"/><polygon points="36.0,21.8 32.9,23.4 32.9,20.7 36.0,19.2" fill="#2B5797"/>' +
+        '<polygon points="20.0,32.5 29.0,37.0 29.0,29.8 20.0,25.3" fill="#475569"/><line x1="20.0" y1="30.7" x2="29.0" y2="35.2" stroke="#94A3B8" stroke-width="0.45"/><line x1="20.0" y1="29.0" x2="29.0" y2="33.5" stroke="#94A3B8" stroke-width="0.45"/><line x1="20.0" y1="27.2" x2="29.0" y2="31.8" stroke="#94A3B8" stroke-width="0.45"/>' +
+        '<polygon points="20.0,22.8 23.1,24.4 23.1,21.5 20.0,20.0" fill="#3B6FB6"/><polygon points="25.9,25.8 29.0,27.4 29.0,24.5 25.9,22.9" fill="#3B6FB6"/>' +
+        '<polygon points="17.1,14.8 30.7,21.6 30.7,19.8 17.1,13.0" fill="#64748B"/><polygon points="48.3,12.8 30.7,21.6 30.7,19.8 48.3,11.0" fill="#475569"/><polygon points="34.8,4.2 48.3,11.0 30.7,19.8 17.1,13.0" fill="#94A3B8"/><polyline points="17.1,13.0 30.7,19.8 48.3,11.0" fill="none" stroke="#E2E8F0" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/>' +
+        '<polygon points="30.0,12.1 32.5,13.3 32.5,11.1 30.0,9.8" fill="#64748B"/><polygon points="35.8,11.7 32.5,13.3 32.5,11.1 35.8,9.4" fill="#475569"/><polygon points="33.3,8.2 35.8,9.4 32.5,11.1 30.0,9.8" fill="#64748B"/><polyline points="30.0,9.8 32.5,11.1 35.8,9.4" fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/>' +
+        '<polygon points="32.7,36.8 40.1,40.5 40.1,31.9 32.7,28.2" fill="#E2E8F0"/><polygon points="52.4,34.3 40.1,40.5 40.1,31.9 52.4,25.7" fill="#B6C2D2"/><polygon points="45.0,22.0 52.4,25.7 40.1,31.9 32.7,28.2" fill="#F8FAFC"/>' +
+        '<polygon points="50.5,31.8 47.5,33.3 47.5,30.6 50.5,29.1" fill="#2B5797"/><polygon points="45.4,34.3 42.3,35.9 42.3,33.2 45.4,31.7" fill="#2B5797"/>' +
+        '<polygon points="31.9,28.2 40.1,32.3 40.1,30.8 31.9,26.7" fill="#64748B"/><polygon points="53.2,25.7 40.1,32.3 40.1,30.8 53.2,24.3" fill="#475569"/><polygon points="45.0,20.2 53.2,24.3 40.1,30.8 31.9,26.7" fill="#94A3B8"/><polyline points="31.9,26.7 40.1,30.8 53.2,24.3" fill="none" stroke="#E2E8F0" stroke-width="0.8" stroke-linejoin="round" opacity="0.9"/></svg>',
+      vehAmbulance: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
+        '<rect x="22.5" y="11.5" width="24" height="48" rx="6" fill="#0F172A" opacity="0.28"/><rect x="18.4" y="17" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="17" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="18.4" y="43" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="43" width="3.2" height="8" rx="1.4" fill="#1F2937"/>' +
+        '<rect x="20.0" y="8" width="24" height="48" rx="6" fill="#CBD5E1"/><rect x="20.0" y="8" width="21" height="46.5" rx="6" fill="#F8FAFC"/><rect x="21.2" y="10" width="1.6" height="42" rx="0.8" fill="#FFFFFF" opacity="0.8"/>' +
+        '<path d="M23.0 20 L25.0 14.5 H38.0 L40.0 20 Z" fill="#1E293B"/><path d="M26.0 18.8 L27.5 15.5 H30.0 L28.5 18.8 Z" fill="#FFFFFF" opacity="0.4"/>' +
+        '<rect x="25.0" y="21.5" width="6.5" height="2.6" rx="1" fill="#EF4444"/><rect x="31.5" y="21.5" width="6.5" height="2.6" rx="1" fill="#3B82F6"/>' +
+        '<rect x="22.5" y="26.5" width="16" height="26.5" rx="2.5" fill="#E2E8F0"/><rect x="28.1" y="32.75" width="4.8" height="14" rx="1" fill="#DC2626"/><rect x="23.5" y="37.35" width="14" height="4.8" rx="1" fill="#DC2626"/><rect x="22.5" y="49" width="16" height="2.2" rx="1" fill="#DC2626"/></svg>',
+      vehFire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
+        '<rect x="22.5" y="8.5" width="24" height="54" rx="6" fill="#0F172A" opacity="0.28"/><rect x="18.4" y="14" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="14" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="18.4" y="46" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="46" width="3.2" height="8" rx="1.4" fill="#1F2937"/>' +
+        '<rect x="20.0" y="5" width="24" height="54" rx="6" fill="#991B1B"/><rect x="20.0" y="5" width="21" height="52.5" rx="6" fill="#DC2626"/><rect x="21.2" y="7" width="1.6" height="48" rx="0.8" fill="#F87171" opacity="0.8"/>' +
+        '<path d="M23.0 17 L25.0 11.5 H38.0 L40.0 17 Z" fill="#1E293B"/><path d="M26.0 15.8 L27.5 12.5 H30.0 L28.5 15.8 Z" fill="#FFFFFF" opacity="0.4"/>' +
+        '<rect x="25.0" y="18.5" width="6.5" height="2.6" rx="1" fill="#EF4444"/><rect x="31.5" y="18.5" width="6.5" height="2.6" rx="1" fill="#3B82F6"/>' +
+        '<rect x="22.5" y="23.5" width="16" height="32.5" rx="2" fill="#B91C1C"/><rect x="25.0" y="25.0" width="2" height="29.5" rx="1" fill="#E5E7EB"/><rect x="34.5" y="25.0" width="2" height="29.5" rx="1" fill="#E5E7EB"/>' +
+        '<rect x="25.0" y="27.5" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="31.7" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="35.9" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="40.1" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="44.3" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="48.5" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/><rect x="25.0" y="52.7" width="11.5" height="1.2" rx="0.5" fill="#CBD5E1"/></svg>',
+      vehRescue: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
+        '<rect x="22.5" y="9.5" width="24" height="52" rx="6" fill="#0F172A" opacity="0.28"/><rect x="18.4" y="15" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="15" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="18.4" y="45" width="3.2" height="8" rx="1.4" fill="#1F2937"/><rect x="42.4" y="45" width="3.2" height="8" rx="1.4" fill="#1F2937"/>' +
+        '<rect x="20.0" y="6" width="24" height="52" rx="6" fill="#B45309"/><rect x="20.0" y="6" width="21" height="50.5" rx="6" fill="#F59E0B"/><rect x="21.2" y="8" width="1.6" height="46" rx="0.8" fill="#FCD34D" opacity="0.8"/>' +
+        '<path d="M23.0 18 L25.0 12.5 H38.0 L40.0 18 Z" fill="#1E293B"/><path d="M26.0 16.8 L27.5 13.5 H30.0 L28.5 16.8 Z" fill="#FFFFFF" opacity="0.4"/>' +
+        '<rect x="25.0" y="19.5" width="6.5" height="2.6" rx="1" fill="#F97316"/><rect x="31.5" y="19.5" width="6.5" height="2.6" rx="1" fill="#FBBF24"/>' +
+        '<rect x="22.5" y="24.5" width="16" height="30.5" rx="2" fill="#374151"/><line x1="23.5" y1="30.6" x2="37.5" y2="30.6" stroke="#6B7280" stroke-width="0.9"/><line x1="23.5" y1="36.7" x2="37.5" y2="36.7" stroke="#6B7280" stroke-width="0.9"/><line x1="23.5" y1="42.8" x2="37.5" y2="42.8" stroke="#6B7280" stroke-width="0.9"/><line x1="23.5" y1="48.9" x2="37.5" y2="48.9" stroke="#6B7280" stroke-width="0.9"/>' +
+        '<rect x="27.5" y="27.5" width="6" height="24.5" rx="1.2" fill="#F59E0B"/>' +
+        '<path d="M23.0 55.5 l2.4 -3.2 h2.2 l-2.4 3.2 Z" fill="#111827"/><path d="M27.6 55.5 l2.4 -3.2 h2.2 l-2.4 3.2 Z" fill="#111827"/><path d="M32.2 55.5 l2.4 -3.2 h2.2 l-2.4 3.2 Z" fill="#111827"/><path d="M36.8 55.5 l2.4 -3.2 h2.2 l-2.4 3.2 Z" fill="#111827"/></svg>'
+    };
+
+    function buildSeverityArcs(sevNum) {
+      var arcColor = sevNum >= 3 ? '#F87171' : sevNum === 2 ? '#FBBF24' : '#34D399';
+      var idle = 'rgba(203,213,225,0.75)';
+      var s = '';
+      for (var i = 0; i < 3; i++) {
+        var a0 = -90 + i * 120 + 9;
+        var a1 = -90 + (i + 1) * 120 - 9;
+        var r = 17.5;
+        var x0 = (24 + r * Math.cos((a0 * Math.PI) / 180)).toFixed(2);
+        var y0 = (24 + r * Math.sin((a0 * Math.PI) / 180)).toFixed(2);
+        var x1 = (24 + r * Math.cos((a1 * Math.PI) / 180)).toFixed(2);
+        var y1 = (24 + r * Math.sin((a1 * Math.PI) / 180)).toFixed(2);
+        s += '<path d="M' + x0 + ' ' + y0 + 'A' + r + ' ' + r + ' 0 0 1 ' + x1 + ' ' + y1 + '" fill="none" stroke="' + (i < sevNum ? arcColor : idle) + '" stroke-width="3.6" stroke-linecap="round"/>';
+      }
+      return s;
+    }
+
     // Picked fixed location marker updater
     window.setPickedLocation = function(loc) {
       window.pickedLocationLayer.clearLayers();
@@ -736,18 +791,12 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 
       var pinIcon = L.divIcon({
         className: '',
-        html: '<div class="picked-pin-wrap">' +
-          '<div class="picked-pulse-ring"></div>' +
-          '<div class="picked-marker-box">' +
-          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-          '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>' +
-          '<circle cx="12" cy="10" r="3"/>' +
-          '</svg>' +
-          '</div>' +
-          '<div class="picked-marker-arrow"></div>' +
-          '</div>',
-        iconSize: [40, 48],
-        iconAnchor: [20, 48]
+        html: '<div style="position:relative;width:30px;height:39px;cursor:pointer;">' +
+          '<span class="glow-ping" style="position:absolute;left:6px;bottom:-9px;width:18px;height:18px;border-radius:50%;background:#DC2626;opacity:0.55;pointer-events:none;"></span>' +
+          '<div style="position:absolute;left:0;top:0;filter:drop-shadow(0 0 5px rgba(239,68,68,0.85)) drop-shadow(0 2px 3px rgba(0,0,0,0.45));">' +
+          SVG_ICONS.pickPin + '</div></div>',
+        iconSize: [30, 39],
+        iconAnchor: [15, 39]
       });
 
       var pinBadge = isEn ? 'SELECTED SOS LOCATION' : 'ĐIỂM ĐÃ CHỌN BÁO SOS';
@@ -799,85 +848,97 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         var badgeClass = 'badge-blue';
 
         if (m.type === 'station') {
-          // Standard Station Building Pin from web mapIcons.ts
-          var buildingSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">' +
-            '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>' +
-            '<path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>' +
-            '<path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>' +
-            '<path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>' +
-            '</svg>';
-          customHtml = '<div class="station-marker-wrap">' +
-            '<div class="station-marker-box">' + buildingSvg + '</div>' +
-            '<div class="station-marker-arrow"></div>' +
+          customHtml = '<div style="position:relative;width:48px;height:48px;cursor:pointer;">' +
+            (m.isMine ? SVG_ICONS.stationMine : SVG_ICONS.stationOther) +
             '</div>';
-          iconSize = [30, 36];
-          iconAnchor = [15, 36];
+          iconSize = [48, 48];
+          iconAnchor = [24, 24];
           badgeText = 'TRẠM CỨU HỘ TRỰC CHIẾN';
           badgeClass = 'badge-navy';
         } else if (m.type === 'rescue_unit') {
-          // Standard Vehicle with Status color matching web mapIcons.ts
           var status = (m.status || '').toLowerCase();
-          var statusClass = 'vehicle-status-available';
+          var dotColor = '#10B981';
           var statusLabel = 'SẴN SÀNG';
           var vehBadgeClass = 'badge-green';
+          var isEnRoute = false;
 
           if (status === 'dispatched' || status === 'enroute' || status === 'en_route' || status === 'accepted') {
-            statusClass = 'vehicle-status-dispatched';
+            dotColor = '#2563EB';
             statusLabel = 'ĐANG ĐẾN';
             vehBadgeClass = 'badge-blue';
+            isEnRoute = true;
           } else if (status === 'onscene' || status === 'on_scene') {
-            statusClass = 'vehicle-status-onscene';
+            dotColor = '#F97316';
             statusLabel = 'TẠI HIỆN TRƯỜNG';
             vehBadgeClass = 'badge-amber';
           }
 
           var uType = (m.unitType || '').toLowerCase();
-          // Rescue truck SVG default
-          var vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5h-7v6h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
+          var vehArt = SVG_ICONS.vehRescue;
           if (uType.indexOf('ambulance') !== -1 || uType.indexOf('thương') !== -1) {
-            // Ambulance SVG
-            vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.578-.502l-1.539-3.076A1 1 0 0 0 16.382 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/><path d="M8 8v4"/></svg>';
+            vehArt = SVG_ICONS.vehAmbulance;
           } else if (uType.indexOf('fire') !== -1 || uType.indexOf('hỏa') !== -1 || uType.indexOf('cháy') !== -1) {
-            // Fire Truck SVG
-            vehSvg = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 9h4l3 3v6h-2"/><path d="M6 9h4"/><path d="M8 6v5"/></svg>';
+            vehArt = SVG_ICONS.vehFire;
           }
 
+          var heading = typeof m.heading === 'number' ? m.heading : 0;
+          var dotStyle = 'left:27.5px;top:-1px;width:11px;height:11px;position:absolute;border-radius:50%;pointer-events:none;';
+          var dotPulse = isEnRoute
+            ? '<span class="glow-ping" style="' + dotStyle + 'background:' + dotColor + ';opacity:0.6;"></span>'
+            : '';
           var etaPill = (typeof m.etaMinutes === 'number' && m.etaMinutes > 0)
             ? '<div class="vehicle-eta-pill">~' + m.etaMinutes + 'p</div>'
             : '';
-          customHtml = '<div class="vehicle-marker ' + statusClass + '">' + etaPill + vehSvg + '</div>';
-          iconSize = [32, 32];
-          iconAnchor = [16, 16];
+          customHtml = '<div style="position:relative;width:48px;height:48px;cursor:pointer;">' +
+            etaPill +
+            '<div style="position:relative;width:48px;height:48px;transform:rotate(' + heading + 'deg);">' +
+            '<div style="pointer-events:none;">' + vehArt + '</div>' +
+            dotPulse +
+            '<span style="' + dotStyle + 'background:' + dotColor + ';border:2px solid #FFFFFF;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.4);"></span>' +
+            '</div></div>';
+          iconSize = [48, 48];
+          iconAnchor = [24, 24];
           badgeText = 'LỰC LƯỢNG CỨU HỘ • ' + statusLabel;
           badgeClass = vehBadgeClass;
         } else if (m.type === 'incident') {
-          // Standard Incident with Category icon + Severity corner badge (0-3)
           var cat = (m.category || '').toLowerCase();
-          var isAccident = (cat === 'accident') ||
-            (m.title && /tai nạn|accident|va chạm|giao thông/i.test(m.title)) ||
-            (m.description && /tai nạn|accident|va chạm|giao thông/i.test(m.description));
+          var textBlob = ((m.title || '') + ' ' + (m.description || ''));
+          var resolvedCat = cat;
+          if (resolvedCat !== 'fire' && resolvedCat !== 'accident' && resolvedCat !== 'other' && resolvedCat !== 'unknown') {
+            if (/tai nạn|accident|va chạm|giao thông/i.test(textBlob)) resolvedCat = 'accident';
+            else if (/cháy|hỏa hoạn|nổ|khói|fire/i.test(textBlob)) resolvedCat = 'fire';
+            else resolvedCat = 'unknown';
+          }
 
-          var catClass = isAccident ? 'incident-cat-accident' : 'incident-cat-fire';
-          var catSvg = isAccident
-            // CarFront Lucide SVG
-            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.64 5H8.36a2 2 0 0 0-1.86 1.3L5 10 3 8"/><rect width="18" height="8" x="3" y="10" rx="2"/><circle cx="7" cy="14" r="1"/><circle cx="17" cy="14" r="1"/></svg>'
-            // Flame Lucide SVG
-            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+          var glowColor = resolvedCat === 'accident' ? '#F97316' : resolvedCat === 'other' ? '#0891B2' : '#DC2626';
+          var glyphColor = resolvedCat === 'accident' ? '#FDBA74' : resolvedCat === 'other' ? '#67E8F9' : '#FF7A6E';
+          var glyphArt = SVG_ICONS[resolvedCat] || SVG_ICONS.unknown;
 
-          var sevNum = '1';
-          if (m.severity === 'Level3' || m.severity === 3 || m.severity === 'Critical') sevNum = '3';
-          else if (m.severity === 'Level2' || m.severity === 2 || m.severity === 'High') sevNum = '2';
-          else if (m.severity === 'Level1' || m.severity === 1 || m.severity === 'Low') sevNum = '1';
-          else if (m.severity === 'Unclassified' || m.severity === 0) sevNum = '0';
+          var sevNum = 1;
+          if (m.severity === 'Level3' || m.severity === 3 || m.severity === 'Critical') sevNum = 3;
+          else if (m.severity === 'Level2' || m.severity === 2 || m.severity === 'High') sevNum = 2;
+          else if (m.severity === 'Level1' || m.severity === 1 || m.severity === 'Low') sevNum = 1;
+          else if (m.severity === 'Unclassified' || m.severity === 0) sevNum = 1;
 
-          customHtml = '<div class="incident-marker-wrap ' + catClass + '">' +
-            '<span class="incident-ping-ring"></span>' +
-            catSvg +
-            '<div class="incident-sev-badge sev-bg-' + sevNum + '">' + sevNum + '</div></div>';
-          iconSize = [36, 36];
-          iconAnchor = [18, 18];
-          badgeText = (isAccident ? 'TAI NẠN HIỆN TRƯỜNG' : 'HỎA HOẠN HIỆN TRƯỜNG') + ' • CẤP ' + sevNum;
-          badgeClass = (sevNum === '3' ? 'badge-red' : sevNum === '2' ? 'badge-amber' : sevNum === '1' ? 'badge-green' : 'badge-purple');
+          var incSize = 52;
+          var k = incSize / 48;
+          var gSize = (16 * k).toFixed(2);
+          var gOffset = (16 * k).toFixed(2);
+          customHtml = '<div style="position:relative;width:' + incSize + 'px;height:' + incSize + 'px;cursor:pointer;">' +
+            '<svg viewBox="0 0 48 48" width="' + incSize + '" height="' + incSize + '" style="position:absolute;inset:0;overflow:visible;pointer-events:none;">' +
+            '<circle cx="24" cy="24" r="22" fill="' + glowColor + '" opacity="0.22" class="glow-pulse"/>' +
+            '<circle cx="24" cy="24" r="23.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>' +
+            '<circle cx="24" cy="24" r="13.5" fill="#0F172A" stroke="' + glowColor + '" stroke-width="1.5"/>' +
+            buildSeverityArcs(sevNum) +
+            '</svg>' +
+            '<div style="position:absolute;left:' + gOffset + 'px;top:' + gOffset + 'px;width:' + gSize + 'px;height:' + gSize + 'px;color:' + glyphColor + ';pointer-events:none;">' +
+            glyphArt.replace('width="16" height="16"', 'width="' + gSize + '" height="' + gSize + '"') +
+            '</div></div>';
+          iconSize = [incSize, incSize];
+          iconAnchor = [incSize / 2, incSize / 2];
+          var catTitle = resolvedCat === 'accident' ? 'TAI NẠN HIỆN TRƯỜNG' : resolvedCat === 'fire' ? 'HỎA HOẠN HIỆN TRƯỜNG' : 'SỰ CỐ KHẨN CẤP';
+          badgeText = catTitle + ' • CẤP ' + sevNum;
+          badgeClass = (sevNum === 3 ? 'badge-red' : sevNum === 2 ? 'badge-amber' : 'badge-green');
         } else if (m.type === 'hospital') {
           customHtml = '<div class="emergency-marker marker-hospital">🏥</div>';
           badgeText = 'Y TẾ KHẨN CẤP';

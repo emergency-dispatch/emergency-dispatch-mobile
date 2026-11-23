@@ -408,6 +408,7 @@ export const SafetyMapScreen: React.FC = () => {
       }
 
       const stationList = stationsRes.status === 'fulfilled' ? stationsRes.value || [] : [];
+      const activeStationName = (latestEtaInfo?.stationName || '').toLowerCase();
       const stationMarkers: MapMarkerItem[] = stationList
         .filter((s) => s.latitude && s.longitude)
         .map((s) => ({
@@ -418,6 +419,7 @@ export const SafetyMapScreen: React.FC = () => {
           longitude: s.longitude,
           type: 'station',
           phoneNumber: s.phoneNumber,
+          isMine: Boolean(activeStationName && s.name?.toLowerCase().includes(activeStationName)),
         }));
 
       const unitList = rescueUnitsRes.status === 'fulfilled' ? rescueUnitsRes.value || [] : [];
@@ -453,9 +455,20 @@ export const SafetyMapScreen: React.FC = () => {
         .map((inc) => {
           const title = inc.title || '';
           const desc = inc.description || '';
+          const fullText = `${title} ${desc}`;
           const isAccident =
-            /tai nạn|accident|va chạm|ô tô|xe máy|giao thông/i.test(title + ' ' + desc) ||
+            /tai nạn|accident|va chạm|ô tô|xe máy|giao thông/i.test(fullText) ||
             inc.category === 'accident';
+          const isFire =
+            /cháy|hỏa hoạn|nổ|khói|fire|explosion/i.test(fullText) ||
+            inc.category === 'fire';
+          const resolvedCategory = isAccident
+            ? 'accident'
+            : isFire
+              ? 'fire'
+              : inc.category === 'other'
+                ? 'other'
+                : 'unknown';
           return {
             id: inc.id,
             title: title || 'Sự Cố Khẩn Cấp',
@@ -463,7 +476,7 @@ export const SafetyMapScreen: React.FC = () => {
             latitude: inc.latitude!,
             longitude: inc.longitude!,
             type: 'incident',
-            category: isAccident ? 'accident' : 'fire',
+            category: resolvedCategory,
             severity: inc.severity,
             status: inc.status,
           };

@@ -27,6 +27,8 @@ export interface MapMarkerItem {
   phoneNumber?: string;
   etaMinutes?: number;
   distanceKm?: number;
+  heading?: number;
+  isMine?: boolean;
 }
 
 export interface RoutePoint {

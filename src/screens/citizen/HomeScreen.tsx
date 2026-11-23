@@ -45,6 +45,7 @@ export const HomeScreen: React.FC = () => {
 
   // Global Shared GPS Location State
   const {
+    coords,
     address,
     isCustomLocation,
     isFetchingLocation: isRefreshingGps,
@@ -237,12 +238,27 @@ export const HomeScreen: React.FC = () => {
     setPendingSosAsset(null);
   };
 
-  const handleConfirmSosDispatch = async (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => {
+  const handleConfirmSosDispatch = async (
+    note: string,
+    eventType?: 'FireExplosion' | 'TrafficAccident',
+    customLocation?: { address: string; latitude: number; longitude: number }
+  ) => {
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     setSosSendingLoadingText('Đang xác thực phạm vi cứu hộ...');
     try {
-      const loc = await useLocationStore.getState().refreshLocation(false);
+      let loc: { latitude: number; longitude: number; address: string };
+      if (customLocation && customLocation.latitude !== 0 && customLocation.longitude !== 0) {
+        loc = customLocation;
+        useLocationStore.getState().setLocation(
+          customLocation.latitude,
+          customLocation.longitude,
+          customLocation.address,
+          true
+        );
+      } else {
+        loc = await useLocationStore.getState().refreshLocation(false);
+      }
       const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
       if (areaCheck.isOutside) {
         setIsSendingSos(false);
@@ -519,6 +535,7 @@ export const HomeScreen: React.FC = () => {
         }}
         photoUri={pendingSosAsset?.uri}
         address={address}
+        initialCoords={coords && coords.latitude !== 0 ? coords : null}
         onConfirm={handleConfirmSosDispatch}
         onRetakePhoto={handleRetakePhotoInConfirm}
         onPickLibrary={handlePickLibraryInConfirm}

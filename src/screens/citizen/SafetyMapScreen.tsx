@@ -25,6 +25,7 @@ import {
   Shield,
   AlertTriangle,
   PlusCircle,
+  Search,
 } from 'lucide-react-native';
 import { MapboxView, MapboxViewRef, RouteCoordinate } from '../../components/map/MapboxView';
 import {
@@ -587,7 +588,8 @@ export const SafetyMapScreen: React.FC = () => {
 
     setIsSearching(true);
     try {
-      const results = await mapboxService.searchLocation(query);
+      // Người dân bấm nút tìm: cho phép fallback sang Nominatim 1 lần duy nhất nếu Mapbox không tìm thấy
+      const results = await mapboxService.searchLocation(query, { allowNominatim: true });
       if (results.length > 0) {
         await handleSelectSuggestion(results[0]);
       } else {
@@ -766,13 +768,17 @@ export const SafetyMapScreen: React.FC = () => {
     }
   };
 
-  const handleConfirmSosDispatch = async (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => {
+  const handleConfirmSosDispatch = async (
+    note: string,
+    eventType?: 'FireExplosion' | 'TrafficAccident',
+    customLocation?: { address: string; latitude: number; longitude: number }
+  ) => {
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     try {
-      const targetLat = pickedLocation?.latitude ?? userCoords.latitude;
-      const targetLng = pickedLocation?.longitude ?? userCoords.longitude;
-      const targetAddr = pickedLocation?.address ?? currentAddress;
+      const targetLat = customLocation?.latitude ?? pickedLocation?.latitude ?? userCoords.latitude;
+      const targetLng = customLocation?.longitude ?? pickedLocation?.longitude ?? userCoords.longitude;
+      const targetAddr = customLocation?.address ?? pickedLocation?.address ?? currentAddress;
 
       const areaCheck = await incidentService.checkOutsideServiceArea(targetLat, targetLng);
       if (areaCheck.isOutside) {
@@ -837,11 +843,19 @@ export const SafetyMapScreen: React.FC = () => {
       {/* 1. Sleek Search & Manual Location Input Bar */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchBar}>
-          {isGeocoding || isSearching ? (
-            <ActivityIndicator size="small" color="#DC2626" style={styles.searchIcon} />
-          ) : (
-            <MapPin size={18} color="#DC2626" style={styles.searchIcon} />
-          )}
+          <TouchableOpacity
+            onPress={handleSearchSubmit}
+            disabled={isGeocoding || isSearching}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={t('common.search', 'Tìm kiếm')}
+          >
+            {isGeocoding || isSearching ? (
+              <ActivityIndicator size="small" color="#DC2626" style={styles.searchIcon} />
+            ) : (
+              <Search size={18} color="#DC2626" style={styles.searchIcon} />
+            )}
+          </TouchableOpacity>
 
           <TextInput
             style={styles.searchInput}
@@ -1139,6 +1153,13 @@ export const SafetyMapScreen: React.FC = () => {
         }}
         photoUri={pendingSosAsset?.uri}
         address={pickedLocation ? pickedLocation.address : currentAddress}
+        initialCoords={
+          pickedLocation
+            ? { latitude: pickedLocation.latitude, longitude: pickedLocation.longitude }
+            : userCoords && userCoords.latitude !== 0
+            ? userCoords
+            : null
+        }
         onConfirm={handleConfirmSosDispatch}
         onRetakePhoto={async () => {
           const asset = await mediaService.pickFromCamera();

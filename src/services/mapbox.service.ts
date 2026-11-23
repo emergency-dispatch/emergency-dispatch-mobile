@@ -83,13 +83,31 @@ class MapboxService {
   }
 
   /**
-   * Search for location or address using Mapbox Places forward geocoding
+   * Search for location or address using Mapbox Places forward geocoding.
+   * - Khi đang gõ (options?.allowNominatim = false, mặc định): CHỈ DÙNG Mapbox, TUYỆT ĐỐI KHÔNG gọi Nominatim (tuân thủ chính sách OSM).
+   * - options?.proximity: ưu tiên kết quả gần vị trí hiện tại (kinh độ, vĩ độ).
+   * - Khi người dân bấm nút tìm (options?.allowNominatim = true): nếu Mapbox không tìm thấy mới gọi Nominatim một lần duy nhất.
    */
-  async searchLocation(query: string): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
+  async searchLocation(
+    query: string,
+    options?: {
+      allowNominatim?: boolean;
+      proximity?: { latitude: number; longitude: number };
+    }
+  ): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    const allowNominatim = options?.allowNominatim ?? false;
+    const proximity = options?.proximity;
+
     // 1. Try Mapbox Forward Geocoding API
     if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy')) {
       try {
-        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi&limit=5`;
+        let mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi&limit=5`;
+        if (proximity && !isNaN(proximity.latitude) && !isNaN(proximity.longitude)) {
+          mapboxUrl += `&proximity=${proximity.longitude},${proximity.latitude}`;
+        }
         const res = await fetch(mapboxUrl);
         if (res.ok) {
           const data = await res.json();
@@ -102,28 +120,42 @@ class MapboxService {
           }
         }
       } catch {
-        // Fallback below
+        // Fallback below only if allowNominatim is true
       }
     }
 
-    // 2. Fallback via Nominatim
-    try {
-      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=vn&limit=5&accept-language=vi`;
-      const res = await fetch(osmUrl, {
-        headers: { 'User-Agent': 'EmergencyDispatchApp/1.0' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        return list.map((item: any) => ({
-          name: item.display_name,
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
-        }));
+    // 2. Fallback via Nominatim CHỈ KHI được cho phép (người dân bấm nút tìm)
+    if (allowNominatim) {
+      try {
+        const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&countrycodes=vn&limit=5&accept-language=vi`;
+        const res = await fetch(osmUrl, {
+          headers: { 'User-Agent': 'EmergencyDispatchApp/1.0' },
+        });
+        if (res.ok) {
+          const list = await res.json();
+          return list.map((item: any) => ({
+            name: item.display_name,
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+          }));
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
+
     return [];
+  }
+
+  /**
+   * Tìm kiếm khi người dân bấm nút tìm (explicit submit).
+   * Cho phép fallback sang Nominatim một lần duy nhất nếu Mapbox không tìm thấy.
+   */
+  async searchLocationExplicit(
+    query: string,
+    options?: { proximity?: { latitude: number; longitude: number } }
+  ): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
+    return this.searchLocation(query, { allowNominatim: true, proximity: options?.proximity });
   }
 
   /**

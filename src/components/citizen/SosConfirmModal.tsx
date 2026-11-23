@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -24,14 +26,22 @@ import {
   Flame,
   Car,
   HelpCircle,
+  Search,
+  Edit2,
 } from 'lucide-react-native';
+import { mapboxService } from '../../services/mapbox.service';
 
 interface SosConfirmModalProps {
   visible: boolean;
   onClose: () => void;
   photoUri?: string | null;
   address: string;
-  onConfirm: (note: string, eventType?: 'FireExplosion' | 'TrafficAccident') => void;
+  initialCoords?: { latitude: number; longitude: number } | null;
+  onConfirm: (
+    note: string,
+    eventType?: 'FireExplosion' | 'TrafficAccident',
+    customLocation?: { address: string; latitude: number; longitude: number }
+  ) => void;
   onRetakePhoto: () => void;
   onPickLibrary: () => void;
   onRemovePhoto: () => void;
@@ -42,6 +52,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
   onClose,
   photoUri,
   address,
+  initialCoords,
   onConfirm,
   onRetakePhoto,
   onPickLibrary,
@@ -52,15 +63,109 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
   const [reportedEventType, setReportedEventType] = useState<'FireExplosion' | 'TrafficAccident' | undefined>(undefined);
   const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
+  // Quản lý địa chỉ & gợi ý khi gõ
+  const [addressText, setAddressText] = useState(address);
+  const [confirmedCoords, setConfirmedCoords] = useState<{ latitude: number; longitude: number } | null>(initialCoords || null);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [isAddressDirty, setIsAddressDirty] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; latitude: number; longitude: number }>>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hasGps = Boolean(
+    initialCoords &&
+    initialCoords.latitude !== 0 &&
+    initialCoords.longitude !== 0 &&
+    address &&
+    address !== 'Đang xác định vị trí...'
+  );
+
+  useEffect(() => {
+    if (visible) {
+      setAddressText(address || '');
+      setConfirmedCoords(initialCoords || null);
+      // Nếu không lấy được GPS thì mở sẵn ô nhập địa chỉ
+      setIsEditingAddress(!hasGps);
+      setIsAddressDirty(false);
+      setSuggestions([]);
+      setIsSearchingAddress(false);
+    } else {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    }
+  }, [visible, address, initialCoords, hasGps]);
+
+  const handleAddressChange = (text: string) => {
+    setAddressText(text);
+    setIsAddressDirty(true);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (text.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    // Dùng lại mapboxService.searchLocation và chờ khoảng 400 ms sau khi gõ như ở SafetyMapScreen
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearchingAddress(true);
+      try {
+        const results = await mapboxService.searchLocation(text.trim(), {
+          proximity: confirmedCoords || initialCoords || undefined,
+        });
+        setSuggestions(results.slice(0, 5));
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsSearchingAddress(false);
+      }
+    }, 400);
+  };
+
+  const handleSelectSuggestion = (item: { name: string; latitude: number; longitude: number }) => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    setAddressText(item.name);
+    setConfirmedCoords({ latitude: item.latitude, longitude: item.longitude });
+    setSuggestions([]);
+    setIsAddressDirty(false);
+    setIsEditingAddress(false);
+    Keyboard.dismiss();
+  };
+
   const handleConfirm = () => {
-    onConfirm(note, reportedEventType);
+    // Nếu người dân gõ mà không chọn gợi ý thì không được gửi luôn, vì chỉ có chữ, không có toạ độ thì không điều xe được
+    if (isAddressDirty) {
+      Alert.alert(
+        'Chưa chọn toạ độ hiện trường',
+        'Bạn đã thay đổi địa chỉ nhưng chưa chọn địa điểm từ danh sách gợi ý. Vui lòng bấm vào một gợi ý bên dưới để hệ thống xác định chính xác toạ độ điều xe cứu hộ.'
+      );
+      return;
+    }
+
+    if (!confirmedCoords || confirmedCoords.latitude === 0 || confirmedCoords.longitude === 0) {
+      Alert.alert(
+        'Chưa có toạ độ cứu hộ',
+        'Hệ thống chưa xác định được toạ độ hiện trường. Vui lòng nhập địa chỉ và bấm chọn gợi ý bên dưới.'
+      );
+      setIsEditingAddress(true);
+      return;
+    }
+
+    const customLoc = {
+      address: addressText.trim() || address,
+      latitude: confirmedCoords.latitude,
+      longitude: confirmedCoords.longitude,
+    };
+
+    onConfirm(note, reportedEventType, customLoc);
     setNote('');
     setReportedEventType(undefined);
+    setIsAddressDirty(false);
+    setSuggestions([]);
   };
 
   const handleClose = () => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     setNote('');
     setReportedEventType(undefined);
+    setIsAddressDirty(false);
+    setSuggestions([]);
     onClose();
   };
 
@@ -103,12 +208,96 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
               bounces={false}
               contentContainerStyle={styles.scrollContent}
             >
-              {/* Address Pill */}
-              <View style={styles.addressPill}>
-                <MapPin size={16} color="#DC2626" />
-                <Text style={styles.addressText} numberOfLines={2}>
-                  {address}
-                </Text>
+              {/* Address Section */}
+              <View style={styles.addressSection}>
+                <View style={styles.addressHeaderRow}>
+                  <Text style={styles.addressSectionLabel}>
+                    Vị trí hiện trường sự cố
+                  </Text>
+                  {hasGps && (
+                    <TouchableOpacity
+                      style={styles.changeAddressBtn}
+                      onPress={() => setIsEditingAddress((prev) => !prev)}
+                      activeOpacity={0.7}
+                    >
+                      <Edit2 size={12} color="#0284C7" />
+                      <Text style={styles.changeAddressText}>
+                        {isEditingAddress ? 'Thu gọn' : 'Đổi địa chỉ'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {!isEditingAddress ? (
+                  <TouchableOpacity
+                    style={styles.addressPill}
+                    onPress={() => setIsEditingAddress(true)}
+                    activeOpacity={0.8}
+                  >
+                    <MapPin size={16} color="#DC2626" style={{ marginTop: 2 }} />
+                    <Text style={styles.addressText} numberOfLines={2}>
+                      {addressText || address || 'Chưa xác định được địa chỉ'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.addressInputWrapper}>
+                    <View style={styles.addressSearchBox}>
+                      {isSearchingAddress ? (
+                        <ActivityIndicator size="small" color="#DC2626" style={styles.addressSearchIcon} />
+                      ) : (
+                        <Search size={16} color="#DC2626" style={styles.addressSearchIcon} />
+                      )}
+                      <TextInput
+                        style={styles.addressTextInput}
+                        value={addressText}
+                        onChangeText={handleAddressChange}
+                        placeholder="Nhập địa chỉ hiện trường..."
+                        placeholderTextColor="#94A3B8"
+                        returnKeyType="done"
+                        autoFocus={!hasGps}
+                      />
+                      {addressText.length > 0 && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setAddressText('');
+                            setSuggestions([]);
+                            setIsAddressDirty(true);
+                            setConfirmedCoords(null);
+                          }}
+                          style={styles.clearAddressBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <X size={14} color="#64748B" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {isAddressDirty && (
+                      <Text style={styles.addressWarningText}>
+                        ⚠️ Vui lòng chọn một địa chỉ từ gợi ý bên dưới để xác định toạ độ.
+                      </Text>
+                    )}
+
+                    {/* Suggestions list */}
+                    {suggestions.length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        {suggestions.map((item, idx) => (
+                          <TouchableOpacity
+                            key={`${item.latitude}-${item.longitude}-${idx}`}
+                            style={styles.suggestionItem}
+                            onPress={() => handleSelectSuggestion(item)}
+                            activeOpacity={0.7}
+                          >
+                            <MapPin size={14} color="#DC2626" style={{ marginTop: 2, marginRight: 6 }} />
+                            <Text style={styles.suggestionText} numberOfLines={2}>
+                              {item.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Photo Section with Cropping Preview */}
@@ -340,6 +529,90 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: 4,
+  },
+  addressSection: {
+    marginBottom: 12,
+  },
+  addressHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  addressSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  changeAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    backgroundColor: '#F0F9FF',
+  },
+  changeAddressText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  addressInputWrapper: {
+    marginBottom: 4,
+  },
+  addressSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    paddingHorizontal: 10,
+    minHeight: 42,
+  },
+  addressSearchIcon: {
+    marginRight: 6,
+  },
+  addressTextInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '600',
+    paddingVertical: 8,
+  },
+  clearAddressBtn: {
+    padding: 4,
+  },
+  addressWarningText: {
+    fontSize: 11,
+    color: '#D97706',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  suggestionsContainer: {
+    marginTop: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
   },
   addressPill: {
     flexDirection: 'row',

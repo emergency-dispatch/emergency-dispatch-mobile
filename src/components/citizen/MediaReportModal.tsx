@@ -61,6 +61,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
   const [suggestions, setSuggestions] = useState<Array<{ name: string; latitude: number; longitude: number }>>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasVisibleRef = useRef(false);
 
   const hasGps = Boolean(
     initialCoords &&
@@ -70,8 +71,10 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
     currentAddress !== 'Đang xác định vị trí...'
   );
 
+  // Chỉ khởi tạo khi modal vừa mở (tránh parent re-render làm mất địa chỉ đang gõ/chọn)
   useEffect(() => {
-    if (visible) {
+    if (visible && !wasVisibleRef.current) {
+      wasVisibleRef.current = true;
       setAddressText(currentAddress || '');
       setConfirmedCoords(initialCoords || null);
       // Nếu không lấy được GPS thì mở sẵn ô nhập địa chỉ
@@ -79,10 +82,18 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
       setIsAddressDirty(false);
       setSuggestions([]);
       setIsSearchingAddress(false);
-    } else {
+    } else if (!visible && wasVisibleRef.current) {
+      wasVisibleRef.current = false;
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     }
   }, [visible, currentAddress, initialCoords, hasGps]);
+
+  useEffect(() => {
+    if (visible && hasGps && !isAddressDirty && (!confirmedCoords || confirmedCoords.latitude === 0)) {
+      setAddressText(currentAddress || '');
+      setConfirmedCoords(initialCoords || null);
+    }
+  }, [visible, hasGps, currentAddress, initialCoords, isAddressDirty, confirmedCoords]);
 
   const handleAddressChange = (text: string) => {
     setAddressText(text);

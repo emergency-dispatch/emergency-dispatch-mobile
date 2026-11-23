@@ -44,6 +44,7 @@ import { useLocationStore } from '../../store/useLocationStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { IncidentResponseDto } from '../../types/incident';
+import { requireSosAuth } from '../../utils/sosAuth';
 
 export const SafetyMapScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -118,11 +119,11 @@ export const SafetyMapScreen: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasInitialCenteredRef = useRef(false);
+  const lastCenteredIncidentIdRef = useRef<string | null>(null);
 
-  // Reset initial centered flag when tracking target changes
+  // Reset centered incident tracker when tracking target changes
   useEffect(() => {
-    hasInitialCenteredRef.current = false;
+    lastCenteredIncidentIdRef.current = null;
   }, [trackingIncidentId]);
 
   // Synchronize search input with store address initially and on GPS refresh
@@ -473,9 +474,10 @@ export const SafetyMapScreen: React.FC = () => {
       setActiveTrackingEta(latestEtaInfo);
       setPendingIncident(pendingIncidentInfo);
 
-      // Only auto-center and fly on initial entry; never interrupt user while panning/zooming during background refresh
-      if (!hasInitialCenteredRef.current) {
-        hasInitialCenteredRef.current = true;
+      // Tự bay đến sự cố/xe mới 1 lần cho mỗi mã sự cố; không tự kéo lại trong các lần poll sau
+      const primaryFocusId = activeTrackingTargetId || incidentMarkers[0]?.id || null;
+      if (primaryFocusId && lastCenteredIncidentIdRef.current !== primaryFocusId) {
+        lastCenteredIncidentIdRef.current = primaryFocusId;
         if (activeTrackingTargetId) {
           const targetVehicle =
             trackedVehicles.find((v) => v.id.includes(activeTrackingTargetId) || v.id === `veh-${activeTrackingTargetId}`) ||
@@ -491,7 +493,6 @@ export const SafetyMapScreen: React.FC = () => {
             mapRef.current?.openMarkerPopup?.(targetInc.id);
           }
         } else if (incidentMarkers.length > 0) {
-          // Auto-fly to the active reported incident on initial load
           mapRef.current?.flyTo(incidentMarkers[0].latitude, incidentMarkers[0].longitude, 15);
         }
       }
@@ -526,7 +527,9 @@ export const SafetyMapScreen: React.FC = () => {
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await mapboxService.searchLocation(text.trim());
+        const results = await mapboxService.searchLocation(text.trim(), {
+          proximity: userCoords && userCoords.latitude !== 0 ? userCoords : undefined,
+        });
         setSuggestions(results.slice(0, 5));
       } catch {
         setSuggestions([]);
@@ -589,7 +592,9 @@ export const SafetyMapScreen: React.FC = () => {
     setIsSearching(true);
     try {
       // Người dân bấm nút tìm: cho phép fallback sang Nominatim 1 lần duy nhất nếu Mapbox không tìm thấy
-      const results = await mapboxService.searchLocation(query, { allowNominatim: true });
+      const results = await mapboxService.searchLocationExplicit(query, {
+        proximity: userCoords && userCoords.latitude !== 0 ? userCoords : undefined,
+      });
       if (results.length > 0) {
         await handleSelectSuggestion(results[0]);
       } else {
@@ -660,13 +665,13 @@ export const SafetyMapScreen: React.FC = () => {
       }
 
       // 3. Reset flag căn giữa để bản đồ tự động bay về sự cố mới / GPS
-      hasInitialCenteredRef.current = false;
+      lastCenteredIncidentIdRef.current = null;
 
       // 4. Tải lại toàn bộ dữ liệu từ server, overrideTrackingId = null để không bị gán lại ID cũ
       await loadMapData(false, null);
 
       // 5. Nếu không có sự cố nào cần theo dõi, bay về tọa độ GPS hiện tại
-      if (loc) {
+      if (loc && !lastCenteredIncidentIdRef.current) {
         mapRef.current?.flyTo(loc.latitude, loc.longitude, 16);
       }
     } catch {
@@ -726,6 +731,7 @@ export const SafetyMapScreen: React.FC = () => {
   };
 
   const handleSosAtPickedLocation = async () => {
+    if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     const targetLat = pickedLocation?.latitude ?? userCoords.latitude;
     const targetLng = pickedLocation?.longitude ?? userCoords.longitude;
 
@@ -773,6 +779,7 @@ export const SafetyMapScreen: React.FC = () => {
     eventType?: 'FireExplosion' | 'TrafficAccident',
     customLocation?: { address: string; latitude: number; longitude: number }
   ) => {
+    if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     try {
@@ -947,7 +954,9 @@ export const SafetyMapScreen: React.FC = () => {
           >
             <Shield size={13} color="#DC2626" />
             <Text style={styles.serviceAreaPillText} numberOfLines={1}>
-              {t('map.kcn_radius_badge', 'Bán kính KCN ({{radius}} km)', { radius: serviceArea.radiusKm })}
+              {serviceArea.boundaryGeoJson
+                ? serviceArea.name || t('map.service_area_badge', 'Khu vực phục vụ')
+                : t('map.kcn_radius_badge', 'Bán kính KCN ({{radius}} km)', { radius: serviceArea.radiusKm })}
             </Text>
           </TouchableOpacity>
         )}

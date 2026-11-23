@@ -1,4 +1,4 @@
-import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useEffect, useMemo } from 'react';
 import { StyleSheet, View, ActivityIndicator, Linking, Alert } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { MapMarkerItem, MAPBOX_ACCESS_TOKEN } from '../../services/mapbox.service';
@@ -23,6 +23,7 @@ export interface ServiceAreaCircle {
   centerLat: number;
   centerLng: number;
   radiusKm: number;
+  boundaryGeoJson?: string | null;
 }
 
 export interface PickedLocationItem {
@@ -70,6 +71,28 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   ) => {
     const webViewRef = useRef<any>(null);
     const isMapReadyRef = useRef(false);
+    // Đóng băng tâm khởi tạo của WebView để cập nhật GPS/markers không làm WebView reload giật về vị trí hiện tại
+    const initialCenterRef = useRef({ lat: userLatitude, lng: userLongitude });
+    const latestStateRef = useRef({
+      userLatitude,
+      userLongitude,
+      serviceArea,
+      pickedLocation,
+      markers,
+      routeCoordinates,
+      isApproximateRoute,
+      fitBounds,
+    });
+    latestStateRef.current = {
+      userLatitude,
+      userLongitude,
+      serviceArea,
+      pickedLocation,
+      markers,
+      routeCoordinates,
+      isApproximateRoute,
+      fitBounds,
+    };
 
     // Sync service area circle
     useEffect(() => {
@@ -200,14 +223,15 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         const payload = JSON.parse(event.nativeEvent.data);
         if (payload.type === 'MAP_READY') {
           isMapReadyRef.current = true;
+          const s = latestStateRef.current;
           // Initial push of markers, route, user location, service area, and picked location
           const js = `
-            if (window.setUserLocation) window.setUserLocation(${userLatitude}, ${userLongitude});
-            if (window.setServiceArea) window.setServiceArea(${JSON.stringify(serviceArea)});
-            if (window.setPickedLocation) window.setPickedLocation(${JSON.stringify(pickedLocation)});
-            if (window.setMarkers) window.setMarkers(${JSON.stringify(markers)});
-            if (window.setRoute) window.setRoute(${JSON.stringify(routeCoordinates)}, ${isApproximateRoute ? 'true' : 'false'});
-            ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
+            if (window.setUserLocation) window.setUserLocation(${s.userLatitude}, ${s.userLongitude});
+            if (window.setServiceArea) window.setServiceArea(${JSON.stringify(s.serviceArea)});
+            if (window.setPickedLocation) window.setPickedLocation(${JSON.stringify(s.pickedLocation)});
+            if (window.setMarkers) window.setMarkers(${JSON.stringify(s.markers)});
+            if (window.setRoute) window.setRoute(${JSON.stringify(s.routeCoordinates)}, ${s.isApproximateRoute ? 'true' : 'false'});
+            ${s.fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${s.userLatitude}, ${s.userLongitude}, ${JSON.stringify(s.markers)}, ${JSON.stringify(s.routeCoordinates)}); }` : ''}
             true;
           `;
           webViewRef.current?.injectJavaScript(js);
@@ -231,7 +255,8 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     };
 
-    const htmlContent = `
+    const htmlContent = useMemo(
+      () => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -478,6 +503,21 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       cursor: pointer;
       font-family: inherit;
     }
+    .popup-pick-btn {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: #DC2626;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      font-family: inherit;
+    }
 
     /* Picked location custom pin */
     .picked-pin-wrap {
@@ -530,7 +570,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   <script>
     var isEn = '${language}' === 'en';
     var map = L.map('map', {
-      center: [${userLatitude}, ${userLongitude}],
+      center: [${initialCenterRef.current.lat}, ${initialCenterRef.current.lng}],
       zoom: 15,
       zoomControl: false,
       attributionControl: false,
@@ -598,32 +638,95 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     // Layer group for picked location marker
     window.pickedLocationLayer = L.layerGroup().addTo(map);
 
-    // Service area circle updater
+    function emitMapClick(latlng) {
+      if (!latlng || !window.ReactNativeWebView) return;
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'MAP_CLICK',
+        latitude: latlng.lat,
+        longitude: latlng.lng
+      }));
+    }
+
+    // Service area boundary updater (polygon GeoJSON if configured by Admin, else circle)
+    var activeBoundaryPopup = null;
+    var lastBoundaryTapLatLng = null;
+    var boundaryPopupWasOpen = false;
+    map.on('preclick', function() {
+      // Capture state before Leaflet's preclick auto-closes the popup on tap
+      boundaryPopupWasOpen = !!(activeBoundaryPopup && activeBoundaryPopup.isOpen());
+    });
+    window.__pickBoundaryLocation = function() {
+      boundaryPopupWasOpen = false;
+      if (activeBoundaryPopup) map.closePopup(activeBoundaryPopup);
+      if (lastBoundaryTapLatLng) {
+        emitMapClick(lastBoundaryTapLatLng);
+      }
+    };
+
     window.setServiceArea = function(area) {
+      boundaryPopupWasOpen = false;
+      if (activeBoundaryPopup && activeBoundaryPopup.isOpen()) {
+        map.closePopup(activeBoundaryPopup);
+      }
+      activeBoundaryPopup = null;
       window.serviceAreaLayer.clearLayers();
       if (!area || area.enabled === false) return;
-      var centerLat = area.centerLat;
-      var centerLng = area.centerLng;
-      var radiusMeters = (area.radiusKm || 4.5) * 1000;
-      if (typeof centerLat !== 'number' || typeof centerLng !== 'number') return;
-
-      var circle = L.circle([centerLat, centerLng], {
-        radius: radiusMeters,
+      var styleOpts = {
         color: '#DC2626',
         weight: 2.2,
         dashArray: '6, 6',
         fillColor: '#EF4444',
         fillOpacity: 0.08
-      }).addTo(window.serviceAreaLayer);
+      };
+      var parsedBoundary = null;
+      if (area.boundaryGeoJson) {
+        try {
+          parsedBoundary = JSON.parse(area.boundaryGeoJson);
+        } catch (e) {
+          parsedBoundary = null;
+        }
+      }
+
+      var boundaryLayer = null;
+      if (parsedBoundary && (parsedBoundary.type === 'Polygon' || parsedBoundary.type === 'MultiPolygon')) {
+        boundaryLayer = L.geoJSON(parsedBoundary, { style: styleOpts }).addTo(window.serviceAreaLayer);
+      } else {
+        var centerLat = area.centerLat;
+        var centerLng = area.centerLng;
+        var radiusMeters = (area.radiusKm || 4.5) * 1000;
+        if (typeof centerLat !== 'number' || typeof centerLng !== 'number') return;
+        boundaryLayer = L.circle([centerLat, centerLng], Object.assign({ radius: radiusMeters }, styleOpts)).addTo(window.serviceAreaLayer);
+      }
 
       var areaBadge = isEn ? 'OPERATIONAL BOUNDARY' : 'RANH GIỚI VẬN HÀNH';
       var areaName = area.name || (isEn ? 'Emergency Service Area (IZ)' : 'Khu Vực Phục Vụ Cứu Hộ (KCN)');
-      var areaRadiusDesc = isEn ? 'Dispatch response radius: ' : 'Bán kính điều phối ứng cứu: ';
-      circle.bindPopup(
+      var areaDesc = parsedBoundary
+        ? (isEn ? 'Configured polygon boundary' : 'Phạm vi ranh giới đa giác đã cấu hình')
+        : ((isEn ? 'Dispatch response radius: ' : 'Bán kính điều phối ứng cứu: ') + '<b>' + (area.radiusKm || 4.5) + ' km</b>');
+      var pickPrompt = isEn ? '📍 Tap again to select as report location' : '📍 Chạm lần nữa để chọn làm vị trí báo cáo';
+
+      activeBoundaryPopup = L.popup().setContent(
+        '<div onclick="window.__pickBoundaryLocation && window.__pickBoundaryLocation()" style="cursor:pointer">' +
         '<div class="popup-badge badge-red">' + areaBadge + '</div>' +
         '<div class="popup-title">🛡️ ' + areaName + '</div>' +
-        '<div class="popup-desc">' + areaRadiusDesc + '<b>' + (area.radiusKm || 4.5) + ' km</b></div>'
+        '<div class="popup-desc">' + areaDesc + '</div>' +
+        '<button type="button" class="popup-pick-btn">' + pickPrompt + '</button>' +
+        '</div>'
       );
+
+      boundaryLayer.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        if (boundaryPopupWasOpen || (activeBoundaryPopup && activeBoundaryPopup.isOpen())) {
+          boundaryPopupWasOpen = false;
+          if (activeBoundaryPopup) map.closePopup(activeBoundaryPopup);
+          emitMapClick(e.latlng);
+          return;
+        }
+        lastBoundaryTapLatLng = e.latlng;
+        if (activeBoundaryPopup) {
+          activeBoundaryPopup.setLatLng(e.latlng).openOn(map);
+        }
+      });
     };
 
     // Picked fixed location marker updater
@@ -917,13 +1020,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 
     // Map tap listener
     map.on('click', function(e) {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'MAP_CLICK',
-          latitude: e.latlng.lat,
-          longitude: e.latlng.lng
-        }));
-      }
+      emitMapClick(e.latlng);
     });
 
     // Notify React Native that map is ready
@@ -933,7 +1030,18 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   </script>
 </body>
 </html>
-    `;
+    `,
+      [mapStyle, interactive, language]
+    );
+
+    useEffect(() => {
+      isMapReadyRef.current = false;
+    }, [htmlContent]);
+
+    const webViewSource = useMemo(
+      () => ({ html: htmlContent, baseUrl: 'https://unpkg.com' }),
+      [htmlContent]
+    );
 
     const RNWebView = WebView as any;
 
@@ -941,7 +1049,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       <View style={[styles.container, style]}>
         <RNWebView
           ref={webViewRef}
-          source={{ html: htmlContent, baseUrl: 'https://unpkg.com' }}
+          source={webViewSource}
           style={styles.webview}
           onMessage={handleMessage}
           javaScriptEnabled={true}

@@ -30,6 +30,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useLocationStore } from '../../store/useLocationStore';
 import { storage } from '../../services/storage';
+import { requireSosAuth } from '../../utils/sosAuth';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
@@ -41,7 +42,7 @@ export const HomeScreen: React.FC = () => {
   const headerIconSize = isSmallDevice ? 18 : 20;
 
   const { profile } = useProfileStore();
-  const { user } = useAppStore();
+  const { user, isAuthenticated } = useAppStore();
 
   // Global Shared GPS Location State
   const {
@@ -180,8 +181,9 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // When SOS pulse button is held for 2s: check service area, then open camera with crop, then open confirm modal with note
+  // When SOS pulse button is held for 2s: require login, check service area, then open camera with crop, then open confirm modal
   const handleSosTriggered = async () => {
+    if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     if (cooldownSeconds > 0) {
       const m = Math.floor(cooldownSeconds / 60);
       const s = cooldownSeconds % 60;
@@ -243,6 +245,7 @@ export const HomeScreen: React.FC = () => {
     eventType?: 'FireExplosion' | 'TrafficAccident',
     customLocation?: { address: string; latitude: number; longitude: number }
   ) => {
+    if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
     setSosSendingLoadingText('Đang xác thực phạm vi cứu hộ...');
@@ -316,6 +319,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleSosSendWithoutMedia = async () => {
+    if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     try {
       setIsSendingSos(true);
       setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...');

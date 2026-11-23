@@ -71,6 +71,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
   const [suggestions, setSuggestions] = useState<Array<{ name: string; latitude: number; longitude: number }>>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasVisibleRef = useRef(false);
 
   const hasGps = Boolean(
     initialCoords &&
@@ -80,8 +81,10 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
     address !== 'Đang xác định vị trí...'
   );
 
+  // Chỉ khởi tạo khi modal vừa mở (tránh parent re-render làm mất địa chỉ đang gõ/chọn)
   useEffect(() => {
-    if (visible) {
+    if (visible && !wasVisibleRef.current) {
+      wasVisibleRef.current = true;
       setAddressText(address || '');
       setConfirmedCoords(initialCoords || null);
       // Nếu không lấy được GPS thì mở sẵn ô nhập địa chỉ
@@ -89,10 +92,19 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
       setIsAddressDirty(false);
       setSuggestions([]);
       setIsSearchingAddress(false);
-    } else {
+    } else if (!visible && wasVisibleRef.current) {
+      wasVisibleRef.current = false;
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     }
   }, [visible, address, initialCoords, hasGps]);
+
+  // Nếu GPS có sau khi đã mở modal và người dùng chưa chỉnh/chọn địa chỉ → đồng bộ vào
+  useEffect(() => {
+    if (visible && hasGps && !isAddressDirty && (!confirmedCoords || confirmedCoords.latitude === 0)) {
+      setAddressText(address || '');
+      setConfirmedCoords(initialCoords || null);
+    }
+  }, [visible, hasGps, address, initialCoords, isAddressDirty, confirmedCoords]);
 
   const handleAddressChange = (text: string) => {
     setAddressText(text);

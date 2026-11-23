@@ -39,6 +39,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { SupplementModal, CitizenTrackingModal } from '../../components/citizen';
 
+const isDuplicateCancellation = (reason?: string | number | null) => {
+  const r = String(reason ?? '').toLowerCase();
+  return r.includes('duplicate') || r === '1';
+};
+
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
@@ -73,6 +78,7 @@ export const MyReportsScreen: React.FC = () => {
             const result = await incidentService.getMyReports({ pageSize: 50 });
             items = (result.items || []).map((item) => ({
               id: item.id,
+              code: item.code,
               title: item.title,
               description: item.description,
               locationAddress: item.locationAddress,
@@ -82,6 +88,17 @@ export const MyReportsScreen: React.FC = () => {
               severity: item.severity,
               cancellationReason: item.cancellationReason,
               linkedToIncidentId: item.linkedToIncidentId,
+              linkedTo: item.linkedToIncidentId
+                ? {
+                    incidentId: item.linkedToIncidentId,
+                    code: item.linkedToIncidentCode ?? undefined,
+                    title: item.linkedToIncidentTitle || '',
+                    locationAddress: item.linkedToIncidentAddress || '',
+                    status: item.linkedToIncidentStatus ?? undefined,
+                    distanceMeters: 0,
+                    assignedUnitPlates: [],
+                  }
+                : undefined,
               reportedEventType: item.reportedEventType,
               createdAt: item.reportedAt,
               updatedAt: item.reportedAt,
@@ -93,13 +110,13 @@ export const MyReportsScreen: React.FC = () => {
               })),
             } as IncidentResponseDto));
 
-            // Nếu có sự cố Linked hoặc Cancelled vì Duplicate mà thiếu linkedToIncidentId, gọi chi tiết bù
+            // Chỉ gọi chi tiết bù nếu backend chưa trả linkedToIncidentId cho ca Linked / Cancelled (Duplicate)
             const needDetail = items.filter(
               (i) =>
+                !i.linkedToIncidentId &&
                 (i.status === IncidentStatus.Linked ||
                   (i.status as any) === 'Linked' ||
-                  i.status === IncidentStatus.Cancelled) &&
-                !i.linkedToIncidentId
+                  (i.status === IncidentStatus.Cancelled && isDuplicateCancellation(i.cancellationReason)))
             );
             if (needDetail.length > 0) {
               const detailRes = await Promise.allSettled(
@@ -351,7 +368,7 @@ export const MyReportsScreen: React.FC = () => {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.itemCode}>#{item.id.slice(0, 8).toUpperCase()}</Text>
+                <Text style={styles.itemCode}>{item.code || `#${item.id.slice(0, 8).toUpperCase()}`}</Text>
                 <View style={styles.headerBadges}>
                   {getStatusBadge(item.status)}
                 </View>
@@ -403,17 +420,18 @@ export const MyReportsScreen: React.FC = () => {
 
                 {/* Linked to original banner */}
                 {((item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') ||
-                  (item.status === IncidentStatus.Cancelled &&
-                    (item.cancellationReason === 'Duplicate' ||
-                      (item.cancellationReason as any) === 4 ||
-                      item.cancellationReason === 'duplicate'))) &&
+                  (item.status === IncidentStatus.Cancelled && isDuplicateCancellation(item.cancellationReason))) &&
                   item.linkedToIncidentId && (
                     <View style={styles.linkedBanner}>
                       <Link2 size={13} color="#4F46E5" />
                       <Text style={styles.linkedBannerText}>
-                        {t('reports.linked_to_original', {
-                          id: item.linkedToIncidentId.slice(0, 8).toUpperCase(),
-                        })}
+                        {item.linkedTo?.title
+                          ? `${t('reports.linked_to_original', {
+                              id: item.linkedTo?.code || item.linkedToIncidentId.slice(0, 8).toUpperCase(),
+                            })} (${item.linkedTo.title})`
+                          : t('reports.linked_to_original', {
+                              id: item.linkedTo?.code || item.linkedToIncidentId.slice(0, 8).toUpperCase(),
+                            })}
                       </Text>
                       <TouchableOpacity
                         onPress={() => setTrackingIncidentId(item.linkedToIncidentId!)}

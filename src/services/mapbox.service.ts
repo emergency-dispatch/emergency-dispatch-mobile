@@ -130,14 +130,14 @@ class MapboxService {
     const sortByAnchor = (items: Array<{ name: string; latitude: number; longitude: number }>) =>
       [...items].sort((a, b) => sqDistToAnchor(a.latitude, a.longitude, anchor) - sqDistToAnchor(b.latitude, b.longitude, anchor));
 
-    // 1. Try Mapbox Forward Geocoding API (bỏ qua ngay nếu token từng trả 401/403 để không tốn thời gian chờ)
+    // 1. Try Mapbox Search Box API (có cả địa điểm POI lẫn tên đường/số nhà; bỏ qua ngay nếu token 401/403)
     if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy') && !this.mapboxGeocodeDisabled) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
       try {
         let mapboxUrl =
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json` +
-          `?access_token=${MAPBOX_ACCESS_TOKEN}&country=VN&language=vi&limit=5&proximity=${anchor.longitude},${anchor.latitude}`;
+          `https://api.mapbox.com/search/searchbox/v1/forward?q=${encodeURIComponent(trimmed)}` +
+          `&access_token=${MAPBOX_ACCESS_TOKEN}&country=vn&language=vi&limit=5&proximity=${anchor.longitude},${anchor.latitude}`;
         if (boundedToHcm) mapboxUrl += `&bbox=${HCM_BBOX}`;
         const res = await fetch(mapboxUrl, { signal: controller.signal });
         if (res.status === 401 || res.status === 403) {
@@ -146,14 +146,21 @@ class MapboxService {
           const data = await res.json();
           if (data.features && data.features.length > 0) {
             const mapped = sortByAnchor(
-              data.features.map((feat: any) => ({
-                name: feat.place_name,
-                latitude: feat.center[1],
-                longitude: feat.center[0],
-              }))
+              data.features
+                .map((feat: any) => {
+                  const p = feat?.properties || {};
+                  const coords = feat?.geometry?.coordinates;
+                  if (!Array.isArray(coords) || coords.length < 2) return null;
+                  const addr = p.full_address || p.place_formatted || '';
+                  const label = p.feature_type === 'poi' && p.name ? [p.name, addr].filter(Boolean).join(', ') : addr || p.name || '';
+                  return label ? { name: label, latitude: coords[1], longitude: coords[0] } : null;
+                })
+                .filter(Boolean) as Array<{ name: string; latitude: number; longitude: number }>
             );
-            searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
-            return mapped;
+            if (mapped.length > 0) {
+              searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
+              return mapped;
+            }
           }
         }
       } catch {
@@ -163,7 +170,44 @@ class MapboxService {
       }
     }
 
-    // 2. Fallback via Nominatim giới hạn viewbox TP.HCM & Khu Công nghệ cao
+    // 2. Photon OSM (nhạy với cả tên đường, tòa nhà, trường học, bệnh viện tại Việt Nam)
+    {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      try {
+        const photonUrl =
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}` +
+          `&lat=${anchor.latitude}&lon=${anchor.longitude}&limit=6`;
+        const res = await fetch(photonUrl, { signal: controller.signal });
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = sortByAnchor(
+            (data?.features || [])
+              .filter((f: any) => !f?.properties?.countrycode || String(f.properties.countrycode).toUpperCase() === 'VN')
+              .map((f: any) => {
+                const p = f?.properties || {};
+                const coords = f?.geometry?.coordinates;
+                if (!Array.isArray(coords) || coords.length < 2) return null;
+                const streetPart = p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street;
+                const parts = [p.name, streetPart !== p.name ? streetPart : '', p.district || p.county, p.city || p.state].filter(Boolean);
+                const label = Array.from(new Set(parts)).join(', ');
+                return label ? { name: label, latitude: coords[1], longitude: coords[0] } : null;
+              })
+              .filter(Boolean) as Array<{ name: string; latitude: number; longitude: number }>
+          );
+          if (mapped.length > 0) {
+            searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
+            return mapped;
+          }
+        }
+      } catch {
+        // Fallback to Nominatim below
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    // 3. Fallback via Nominatim giới hạn viewbox TP.HCM & Khu Công nghệ cao
     if (allowNominatim) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);

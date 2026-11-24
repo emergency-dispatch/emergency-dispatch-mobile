@@ -18,6 +18,9 @@ import {
   Crosshair,
   Plus,
   Minus,
+  Maximize2,
+  Minimize2,
+  Layers,
   X,
   Phone,
   Clock,
@@ -36,6 +39,7 @@ import {
 } from '../../components/citizen';
 import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
 import { incidentService, ServiceAreaDto } from '../../services/incident.service';
+import { mobileTrackingHub, mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
 import { staffDispatchService } from '../../services/staffDispatch.service';
 import { mediaService } from '../../services/media.service';
 import { storage } from '../../services/storage';
@@ -53,6 +57,10 @@ export const SafetyMapScreen: React.FC = () => {
   const mapRef = useRef<MapboxViewRef>(null);
   const route = useRoute<any>();
   const trackingIncidentId = route.params?.trackingIncidentId;
+  const isViewingDuplicateHistory = Boolean(route.params?.asDuplicateReporter);
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'streets' | 'dark'>('satellite');
+  const [isFullscreenMap, setIsFullscreenMap] = useState(false);
+  const lastVehicleCoordsRef = useRef<Map<string, { lat: number; lng: number; heading: number }>>(new Map());
 
   const {
     coords: userCoords,
@@ -167,6 +175,7 @@ export const SafetyMapScreen: React.FC = () => {
           str.includes('resolv') ||
           str.includes('closed') ||
           str.includes('hủy') ||
+          str.includes('link') ||
           str === '6' || // IncidentStatus.Completed
           str === '7'    // IncidentStatus.Cancelled
         );
@@ -310,10 +319,31 @@ export const SafetyMapScreen: React.FC = () => {
               const etaMins = tracking.estimatedArrivalMinutes || 5;
               const distKm = tracking.distanceKm;
 
-              // Create marker for the responding rescue unit
+              // Create marker for the responding rescue unit with computed movement heading
               if (tracking.vehicleLat && tracking.vehicleLng) {
+                const vehKey = tracking.rescueUnitId || `veh-${inc.id}`;
+                const prevCoord = lastVehicleCoordsRef.current.get(vehKey);
+                let heading = prevCoord?.heading ?? 0;
+                if (
+                  prevCoord &&
+                  Math.hypot(tracking.vehicleLat - prevCoord.lat, tracking.vehicleLng - prevCoord.lng) > 0.00002
+                ) {
+                  const toRad = (d: number) => (d * Math.PI) / 180;
+                  const dLon = toRad(tracking.vehicleLng - prevCoord.lng);
+                  const y = Math.sin(dLon) * Math.cos(toRad(tracking.vehicleLat));
+                  const x =
+                    Math.cos(toRad(prevCoord.lat)) * Math.sin(toRad(tracking.vehicleLat)) -
+                    Math.sin(toRad(prevCoord.lat)) * Math.cos(toRad(tracking.vehicleLat)) * Math.cos(dLon);
+                  heading = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+                }
+                lastVehicleCoordsRef.current.set(vehKey, {
+                  lat: tracking.vehicleLat,
+                  lng: tracking.vehicleLng,
+                  heading,
+                });
+
                 trackedVehicles.push({
-                  id: tracking.rescueUnitId || `veh-${inc.id}`,
+                  id: vehKey,
                   title: `${tracking.plateNumber || 'Xe cứu hộ'} (${tracking.unitTypeName || 'Đang phản ứng'})`,
                   description: `Trạm: ${tracking.stationName || 'Cứu hộ'} • Trạng thái: ${
                     tracking.dispatchStatus || 'Đang di chuyển'
@@ -327,6 +357,7 @@ export const SafetyMapScreen: React.FC = () => {
                   phoneNumber: tracking.stationPhoneNumber,
                   etaMinutes: etaMins,
                   distanceKm: distKm,
+                  heading,
                 });
               }
 
@@ -525,6 +556,96 @@ export const SafetyMapScreen: React.FC = () => {
     }, intervalMs);
     return () => clearInterval(timer);
   }, [isAuthenticated, user?.role, trackingIncidentId, Boolean(activeTrackingEta)]);
+
+  // SignalR WebSocket real-time vehicle movement for Citizen active/tracked incident
+  const liveTrackIncId = trackingIncidentId || activeTrackingEta?.incidentId || pendingIncident?.incidentId || null;
+  useEffect(() => {
+    if (!isAuthenticated || !liveTrackIncId) return;
+
+    let subscribed = false;
+    const subscribe = async () => {
+      try {
+        await mobileTrackingHub.start();
+        await mobileTrackingHub.invoke('SubscribeIncident', liveTrackIncId);
+        subscribed = true;
+      } catch {
+        // polling fallback stays active
+      }
+      mobileIncidentHub
+        .start()
+        .then((ok) => {
+          if (ok) mobileIncidentHub.invoke('SubscribeIncident', liveTrackIncId).catch(() => {});
+        })
+        .catch(() => {});
+    };
+    subscribe();
+
+    const unsubReconn = mobileTrackingHub.onReconnected(() => {
+      mobileTrackingHub.invoke('SubscribeIncident', liveTrackIncId).catch(() => {});
+      loadMapData(true);
+    });
+    const unsubIncReconn = mobileIncidentHub.onReconnected(() => {
+      mobileIncidentHub.invoke('SubscribeIncident', liveTrackIncId).catch(() => {});
+      loadMapData(true);
+    });
+
+    const unsubLocation = mobileTrackingHub.on(MobileHubEvents.ReceiveRescueUnitLocation, (msg: any) => {
+      if (!msg) return;
+      const msgIncId = msg.incidentId || msg.IncidentId;
+      if (msgIncId && msgIncId.toLowerCase() !== liveTrackIncId.toLowerCase()) return;
+
+      const unitId = msg.rescueUnitId || msg.RescueUnitId;
+      const lat = msg.latitude ?? msg.Latitude;
+      const lng = msg.longitude ?? msg.Longitude;
+      const rawHeading = msg.headingDegrees ?? msg.HeadingDegrees;
+      if (!unitId || typeof lat !== 'number' || typeof lng !== 'number') return;
+
+      const prevCoord = lastVehicleCoordsRef.current.get(unitId);
+      const moved = prevCoord && Math.hypot(lat - prevCoord.lat, lng - prevCoord.lng) > 0.00002;
+      let heading = typeof rawHeading === 'number' && rawHeading > 0 ? rawHeading : prevCoord?.heading ?? 0;
+      if ((typeof rawHeading !== 'number' || rawHeading === 0) && moved && prevCoord) {
+        const toRad = (d: number) => (d * Math.PI) / 180;
+        const dLon = toRad(lng - prevCoord.lng);
+        const y = Math.sin(dLon) * Math.cos(toRad(lat));
+        const x =
+          Math.cos(toRad(prevCoord.lat)) * Math.sin(toRad(lat)) -
+          Math.sin(toRad(prevCoord.lat)) * Math.cos(toRad(lat)) * Math.cos(dLon);
+        heading = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+      }
+      lastVehicleCoordsRef.current.set(unitId, { lat, lng, heading });
+
+      // Di chuyển tức thì trên Leaflet WebView không cần chờ vòng React re-render
+      mapRef.current?.updateMarkerLocation?.(unitId, lat, lng, heading);
+
+      setMarkers((prev) =>
+        prev.map((m) =>
+          m.id === unitId || m.id === `veh-${liveTrackIncId}`
+            ? { ...m, latitude: lat, longitude: lng, heading }
+            : m
+        )
+      );
+    });
+
+    const unsubAssign = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, () => loadMapData(true));
+    const unsubIncStatus = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentStatus, () => loadMapData(true));
+
+    return () => {
+      if (subscribed) {
+        mobileTrackingHub.invoke('UnsubscribeIncident', liveTrackIncId).catch(() => {});
+        mobileIncidentHub.invoke('UnsubscribeIncident', liveTrackIncId).catch(() => {});
+      }
+      unsubReconn();
+      unsubIncReconn();
+      unsubLocation();
+      unsubAssign();
+      unsubIncStatus();
+    };
+  }, [isAuthenticated, liveTrackIncId]);
+
+  useEffect(() => {
+    const tmr = setTimeout(() => mapRef.current?.invalidateSize?.(), 100);
+    return () => clearTimeout(tmr);
+  }, [isFullscreenMap]);
 
   const handleMarkerSelect = (marker: MapMarkerItem) => {
     mapRef.current?.flyTo(marker.latitude, marker.longitude, 16);
@@ -860,7 +981,8 @@ export const SafetyMapScreen: React.FC = () => {
       statusBarStyle="dark-content"
       style={styles.container}
     >
-      {/* 1. Sleek Search & Manual Location Input Bar */}
+      {/* 1. Sleek Search & Manual Location Input Bar (ẩn khi phóng to toàn màn hình) */}
+      {!isFullscreenMap && (
       <View style={styles.searchWrapper}>
         <View style={styles.searchBar}>
           <TouchableOpacity
@@ -937,9 +1059,10 @@ export const SafetyMapScreen: React.FC = () => {
           </View>
         )}
       </View>
+      )}
 
       {/* 2. Interactive Mapbox View with In-Map Floating Controls */}
-      <View style={styles.mapContainer}>
+      <View style={[styles.mapContainer, isFullscreenMap && styles.mapContainerFullscreen]}>
         <MapboxView
           ref={mapRef}
           userLatitude={userCoords.latitude}
@@ -952,9 +1075,42 @@ export const SafetyMapScreen: React.FC = () => {
           language={currentLang}
           onMarkerPress={handleMarkerSelect}
           onMapPress={handleMapPress}
-          mapStyle="satellite"
+          mapStyle={mapStyle}
           style={styles.mapboxView}
         />
+
+        {/* Map Layer Mode Switcher Pill (Vệ tinh / Đường phố / CAD) */}
+        <View style={styles.layerSwitcherPill}>
+          {(
+            [
+              { id: 'satellite', label: 'Vệ tinh' },
+              { id: 'streets', label: 'Đường phố' },
+              { id: 'dark', label: 'CAD' },
+            ] as const
+          ).map((mode) => (
+            <TouchableOpacity
+              key={mode.id}
+              onPress={() => setMapStyle(mode.id)}
+              activeOpacity={0.75}
+              style={[
+                styles.layerPillBtn,
+                mapStyle === mode.id && styles.layerPillBtnActive,
+              ]}
+            >
+              {mode.id === 'satellite' && (
+                <Layers size={11} color={mapStyle === mode.id ? '#FFFFFF' : '#475569'} />
+              )}
+              <Text
+                style={[
+                  styles.layerPillText,
+                  mapStyle === mode.id && styles.layerPillTextActive,
+                ]}
+              >
+                {mode.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Floating KCN Service Area Badge */}
         {serviceArea && (
@@ -1071,14 +1227,16 @@ export const SafetyMapScreen: React.FC = () => {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.etaSupplementRow}
-              activeOpacity={0.8}
-              onPress={() => setSupplementIncidentId(activeTrackingEta.incidentId)}
-            >
-              <PlusCircle size={13} color="#0284C7" />
-              <Text style={styles.etaSupplementText}>Bổ sung thông tin hiện trường</Text>
-            </TouchableOpacity>
+            {!isViewingDuplicateHistory && (
+              <TouchableOpacity
+                style={styles.etaSupplementRow}
+                activeOpacity={0.8}
+                onPress={() => setSupplementIncidentId(activeTrackingEta.incidentId)}
+              >
+                <PlusCircle size={13} color="#0284C7" />
+                <Text style={styles.etaSupplementText}>Bổ sung thông tin hiện trường</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : pendingIncident ? (
           <View style={styles.floatingEtaCard}>
@@ -1111,8 +1269,22 @@ export const SafetyMapScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {/* Floating Zoom & Recenter Controls Stack */}
+        {/* Floating Zoom, Fullscreen & Recenter Controls Stack */}
         <View style={styles.mapControlsWrapper}>
+          <TouchableOpacity
+            style={styles.floatingRecenterBtn}
+            onPress={() => setIsFullscreenMap((v) => !v)}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel={isFullscreenMap ? 'Thu nhỏ bản đồ' : 'Phóng to bản đồ'}
+          >
+            {isFullscreenMap ? (
+              <Minimize2 size={18} color="#0F172A" strokeWidth={2.4} />
+            ) : (
+              <Maximize2 size={18} color="#0F172A" strokeWidth={2.4} />
+            )}
+          </TouchableOpacity>
+
           {/* Zoom In & Out Stack */}
           <View style={styles.zoomControlCard}>
             <TouchableOpacity
@@ -1339,6 +1511,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
+  },
+  mapContainerFullscreen: {
+    borderRadius: 12,
+    marginTop: 0,
+  },
+  layerSwitcherPill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 3,
+    gap: 2,
+    zIndex: 25,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  layerPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 9,
+  },
+  layerPillBtnActive: {
+    backgroundColor: '#DC2626',
+  },
+  layerPillText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  layerPillTextActive: {
+    color: '#FFFFFF',
   },
   mapboxView: {
     flex: 1,

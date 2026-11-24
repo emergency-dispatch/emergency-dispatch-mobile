@@ -10,6 +10,8 @@ export interface MapboxViewRef {
   zoomIn: () => void;
   zoomOut: () => void;
   openMarkerPopup?: (markerId: string) => void;
+  updateMarkerLocation?: (markerId: string, latitude: number, longitude: number, heading?: number) => void;
+  invalidateSize?: () => void;
 }
 
 export interface RouteCoordinate {
@@ -71,8 +73,9 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   ) => {
     const webViewRef = useRef<any>(null);
     const isMapReadyRef = useRef(false);
-    // Đóng băng tâm khởi tạo của WebView để cập nhật GPS/markers không làm WebView reload giật về vị trí hiện tại
+    // Đóng băng tâm & style khởi tạo để tránh reload WebView khi di chuyển map hoặc đổi lớp bản đồ
     const initialCenterRef = useRef({ lat: userLatitude, lng: userLongitude });
+    const initialStyleRef = useRef(mapStyle);
     const latestStateRef = useRef({
       userLatitude,
       userLongitude,
@@ -216,7 +219,38 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         `;
         webViewRef.current?.injectJavaScript(js);
       },
+      updateMarkerLocation: (markerId: string, latitude: number, longitude: number, heading?: number) => {
+        const js = `
+          if (window.updateMarkerLocation) {
+            window.updateMarkerLocation(${JSON.stringify(markerId)}, ${latitude}, ${longitude}, ${typeof heading === 'number' ? heading : 'null'});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
+      invalidateSize: () => {
+        const js = `
+          if (window.map && window.map.invalidateSize) {
+            setTimeout(function() { window.map.invalidateSize(true); }, 60);
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      },
     }));
+
+    // Sync mapStyle dynamically inside Leaflet without reloading WebView
+    useEffect(() => {
+      if (isMapReadyRef.current) {
+        const js = `
+          if (window.setMapStyle) {
+            window.setMapStyle(${JSON.stringify(mapStyle)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+    }, [mapStyle]);
 
     const handleMessage = (event: WebViewMessageEvent) => {
       try {
@@ -226,6 +260,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           const s = latestStateRef.current;
           // Initial push of markers, route, user location, service area, and picked location
           const js = `
+            if (window.setMapStyle) window.setMapStyle(${JSON.stringify(mapStyle)});
             if (window.setUserLocation) window.setUserLocation(${s.userLatitude}, ${s.userLongitude});
             if (window.setServiceArea) window.setServiceArea(${JSON.stringify(s.serviceArea)});
             if (window.setPickedLocation) window.setPickedLocation(${JSON.stringify(s.pickedLocation)});
@@ -556,50 +591,61 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     });
     window.map = map;
 
-    // Mapbox official styles and fallback layer
+    // Mapbox official styles & fallback tile switcher (không cần reload WebView)
     var mapboxToken = '${MAPBOX_ACCESS_TOKEN}';
-    var selectedStyle = '${mapStyle}';
+    var activeTileLayer = null;
 
-    var mapboxStyleId = selectedStyle === 'satellite'
-      ? 'mapbox/satellite-streets-v12'
-      : selectedStyle === 'dark'
-      ? 'mapbox/dark-v11'
-      : 'mapbox/streets-v12';
+    function buildStyleUrls(styleName) {
+      var mbId = styleName === 'satellite'
+        ? 'mapbox/satellite-streets-v12'
+        : styleName === 'dark'
+        ? 'mapbox/dark-v11'
+        : 'mapbox/streets-v12';
+      var fbUrl = styleName === 'satellite'
+        ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+        : styleName === 'dark'
+        ? 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+        : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+      return {
+        mapbox: 'https://api.mapbox.com/styles/v1/' + mbId + '/tiles/256/{z}/{x}/{y}@2x?access_token=' + mapboxToken,
+        fallback: fbUrl
+      };
+    }
 
-    var fallbackUrl = selectedStyle === 'satellite'
-      ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-      : selectedStyle === 'dark'
-      ? 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-      : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
-
-    var mapboxLayer = L.tileLayer(
-      'https://api.mapbox.com/styles/v1/' + mapboxStyleId + '/tiles/256/{z}/{x}/{y}@2x?access_token=' + mapboxToken,
-      {
+    var currentMapStyle = '${initialStyleRef.current}';
+    window.setMapStyle = function(styleName) {
+      if (!styleName) return;
+      currentMapStyle = styleName;
+      var urls = buildStyleUrls(styleName);
+      if (activeTileLayer) {
+        try { map.removeLayer(activeTileLayer); } catch(e) {}
+        activeTileLayer = null;
+      }
+      var mbLayer = L.tileLayer(urls.mapbox, {
         maxZoom: 20,
         tileSize: 256,
         attribution: '&copy; Mapbox &copy; OpenStreetMap'
+      });
+      var fbLayer = L.tileLayer(urls.fallback, {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap'
+      });
+      var switched = false;
+      mbLayer.on('tileerror', function() {
+        if (!switched && currentMapStyle === styleName) {
+          switched = true;
+          try { map.removeLayer(mbLayer); } catch(e) {}
+          activeTileLayer = fbLayer.addTo(map);
+        }
+      });
+      if (mapboxToken && mapboxToken.indexOf('pk.') === 0) {
+        activeTileLayer = mbLayer.addTo(map);
+      } else {
+        activeTileLayer = fbLayer.addTo(map);
       }
-    );
+    };
 
-    var fallbackLayer = L.tileLayer(fallbackUrl, {
-      maxZoom: 20,
-      attribution: '&copy; OpenStreetMap'
-    });
-
-    var hasSwitched = false;
-    mapboxLayer.on('tileerror', function() {
-      if (!hasSwitched) {
-        hasSwitched = true;
-        try { map.removeLayer(mapboxLayer); } catch(e){}
-        fallbackLayer.addTo(map);
-      }
-    });
-
-    if (mapboxToken && mapboxToken.startsWith('pk.')) {
-      mapboxLayer.addTo(map);
-    } else {
-      fallbackLayer.addTo(map);
-    }
+    window.setMapStyle(currentMapStyle);
 
     // Layer group for dynamic POI markers
     window.markersLayer = L.layerGroup().addTo(map);
@@ -709,13 +755,13 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       pickPin: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 40" width="30" height="40" style="display:block;overflow:visible">' +
         '<path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.3 15 39 15 39s14-13.7 14-24.1C29 7.2 22.7 1 15 1z" fill="#0F172A" stroke="#F87171" stroke-width="2.5"/>' +
         '<path d="M15 9.8v10.4 M9.8 15h10.4" stroke="#FCA5A5" stroke-width="2.8" stroke-linecap="round"/></svg>',
-      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path fill="currentColor" fill-rule="evenodd" d="M12.6 2.5c.6 3.2-1.3 5-2.9 6.7C8.2 10.8 6.5 12.8 6.5 15.6A5.6 5.6 0 0 0 12 21.5a5.6 5.6 0 0 0 5.5-5.8c0-2.2-.9-3.9-2.1-5.3.1 1.6-.6 2.8-1.7 3.4.7-3.9-.2-7.8-1.1-11.3Z M12 14.2c1.3 1.4 2.3 2.5 2.3 3.8a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.4 2.3-3.8Z"/></svg>',
+      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path fill="{COLOR}" fill-rule="evenodd" d="M12.6 2.5c.6 3.2-1.3 5-2.9 6.7C8.2 10.8 6.5 12.8 6.5 15.6A5.6 5.6 0 0 0 12 21.5a5.6 5.6 0 0 0 5.5-5.8c0-2.2-.9-3.9-2.1-5.3.1 1.6-.6 2.8-1.7 3.4.7-3.9-.2-7.8-1.1-11.3Z M12 14.2c1.3 1.4 2.3 2.5 2.3 3.8a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.4 2.3-3.8Z"/></svg>',
       accident: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' +
-        '<path fill="currentColor" d="M5.93 1.48 7.34 4.47 9.58 3.25 8.64 5.62 11.6 6.64 8.56 7.36 9.02 9.49 7.15 8.37 5.55 10.83 5.48 7.9 3.12 7.96 4.8 6.3 2.94 4.3 5.63 4.78Z"/>' +
-        '<g transform="translate(17.2 10.2) rotate(25) scale(.55) translate(-12 -12.25)"><path fill="currentColor" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>' +
-        '<g transform="translate(-.5 10.5) scale(.6)"><path fill="currentColor" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g></svg>',
-      other: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M12 3.4 21.6 20H2.4Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 9.6v4.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.45" fill="currentColor"/></svg>',
-      unknown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M8.6 8.6a3.4 3.4 0 1 1 5 3c-1 .5-1.6 1.2-1.6 2.3v1" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="18.8" r="1.6" fill="currentColor"/></svg>',
+        '<path fill="{COLOR}" d="M5.93 1.48 7.34 4.47 9.58 3.25 8.64 5.62 11.6 6.64 8.56 7.36 9.02 9.49 7.15 8.37 5.55 10.83 5.48 7.9 3.12 7.96 4.8 6.3 2.94 4.3 5.63 4.78Z"/>' +
+        '<g transform="translate(17.2 10.2) rotate(25) scale(.55) translate(-12 -12.25)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>' +
+        '<g transform="translate(-.5 10.5) scale(.6)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g></svg>',
+      other: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M12 3.4 21.6 20H2.4Z" fill="none" stroke="{COLOR}" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 9.6v4.8" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.45" fill="{COLOR}"/></svg>',
+      unknown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M8.6 8.6a3.4 3.4 0 1 1 5 3c-1 .5-1.6 1.2-1.6 2.3v1" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="18.8" r="1.6" fill="{COLOR}"/></svg>',
       stationMine: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
         '<ellipse cx="34.7" cy="34.3" rx="22" ry="9" fill="#0F172A" opacity="0.24"/>' +
         '<polygon points="6.3,30.5 36.6,45.7 36.6,43.9 6.3,28.7" fill="#94A3B8"/><polygon points="58.3,34.8 36.6,45.7 36.6,43.9 58.3,33.0" fill="#7C8BA1"/><polygon points="28.0,17.8 58.3,33.0 36.6,43.9 6.3,28.7" fill="#E2E8F0"/>' +
@@ -835,10 +881,34 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     };
 
-    // Update all POI & Incident & Fleet markers dynamically without reloading
+    // Update all POI & Incident & Fleet markers in-place without destroying DOM nodes on live GPS ticks
+    window.markerById = {};
+    window.updateMarkerLocation = function(id, lat, lng, heading) {
+      var marker = window.markerById[id];
+      if (!marker || typeof lat !== 'number' || typeof lng !== 'number') return;
+      marker.setLatLng([lat, lng]);
+      if (typeof heading === 'number') {
+        var el = marker.getElement();
+        var rotEl = el && el.querySelector('.veh-rotate-box');
+        if (rotEl) rotEl.style.transform = 'rotate(' + heading + 'deg)';
+      }
+    };
+
     window.setMarkers = function(markersData) {
-      window.markersLayer.clearLayers();
-      if (!markersData || !Array.isArray(markersData)) return;
+      if (!markersData || !Array.isArray(markersData)) {
+        window.markersLayer.clearLayers();
+        window.markerById = {};
+        return;
+      }
+
+      var nextIds = {};
+      markersData.forEach(function(m) { nextIds[m.id] = true; });
+      Object.keys(window.markerById).forEach(function(id) {
+        if (!nextIds[id]) {
+          window.markersLayer.removeLayer(window.markerById[id]);
+          delete window.markerById[id];
+        }
+      });
 
       markersData.forEach(function(m) {
         var customHtml = '';
@@ -891,7 +961,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             : '';
           customHtml = '<div style="position:relative;width:48px;height:48px;cursor:pointer;">' +
             etaPill +
-            '<div style="position:relative;width:48px;height:48px;transform:rotate(' + heading + 'deg);">' +
+            '<div class="veh-rotate-box" style="position:relative;width:48px;height:48px;transform:rotate(' + heading + 'deg);">' +
             '<div style="pointer-events:none;">' + vehArt + '</div>' +
             dotPulse +
             '<span style="' + dotStyle + 'background:' + dotColor + ';border:2px solid #FFFFFF;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.4);"></span>' +
@@ -931,8 +1001,8 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             '<circle cx="24" cy="24" r="13.5" fill="#0F172A" stroke="' + glowColor + '" stroke-width="1.5"/>' +
             buildSeverityArcs(sevNum) +
             '</svg>' +
-            '<div style="position:absolute;left:' + gOffset + 'px;top:' + gOffset + 'px;width:' + gSize + 'px;height:' + gSize + 'px;color:' + glyphColor + ';pointer-events:none;">' +
-            glyphArt.replace('width="16" height="16"', 'width="' + gSize + '" height="' + gSize + '"') +
+            '<div style="position:absolute;left:' + gOffset + 'px;top:' + gOffset + 'px;width:' + gSize + 'px;height:' + gSize + 'px;pointer-events:none;">' +
+            glyphArt.replace('width="16" height="16"', 'width="' + gSize + '" height="' + gSize + '"').replace(/\{COLOR\}/g, glyphColor) +
             '</div></div>';
           iconSize = [incSize, incSize];
           iconAnchor = [incSize / 2, incSize / 2];
@@ -957,13 +1027,6 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           badgeClass = 'badge-blue';
         }
 
-        var customIcon = L.divIcon({
-          className: '',
-          html: customHtml,
-          iconSize: iconSize,
-          iconAnchor: iconAnchor
-        });
-
         var phoneHtml = m.phoneNumber
           ? '<br/><button type="button" onclick="window.callPhone(\\'' + m.phoneNumber + '\\')" class="popup-phone-link">📞 ' + m.phoneNumber + ' (Gọi ngay)</button>'
           : '';
@@ -984,6 +1047,44 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         else if (m.type === 'rescue_unit') zOffset = 2000;
         else if (m.type === 'station') zOffset = 1500;
 
+        var visualKey = [
+          m.type,
+          m.status || '',
+          m.unitType || '',
+          m.category || '',
+          m.severity || '',
+          m.etaMinutes || '',
+          m.distanceKm || '',
+          m.isMine ? '1' : '0',
+          typeof m.heading === 'number' ? Math.round(m.heading) : ''
+        ].join('|');
+
+        var existing = window.markerById[m.id];
+        if (existing) {
+          existing.setLatLng([m.latitude, m.longitude]);
+          if (existing.__visualKey !== visualKey) {
+            existing.setIcon(L.divIcon({
+              className: '',
+              html: customHtml,
+              iconSize: iconSize,
+              iconAnchor: iconAnchor
+            }));
+            existing.__visualKey = visualKey;
+          }
+          if (existing.__popupHtml !== popupHtml) {
+            existing.setPopupContent(popupHtml);
+            existing.__popupHtml = popupHtml;
+          }
+          return;
+        }
+
+        var customIcon = L.divIcon({
+          className: '',
+          html: customHtml,
+          iconSize: iconSize,
+          iconAnchor: iconAnchor
+        });
+
         var marker = L.marker([m.latitude, m.longitude], {
           icon: customIcon,
           zIndexOffset: zOffset
@@ -1002,6 +1103,9 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         });
 
         marker.markerId = m.id;
+        marker.__visualKey = visualKey;
+        marker.__popupHtml = popupHtml;
+        window.markerById[m.id] = marker;
         window.markersLayer.addLayer(marker);
       });
     };
@@ -1092,7 +1196,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 </body>
 </html>
     `,
-      [mapStyle, interactive, language]
+      [interactive, language]
     );
 
     useEffect(() => {

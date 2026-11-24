@@ -399,8 +399,8 @@ class MapboxService {
       points: [origin, destination],
       distanceKm: straightKm || 2.4,
       durationMinutes: Math.max(1, Math.round((straightKm / 35) * 60)) || 5,
+      isApproximate: true,
     };
-    routeCache.set(cacheKey, { result, timestamp: Date.now() });
     return result;
   }
 }
@@ -409,6 +409,7 @@ export interface RouteDetailResult {
   points: RoutePoint[];
   distanceKm: number;
   durationMinutes: number;
+  isApproximate?: boolean;
 }
 
 export const isValidVietnamRoute = (points?: RoutePoint[]): boolean => {

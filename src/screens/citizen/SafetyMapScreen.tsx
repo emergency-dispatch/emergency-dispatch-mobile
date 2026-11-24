@@ -113,6 +113,7 @@ export const SafetyMapScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTrackingEta, setActiveTrackingEta] = useState<{
     incidentId: string;
+    incidentCode?: string;
     incidentTitle?: string;
     rescueUnitId?: string;
     plateNumber?: string;
@@ -125,6 +126,7 @@ export const SafetyMapScreen: React.FC = () => {
   } | null>(null);
   const [pendingIncident, setPendingIncident] = useState<{
     incidentId: string;
+    incidentCode?: string;
     title?: string;
     status: string;
   } | null>(null);
@@ -163,6 +165,7 @@ export const SafetyMapScreen: React.FC = () => {
       const localCachedIncidents = (await storage.getItem<any[]>('MY_REPORTED_INCIDENTS_CACHE')) || [];
       let incidentList: Array<{
         id: string;
+        code?: string;
         title?: string;
         description?: string;
         locationAddress?: string;
@@ -198,6 +201,7 @@ export const SafetyMapScreen: React.FC = () => {
             if (a.incidentId) {
               incidentList.push({
                 id: a.incidentId,
+                code: a.incidentCode,
                 title: a.incidentTitle || 'Sự Cố Đang Điều Phối',
                 locationAddress: a.incidentAddress,
                 latitude: a.incidentLatitude,
@@ -218,6 +222,7 @@ export const SafetyMapScreen: React.FC = () => {
             if (res?.items) {
               incidentList = res.items.map((i: any) => ({
                 id: i.id,
+                code: i.code,
                 title: i.title,
                 description: i.description,
                 locationAddress: i.locationAddress,
@@ -241,6 +246,7 @@ export const SafetyMapScreen: React.FC = () => {
             if (!isCompletedOrCancelled(cached.id, cached.status)) {
               incidentList.push({
                 id: cached.id,
+                code: cached.code,
                 title: cached.title,
                 description: cached.description,
                 locationAddress: cached.locationAddress,
@@ -276,6 +282,7 @@ export const SafetyMapScreen: React.FC = () => {
       const trackedVehicles: MapMarkerItem[] = [];
       let latestEtaInfo: {
         incidentId: string;
+        incidentCode?: string;
         incidentTitle?: string;
         rescueUnitId?: string;
         plateNumber?: string;
@@ -288,6 +295,7 @@ export const SafetyMapScreen: React.FC = () => {
       } | null = null;
       let pendingIncidentInfo: {
         incidentId: string;
+        incidentCode?: string;
         title?: string;
         status: string;
       } | null = null;
@@ -373,6 +381,7 @@ export const SafetyMapScreen: React.FC = () => {
               if (!latestEtaInfo || inc.id === activeTrackingTargetId) {
                 latestEtaInfo = {
                   incidentId: inc.id,
+                  incidentCode: tracking.incidentCode || inc.code,
                   incidentTitle: inc.title || tracking.incidentTitle,
                   rescueUnitId: tracking.rescueUnitId,
                   plateNumber: tracking.plateNumber,
@@ -385,26 +394,37 @@ export const SafetyMapScreen: React.FC = () => {
                 };
               }
 
-              // Route trajectory from backend
-              if (tracking.routeTrajectory && tracking.routeTrajectory.length > 1 && calculatedRoute.length === 0) {
+              // Route trajectory: ưu tiên đường bộ chuẩn từ backend; chỉ gọi Mapbox/OSRM nếu backend rỗng hoặc chỉ là đường ước lượng (không vẽ đường thẳng)
+              if (
+                tracking.routeTrajectory &&
+                tracking.routeTrajectory.length > 1 &&
+                !tracking.isApproximateRoute &&
+                calculatedRoute.length === 0
+              ) {
                 calculatedRoute = tracking.routeTrajectory;
-                setIsApproximateRoute(!!tracking.isApproximateRoute);
+                setIsApproximateRoute(false);
               } else if (
                 calculatedRoute.length === 0 &&
                 tracking.vehicleLat &&
                 tracking.vehicleLng &&
                 inc.latitude &&
-                inc.longitude
+                inc.longitude &&
+                (Math.abs(tracking.vehicleLat - inc.latitude) >= 0.0002 ||
+                  Math.abs(tracking.vehicleLng - inc.longitude) >= 0.0002)
               ) {
-                calculatedRoute = await mapboxService.getRoute(
+                const road = await mapboxService.getRouteWithDetails(
                   { latitude: tracking.vehicleLat, longitude: tracking.vehicleLng },
                   { latitude: inc.latitude, longitude: inc.longitude }
                 );
-                setIsApproximateRoute(false);
+                if (!road.isApproximate && road.points.length > 1) {
+                  calculatedRoute = road.points;
+                  setIsApproximateRoute(false);
+                }
               }
             } else if (!pendingIncidentInfo) {
               pendingIncidentInfo = {
                 incidentId: inc.id,
+                incidentCode: inc.code || tracking.incidentCode,
                 title: inc.title || tracking.incidentTitle || 'Sự Cố Đang Chờ Điều Phối',
                 status: inc.status || 'Pending',
               };
@@ -1431,6 +1451,11 @@ export const SafetyMapScreen: React.FC = () => {
           visible={Boolean(supplementIncidentId)}
           onClose={() => setSupplementIncidentId(null)}
           incidentId={supplementIncidentId}
+          incidentCode={
+            supplementIncidentId === activeTrackingEta?.incidentId
+              ? activeTrackingEta.incidentCode
+              : pendingIncident?.incidentCode
+          }
         />
       )}
     </ScreenContainer>

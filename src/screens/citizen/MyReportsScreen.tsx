@@ -49,6 +49,175 @@ const isConfirmedDuplicateReport = (item: IncidentResponseDto) =>
   isDuplicateCancellation(item.cancellationReason) &&
   Boolean(item.linkedToIncidentId);
 
+const formatReportDate = (iso: string) => {
+  try {
+    const d = new Date(iso);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} - ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  } catch {
+    return iso;
+  }
+};
+
+interface ReportCardProps {
+  item: IncidentResponseDto;
+  isUnlinking: boolean;
+  onTrack: (item: IncidentResponseDto) => void;
+  onTrackDuplicate: (parentId: string) => void;
+  onUnlink: (id: string) => void;
+  onSupplement: (id: string) => void;
+  getStatusBadge: (status: IncidentStatus) => React.ReactNode;
+  getLocalizedTitle: (incident: IncidentResponseDto, rawTitle?: string) => string;
+  getLocalizedDescription: (desc?: string) => string;
+  t: any;
+}
+
+const ReportCard = React.memo<ReportCardProps>(
+  ({
+    item,
+    isUnlinking,
+    onTrack,
+    onTrackDuplicate,
+    onUnlink,
+    onSupplement,
+    getStatusBadge,
+    getLocalizedTitle,
+    getLocalizedDescription,
+    t,
+  }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.itemCode}>{item.code || `#${item.id.slice(0, 8).toUpperCase()}`}</Text>
+        <View style={styles.headerBadges}>{getStatusBadge(item.status)}</View>
+      </View>
+
+      <Text style={styles.itemType}>{getLocalizedTitle(item, item.title)}</Text>
+      {item.description ? (
+        <Text style={styles.itemDesc} numberOfLines={2}>
+          {getLocalizedDescription(item.description)}
+        </Text>
+      ) : null}
+
+      {/* AI Insight Box */}
+      {item.aiClassification?.isSuccess === true &&
+        item.aiClassification?.eventType !== 'None' &&
+        Boolean(item.aiClassification?.summary) &&
+        !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(
+          item.aiClassification?.summary || ''
+        ) && (
+          <View style={styles.aiBox}>
+            <View style={styles.aiHeader}>
+              <Sparkles size={13} color="#0284C7" />
+              <Text style={styles.aiTitle}>{t('reports.ai_insight')}</Text>
+            </View>
+            <Text style={styles.aiSummary}>
+              {item.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}
+            </Text>
+          </View>
+        )}
+
+      <View style={styles.cardFooter}>
+        <View style={styles.footerRow}>
+          <MapPin size={13} color="#64748B" />
+          <Text style={styles.footerText} numberOfLines={1}>
+            {item.locationAddress}
+          </Text>
+        </View>
+
+        <View style={styles.footerMeta}>
+          <View style={styles.metaItem}>
+            <Calendar size={12} color="#94A3B8" />
+            <Text style={styles.metaText}>{formatReportDate(item.createdAt)}</Text>
+          </View>
+          {item.mediaItems && item.mediaItems.length > 0 && (
+            <View style={styles.metaItem}>
+              <ImageIcon size={12} color="#0284C7" />
+              <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
+                {t('reports.images_count', { count: item.mediaItems.length })}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Confirmed duplicate vs unconfirmed Linked banner */}
+        {isConfirmedDuplicateReport(item) ? (
+          <View style={styles.linkedBanner}>
+            <Link2 size={13} color="#4F46E5" />
+            <Text style={styles.linkedBannerText}>
+              {item.linkedTo?.code || item.linkedTo?.title
+                ? `Báo cáo của bạn trùng với sự cố ${item.linkedTo?.code || `#INC-${item.linkedToIncidentId!.slice(0, 8).toUpperCase()}`}${item.linkedTo?.title ? ` (${item.linkedTo.title})` : ''} đang được xử lý.`
+                : 'Báo cáo của bạn trùng với sự cố đang được xử lý.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => onTrackDuplicate(item.linkedToIncidentId!)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.linkedBannerLink}>Xem chi tiết &amp; Theo dõi</Text>
+            </TouchableOpacity>
+          </View>
+        ) : item.status === IncidentStatus.Linked || (item.status as any) === 'Linked' ? (
+          <View style={[styles.linkedBanner, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+            <Clock size={13} color="#6366F1" />
+            <Text style={[styles.linkedBannerText, { color: '#475569' }]}>
+              Trung tâm đang đối soát báo cáo với các sự cố lân cận. Chạm &ldquo;Đây là sự cố khác&rdquo; nếu không trùng hiện trường.
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Actions row */}
+        <View style={styles.actionsContainer}>
+          {(item.status === IncidentStatus.Dispatched ||
+            item.status === IncidentStatus.InProgress) && (
+            <TouchableOpacity
+              style={styles.trackingBtn}
+              activeOpacity={0.8}
+              onPress={() => onTrack(item)}
+            >
+              <Navigation size={13} color="#FFFFFF" />
+              <Text style={styles.trackingBtnText}>
+                {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {(item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') && (
+            <TouchableOpacity
+              style={styles.unlinkBtn}
+              activeOpacity={0.8}
+              onPress={() => onUnlink(item.id)}
+              disabled={isUnlinking}
+            >
+              {isUnlinking ? (
+                <ActivityIndicator size="small" color="#DC2626" />
+              ) : (
+                <>
+                  <Split size={13} color="#DC2626" />
+                  <Text style={styles.unlinkBtnText}>
+                    {t('reports.btn_unlink', 'Đây là sự cố khác')}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {item.status !== IncidentStatus.Completed &&
+            item.status !== IncidentStatus.Cancelled && (
+              <TouchableOpacity
+                style={styles.supplementBtn}
+                activeOpacity={0.8}
+                onPress={() => onSupplement(item.id)}
+              >
+                <PlusCircle size={13} color="#0284C7" />
+                <Text style={styles.supplementBtnText}>
+                  {t('reports.btn_supplement', 'Bổ sung thông tin')}
+                </Text>
+              </TouchableOpacity>
+            )}
+        </View>
+      </View>
+    </View>
+  )
+);
+
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
@@ -320,9 +489,35 @@ export const MyReportsScreen: React.FC = () => {
     }
   };
 
-  const handleOpenTracking = (incident: IncidentResponseDto) => {
+  const handleOpenTracking = useCallback((incident: IncidentResponseDto) => {
     setTrackingState({ id: incident.id, asDuplicate: false });
-  };
+  }, []);
+
+  const handleTrackDuplicate = useCallback((parentId: string) => {
+    setTrackingState({ id: parentId, asDuplicate: true });
+  }, []);
+
+  const handleSupplementOpen = useCallback((id: string) => {
+    setSupplementIncidentId(id);
+  }, []);
+
+  const renderReportItem = useCallback(
+    ({ item }: { item: IncidentResponseDto }) => (
+      <ReportCard
+        item={item}
+        isUnlinking={unlinkingId === item.id}
+        onTrack={handleOpenTracking}
+        onTrackDuplicate={handleTrackDuplicate}
+        onUnlink={handleUnlink}
+        onSupplement={handleSupplementOpen}
+        getStatusBadge={getStatusBadge}
+        getLocalizedTitle={getLocalizedTitle}
+        getLocalizedDescription={getLocalizedDescription}
+        t={t}
+      />
+    ),
+    [unlinkingId, handleOpenTracking, handleTrackDuplicate, handleSupplementOpen, t]
+  );
 
   const formatDate = (iso: string) => {
     try {
@@ -355,6 +550,11 @@ export const MyReportsScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -370,141 +570,7 @@ export const MyReportsScreen: React.FC = () => {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.itemCode}>{item.code || `#${item.id.slice(0, 8).toUpperCase()}`}</Text>
-                <View style={styles.headerBadges}>
-                  {getStatusBadge(item.status)}
-                </View>
-              </View>
-
-              <Text style={styles.itemType}>{getLocalizedTitle(item, item.title)}</Text>
-              {item.description ? (
-                <Text style={styles.itemDesc} numberOfLines={2}>
-                  {getLocalizedDescription(item.description)}
-                </Text>
-              ) : null}
-
-              {/* AI Insight Box */}
-              {item.aiClassification?.isSuccess === true &&
-                item.aiClassification?.eventType !== 'None' &&
-                Boolean(item.aiClassification?.summary) &&
-                !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(item.aiClassification?.summary || '') && (
-                <View style={styles.aiBox}>
-                  <View style={styles.aiHeader}>
-                    <Sparkles size={13} color="#0284C7" />
-                    <Text style={styles.aiTitle}>{t('reports.ai_insight')}</Text>
-                  </View>
-                  <Text style={styles.aiSummary}>{item.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}</Text>
-                </View>
-              )}
-
-              <View style={styles.cardFooter}>
-                <View style={styles.footerRow}>
-                  <MapPin size={13} color="#64748B" />
-                  <Text style={styles.footerText} numberOfLines={1}>
-                    {item.locationAddress}
-                  </Text>
-                </View>
-
-                <View style={styles.footerMeta}>
-                  <View style={styles.metaItem}>
-                    <Calendar size={12} color="#94A3B8" />
-                    <Text style={styles.metaText}>{formatDate(item.createdAt)}</Text>
-                  </View>
-                  {item.mediaItems && item.mediaItems.length > 0 && (
-                    <View style={styles.metaItem}>
-                      <ImageIcon size={12} color="#0284C7" />
-                      <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
-                        {t('reports.images_count', { count: item.mediaItems.length })}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Confirmed duplicate vs unconfirmed Linked banner */}
-                {isConfirmedDuplicateReport(item) ? (
-                  <View style={styles.linkedBanner}>
-                    <Link2 size={13} color="#4F46E5" />
-                    <Text style={styles.linkedBannerText}>
-                      {item.linkedTo?.code || item.linkedTo?.title
-                        ? `Báo cáo của bạn trùng với sự cố ${item.linkedTo?.code || `#INC-${item.linkedToIncidentId!.slice(0, 8).toUpperCase()}`}${item.linkedTo?.title ? ` (${item.linkedTo.title})` : ''} đang được xử lý.`
-                        : 'Báo cáo của bạn trùng với sự cố đang được xử lý.'}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setTrackingState({ id: item.linkedToIncidentId!, asDuplicate: true })}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.linkedBannerLink}>
-                        Xem chi tiết & Theo dõi
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') ? (
-                  <View style={[styles.linkedBanner, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-                    <Clock size={13} color="#6366F1" />
-                    <Text style={[styles.linkedBannerText, { color: '#475569' }]}>
-                      Trung tâm đang đối soát báo cáo với các sự cố lân cận. Chạm &ldquo;Đây là sự cố khác&rdquo; nếu không trùng hiện trường.
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* Actions row: Tracking / Unlink / Supplement */}
-                <View style={styles.actionsContainer}>
-                  {(item.status === IncidentStatus.Dispatched ||
-                    item.status === IncidentStatus.InProgress) && (
-                    <TouchableOpacity
-                      style={styles.trackingBtn}
-                      activeOpacity={0.8}
-                      onPress={() => setTrackingState({ id: item.id, asDuplicate: false })}
-                    >
-                      <Navigation size={13} color="#FFFFFF" />
-                      <Text style={styles.trackingBtnText}>
-                        {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* If Linked: show "Đây là sự cố khác" button */}
-                  {(item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') && (
-                    <TouchableOpacity
-                      style={styles.unlinkBtn}
-                      activeOpacity={0.8}
-                      onPress={() => handleUnlink(item.id)}
-                      disabled={unlinkingId === item.id}
-                    >
-                      {unlinkingId === item.id ? (
-                        <ActivityIndicator size="small" color="#DC2626" />
-                      ) : (
-                        <>
-                          <Split size={13} color="#DC2626" />
-                          <Text style={styles.unlinkBtnText}>
-                            {t('reports.btn_unlink', 'Đây là sự cố khác')}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
-
-                  {/* "Bổ sung thông tin" button: show unless Completed or Cancelled */}
-                  {item.status !== IncidentStatus.Completed &&
-                    item.status !== IncidentStatus.Cancelled && (
-                      <TouchableOpacity
-                        style={styles.supplementBtn}
-                        activeOpacity={0.8}
-                        onPress={() => setSupplementIncidentId(item.id)}
-                      >
-                        <PlusCircle size={13} color="#0284C7" />
-                        <Text style={styles.supplementBtnText}>
-                          {t('reports.btn_supplement', 'Bổ sung thông tin')}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                </View>
-              </View>
-            </View>
-          )}
+          renderItem={renderReportItem}
         />
       )}
 

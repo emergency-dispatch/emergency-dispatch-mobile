@@ -15,7 +15,14 @@ export type AuthStackParamList = {
 // Citizen (Người dân / Nạn nhân) Bottom Tabs
 export type CitizenTabParamList = {
   HomeTab: undefined;
-  SafetyMapTab: undefined;
+  SafetyMapTab:
+    | {
+        trackingIncidentId?: string;
+        asDuplicateReporter?: boolean;
+        fromHistory?: boolean;
+        fullscreenMap?: boolean;
+      }
+    | undefined;
   ReportsTab: undefined;
   ProfileTab: undefined;
 };

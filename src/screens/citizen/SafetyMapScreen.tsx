@@ -44,6 +44,7 @@ import { staffDispatchService } from '../../services/staffDispatch.service';
 import { mediaService } from '../../services/media.service';
 import { storage } from '../../services/storage';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocationStore } from '../../store/useLocationStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -56,10 +57,18 @@ export const SafetyMapScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const mapRef = useRef<MapboxViewRef>(null);
   const route = useRoute<any>();
+  const insets = useSafeAreaInsets();
   const trackingIncidentId = route.params?.trackingIncidentId;
   const isViewingDuplicateHistory = Boolean(route.params?.asDuplicateReporter);
   const [mapStyle, setMapStyle] = useState<'satellite' | 'streets' | 'dark'>('satellite');
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
   const [isFullscreenMap, setIsFullscreenMap] = useState(false);
+
+  const toggleFullscreenMap = () => {
+    const next = !isFullscreenMap;
+    setIsFullscreenMap(next);
+    navigation.setParams({ fullscreenMap: next });
+  };
   const lastVehicleCoordsRef = useRef<Map<string, { lat: number; lng: number; heading: number }>>(new Map());
 
   const {
@@ -977,9 +986,9 @@ export const SafetyMapScreen: React.FC = () => {
   return (
     <ScreenContainer
       backgroundColor="#F8FAFC"
-      edges={['top', 'left', 'right']}
+      edges={isFullscreenMap ? [] : ['top', 'left', 'right']}
       statusBarStyle="dark-content"
-      style={styles.container}
+      style={[styles.container, isFullscreenMap && styles.containerFullscreen]}
     >
       {/* 1. Sleek Search & Manual Location Input Bar (ẩn khi phóng to toàn màn hình) */}
       {!isFullscreenMap && (
@@ -1076,44 +1085,11 @@ export const SafetyMapScreen: React.FC = () => {
           onMarkerPress={handleMarkerSelect}
           onMapPress={handleMapPress}
           mapStyle={mapStyle}
-          style={styles.mapboxView}
+          style={[styles.mapboxView, isFullscreenMap && { borderRadius: 0 }]}
         />
 
-        {/* Map Layer Mode Switcher Pill (Vệ tinh / Đường phố / CAD) */}
-        <View style={styles.layerSwitcherPill}>
-          {(
-            [
-              { id: 'satellite', label: 'Vệ tinh' },
-              { id: 'streets', label: 'Đường phố' },
-              { id: 'dark', label: 'CAD' },
-            ] as const
-          ).map((mode) => (
-            <TouchableOpacity
-              key={mode.id}
-              onPress={() => setMapStyle(mode.id)}
-              activeOpacity={0.75}
-              style={[
-                styles.layerPillBtn,
-                mapStyle === mode.id && styles.layerPillBtnActive,
-              ]}
-            >
-              {mode.id === 'satellite' && (
-                <Layers size={11} color={mapStyle === mode.id ? '#FFFFFF' : '#475569'} />
-              )}
-              <Text
-                style={[
-                  styles.layerPillText,
-                  mapStyle === mode.id && styles.layerPillTextActive,
-                ]}
-              >
-                {mode.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Floating KCN Service Area Badge */}
-        {serviceArea && (
+        {/* Floating KCN Service Area Badge (ẩn khi phóng to toàn màn hình) */}
+        {!isFullscreenMap && serviceArea && (
           <TouchableOpacity
             style={styles.serviceAreaPill}
             onPress={() => mapRef.current?.flyTo(serviceArea.centerLat, serviceArea.centerLng, 14)}
@@ -1189,7 +1165,7 @@ export const SafetyMapScreen: React.FC = () => {
 
         {/* Floating Live ETA Banner directly on map (CHỈ hiện khi đã có xe điều phối) */}
         {activeTrackingEta ? (
-          <View style={styles.floatingEtaCard}>
+          <View style={[styles.floatingEtaCard, isFullscreenMap && { top: insets.top + 8 }]}>
             <TouchableOpacity
               style={styles.etaMainRow}
               activeOpacity={0.9}
@@ -1269,11 +1245,60 @@ export const SafetyMapScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {/* Floating Zoom, Fullscreen & Recenter Controls Stack */}
-        <View style={styles.mapControlsWrapper}>
+        {/* Floating Layer Picker, Fullscreen, Zoom & Recenter Controls Stack */}
+        <View style={[styles.mapControlsWrapper, isFullscreenMap && { bottom: Math.max(insets.bottom, 16) + 8 }]}>
+          <View style={styles.layerControlAnchor}>
+            {isLayerMenuOpen && (
+              <View style={styles.layerPopover}>
+                {(
+                  [
+                    { id: 'satellite', label: 'Vệ tinh' },
+                    { id: 'streets', label: 'Đường phố' },
+                    { id: 'dark', label: 'CAD Tối' },
+                  ] as const
+                ).map((mode) => (
+                  <TouchableOpacity
+                    key={mode.id}
+                    style={[
+                      styles.layerPopoverItem,
+                      mapStyle === mode.id && styles.layerPopoverItemActive,
+                    ]}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setMapStyle(mode.id);
+                      setIsLayerMenuOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.layerPopoverText,
+                        mapStyle === mode.id && styles.layerPopoverTextActive,
+                      ]}
+                    >
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.floatingRecenterBtn,
+                isLayerMenuOpen && { backgroundColor: '#DC2626', borderColor: '#DC2626' },
+              ]}
+              onPress={() => setIsLayerMenuOpen((v) => !v)}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel="Chọn lớp bản đồ"
+            >
+              <Layers size={18} color={isLayerMenuOpen ? '#FFFFFF' : '#0F172A'} strokeWidth={2.3} />
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             style={styles.floatingRecenterBtn}
-            onPress={() => setIsFullscreenMap((v) => !v)}
+            onPress={toggleFullscreenMap}
             activeOpacity={0.7}
             accessible={true}
             accessibilityLabel={isFullscreenMap ? 'Thu nhỏ bản đồ' : 'Phóng to bản đồ'}
@@ -1419,6 +1444,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     flex: 1,
   },
+  containerFullscreen: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
   searchWrapper: {
     marginBottom: 8,
     position: 'relative',
@@ -1513,45 +1543,46 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   mapContainerFullscreen: {
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 0,
     marginTop: 0,
   },
-  layerSwitcherPill: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
+  layerControlAnchor: {
+    position: 'relative',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
+  },
+  layerPopover: {
+    position: 'absolute',
+    right: 50,
+    top: -4,
+    width: 132,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 3,
-    gap: 2,
-    zIndex: 25,
+    padding: 5,
+    gap: 3,
+    zIndex: 40,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  layerPillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 9,
+  layerPopoverItem: {
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
   },
-  layerPillBtnActive: {
+  layerPopoverItemActive: {
     backgroundColor: '#DC2626',
   },
-  layerPillText: {
-    fontSize: 10.5,
+  layerPopoverText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: '#0F172A',
   },
-  layerPillTextActive: {
+  layerPopoverTextActive: {
     color: '#FFFFFF',
   },
   mapboxView: {

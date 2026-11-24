@@ -138,9 +138,12 @@ export const CitizenNotificationListener: React.FC = () => {
     <CitizenRescueAlertModal
       alert={activeAlert}
       onTrack={(incidentId) => {
-        navigation.navigate('SafetyMapTab', {
-          trackingIncidentId: incidentId,
-          fromHistory: true,
+        navigation.navigate('Main', {
+          screen: 'SafetyMapTab',
+          params: {
+            trackingIncidentId: incidentId,
+            fromHistory: true,
+          },
         });
       }}
       onDismiss={() => setActiveAlert(null)}

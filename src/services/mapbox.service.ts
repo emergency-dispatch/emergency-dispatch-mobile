@@ -127,10 +127,16 @@ class MapboxService {
       return cached.items;
     }
 
+    const firstPart = trimmed.split(',')[0].trim().toLowerCase();
+    const isFullCopiedAddress = trimmed.includes(',') && firstPart.length >= 3;
+    const hasRelevantHit = (items: Array<{ name: string }>) =>
+      firstPart.length >= 3 && items.some((m) => m.name.toLowerCase().includes(firstPart));
+
     const sortByAnchor = (items: Array<{ name: string; latitude: number; longitude: number }>) =>
       [...items].sort((a, b) => sqDistToAnchor(a.latitude, a.longitude, anchor) - sqDistToAnchor(b.latitude, b.longitude, anchor));
 
     // 1. Try Mapbox Search Box API (có cả địa điểm POI lẫn tên đường/số nhà; bỏ qua ngay nếu token 401/403)
+    let mapboxItems: Array<{ name: string; latitude: number; longitude: number }> = [];
     if (MAPBOX_ACCESS_TOKEN && !MAPBOX_ACCESS_TOKEN.includes('dummy') && !this.mapboxGeocodeDisabled) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -145,7 +151,7 @@ class MapboxService {
         } else if (res.ok) {
           const data = await res.json();
           if (data.features && data.features.length > 0) {
-            const mapped = sortByAnchor(
+            mapboxItems = sortByAnchor(
               data.features
                 .map((feat: any) => {
                   const p = feat?.properties || {};
@@ -157,9 +163,9 @@ class MapboxService {
                 })
                 .filter(Boolean) as Array<{ name: string; latitude: number; longitude: number }>
             );
-            if (mapped.length > 0) {
-              searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
-              return mapped;
+            if (mapboxItems.length > 0 && (!isFullCopiedAddress || hasRelevantHit(mapboxItems))) {
+              searchCache.set(cacheKey, { items: mapboxItems, ts: Date.now() });
+              return mapboxItems;
             }
           }
         }
@@ -171,6 +177,7 @@ class MapboxService {
     }
 
     // 2. Photon OSM (nhạy với cả tên đường, tòa nhà, trường học, bệnh viện tại Việt Nam)
+    let photonItems: Array<{ name: string; latitude: number; longitude: number }> = [];
     {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -181,7 +188,7 @@ class MapboxService {
         const res = await fetch(photonUrl, { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
-          const mapped = sortByAnchor(
+          photonItems = sortByAnchor(
             (data?.features || [])
               .filter((f: any) => !f?.properties?.countrycode || String(f.properties.countrycode).toUpperCase() === 'VN')
               .map((f: any) => {
@@ -195,9 +202,9 @@ class MapboxService {
               })
               .filter(Boolean) as Array<{ name: string; latitude: number; longitude: number }>
           );
-          if (mapped.length > 0) {
-            searchCache.set(cacheKey, { items: mapped, ts: Date.now() });
-            return mapped;
+          if (photonItems.length > 0 && (!isFullCopiedAddress || hasRelevantHit(photonItems))) {
+            searchCache.set(cacheKey, { items: photonItems, ts: Date.now() });
+            return photonItems;
           }
         }
       } catch {
@@ -207,8 +214,9 @@ class MapboxService {
       }
     }
 
-    // 3. Fallback via Nominatim giới hạn viewbox TP.HCM & Khu Công nghệ cao
-    if (allowNominatim) {
+    // 3. Fallback via Nominatim giới hạn viewbox TP.HCM & Khu Công nghệ cao (cũng chạy khi dán địa chỉ dài mà Mapbox/Photon chỉ trả địa danh chung)
+    const fallbackItems = mapboxItems.length > 0 ? mapboxItems : photonItems;
+    if (allowNominatim || (isFullCopiedAddress && !hasRelevantHit(fallbackItems))) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
       try {
@@ -239,6 +247,11 @@ class MapboxService {
       } finally {
         clearTimeout(timeoutId);
       }
+    }
+
+    if (fallbackItems.length > 0) {
+      searchCache.set(cacheKey, { items: fallbackItems, ts: Date.now() });
+      return fallbackItems;
     }
 
     return [];

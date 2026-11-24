@@ -22,35 +22,39 @@ export const CitizenNavigator: React.FC = () => {
   const tabHeight = baseHeight + bottomInset;
   const iconSize = moderateScale(isSmallDevice ? 19 : 22);
 
+  const baseTabBarStyle = {
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E2E8F0',
+    borderTopWidth: 1,
+    height: tabHeight,
+    paddingBottom: paddingBottom,
+    paddingTop: 8,
+    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  };
+
   return (
     <>
       <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
-          borderTopWidth: 1,
-          height: tabHeight,
-          paddingBottom: paddingBottom,
-          paddingTop: 8,
-          elevation: 4,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
-        },
-        tabBarActiveTintColor: '#DC2626',
-        tabBarInactiveTintColor: '#64748B',
-        tabBarLabelStyle: {
-          fontSize: fontScale(isSmallDevice ? 9.5 : 10.5),
-          fontWeight: '700',
-        },
-        tabBarItemStyle: {
-          paddingVertical: 2,
-        },
-      }}
-    >
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarStyle: (route.params as { fullscreenMap?: boolean } | undefined)?.fullscreenMap
+            ? { display: 'none' }
+            : baseTabBarStyle,
+          tabBarActiveTintColor: '#DC2626',
+          tabBarInactiveTintColor: '#64748B',
+          tabBarLabelStyle: {
+            fontSize: fontScale(isSmallDevice ? 9.5 : 10.5),
+            fontWeight: '700',
+          },
+          tabBarItemStyle: {
+            paddingVertical: 2,
+          },
+        })}
+      >
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}

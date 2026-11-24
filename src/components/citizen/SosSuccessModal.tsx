@@ -165,37 +165,17 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 
             <Text style={[styles.alertHeader, isLinked && { color: '#4F46E5' }]}>
               {isLinked
-                ? t('sos_modal.linked_alert_title', 'SỰ CỐ NÀY ĐÃ ĐƯỢC BÁO')
+                ? 'ĐÃ TIẾP NHẬN BÁO CÁO SOS'
                 : t('sos_modal.sos_success_title')}
             </Text>
             <Text style={styles.alertCode}>{incidentCode}</Text>
 
             {isLinked && incident?.linkedTo ? (
-              /* Linked Incident Details Card */
+              /* Pending duplicate verification notice */
               <View style={styles.linkedInfoBox}>
                 <Text style={styles.linkedSubText}>
-                  {t('sos_modal.linked_alert_sub', 'Hệ thống phát hiện một sự cố tương tự đang được xử lý gần bạn:')}
+                  Hệ thống ghi nhận có sự cố gần vị trí của bạn và đang chuyển điều phối viên đối soát. Nếu đây là sự cố khác, bạn có thể tách ngay bên dưới.
                 </Text>
-                <View style={styles.linkedDetailRow}>
-                  <Text style={styles.linkedDetailTitle}>{incident.linkedTo.title}</Text>
-                </View>
-                <Text style={styles.linkedDetailAddress} numberOfLines={2}>
-                  {incident.linkedTo.locationAddress}
-                </Text>
-                <View style={styles.linkedMetaRow}>
-                  <Text style={styles.linkedMetaText}>
-                    📍 {t('sos_modal.linked_distance', { distance: incident.linkedTo.distanceMeters })}
-                  </Text>
-                </View>
-                <View style={styles.linkedUnitsBadge}>
-                  <Text style={styles.linkedUnitsText}>
-                    🚒 {incident.linkedTo.assignedUnitPlates && incident.linkedTo.assignedUnitPlates.length > 0
-                      ? t('sos_modal.linked_assigned_units', {
-                          units: incident.linkedTo.assignedUnitPlates.join(', '),
-                        })
-                      : t('sos_modal.linked_no_units', 'Chưa có xe xuất phát')}
-                  </Text>
-                </View>
               </View>
             ) : (
               /* Standard Status checklist */
@@ -235,17 +215,6 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
             <View style={styles.actionButtons}>
               {isLinked ? (
                 <>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={styles.trackOriginalBtn}
-                    onPress={handleTrackOriginal}
-                  >
-                    <Navigation size={17} color="#FFFFFF" />
-                    <Text style={styles.trackOriginalBtnText}>
-                      {t('sos_modal.btn_track_original', 'Theo dõi sự cố gốc')}
-                    </Text>
-                  </TouchableOpacity>
-
                   <View style={styles.linkedActionGrid}>
                     <TouchableOpacity
                       activeOpacity={0.8}

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShieldAlert, Map, FileText, UserCheck } from 'lucide-react-native';
 import { CitizenTabParamList } from './types';
 import { HomeScreen, SafetyMapScreen, MyReportsScreen, ProfileScreen } from '../screens/citizen';
+import { CitizenNotificationListener } from '../components/citizen';
 import { useTranslation } from 'react-i18next';
 import { useResponsive } from '../utils/responsive';
 
@@ -22,7 +23,8 @@ export const CitizenNavigator: React.FC = () => {
   const iconSize = moderateScale(isSmallDevice ? 19 : 22);
 
   return (
-    <Tab.Navigator
+    <>
+      <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -84,5 +86,7 @@ export const CitizenNavigator: React.FC = () => {
         }}
       />
     </Tab.Navigator>
+    <CitizenNotificationListener />
+  </>
   );
 };

@@ -41,8 +41,13 @@ import { SupplementModal, CitizenTrackingModal } from '../../components/citizen'
 
 const isDuplicateCancellation = (reason?: string | number | null) => {
   const r = String(reason ?? '').toLowerCase();
-  return r.includes('duplicate') || r === '1';
+  return r.includes('duplicate') || r.includes('trùng') || r === '1';
 };
+
+const isConfirmedDuplicateReport = (item: IncidentResponseDto) =>
+  (item.status === IncidentStatus.Cancelled || (item.status as any) === 'Cancelled') &&
+  isDuplicateCancellation(item.cancellationReason) &&
+  Boolean(item.linkedToIncidentId);
 
 export const MyReportsScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -54,7 +59,7 @@ export const MyReportsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [supplementIncidentId, setSupplementIncidentId] = useState<string | null>(null);
-  const [trackingIncidentId, setTrackingIncidentId] = useState<string | null>(null);
+  const [trackingState, setTrackingState] = useState<{ id: string; asDuplicate: boolean } | null>(null);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const fetchIncidents = useCallback(async () => {
@@ -205,7 +210,7 @@ export const MyReportsScreen: React.FC = () => {
           <View style={[styles.statusBadge, { backgroundColor: 'rgba(99, 102, 241, 0.12)' }]}>
             <Link2 size={13} color="#6366F1" />
             <Text style={[styles.statusText, { color: '#6366F1' }]}>
-              {t('reports.status_linked', 'Đã gộp vào sự cố đang xử lý')}
+              Đang đối soát nhóm sự cố
             </Text>
           </View>
         );
@@ -316,7 +321,7 @@ export const MyReportsScreen: React.FC = () => {
   };
 
   const handleOpenTracking = (incident: IncidentResponseDto) => {
-    setTrackingIncidentId(incident.id);
+    setTrackingState({ id: incident.id, asDuplicate: false });
   };
 
   const formatDate = (iso: string) => {
@@ -418,31 +423,32 @@ export const MyReportsScreen: React.FC = () => {
                   )}
                 </View>
 
-                {/* Linked to original banner */}
-                {((item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') ||
-                  (item.status === IncidentStatus.Cancelled && isDuplicateCancellation(item.cancellationReason))) &&
-                  item.linkedToIncidentId && (
-                    <View style={styles.linkedBanner}>
-                      <Link2 size={13} color="#4F46E5" />
-                      <Text style={styles.linkedBannerText}>
-                        {item.linkedTo?.title
-                          ? `${t('reports.linked_to_original', {
-                              id: item.linkedTo?.code || item.linkedToIncidentId.slice(0, 8).toUpperCase(),
-                            })} (${item.linkedTo.title})`
-                          : t('reports.linked_to_original', {
-                              id: item.linkedTo?.code || item.linkedToIncidentId.slice(0, 8).toUpperCase(),
-                            })}
+                {/* Confirmed duplicate vs unconfirmed Linked banner */}
+                {isConfirmedDuplicateReport(item) ? (
+                  <View style={styles.linkedBanner}>
+                    <Link2 size={13} color="#4F46E5" />
+                    <Text style={styles.linkedBannerText}>
+                      {item.linkedTo?.code || item.linkedTo?.title
+                        ? `Báo cáo của bạn trùng với sự cố ${item.linkedTo?.code || `#INC-${item.linkedToIncidentId!.slice(0, 8).toUpperCase()}`}${item.linkedTo?.title ? ` (${item.linkedTo.title})` : ''} đang được xử lý.`
+                        : 'Báo cáo của bạn trùng với sự cố đang được xử lý.'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setTrackingState({ id: item.linkedToIncidentId!, asDuplicate: true })}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.linkedBannerLink}>
+                        Xem chi tiết & Theo dõi
                       </Text>
-                      <TouchableOpacity
-                        onPress={() => setTrackingIncidentId(item.linkedToIncidentId!)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={styles.linkedBannerLink}>
-                          {t('reports.btn_track_original', 'Xem sự cố gốc')}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') ? (
+                  <View style={[styles.linkedBanner, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+                    <Clock size={13} color="#6366F1" />
+                    <Text style={[styles.linkedBannerText, { color: '#475569' }]}>
+                      Trung tâm đang đối soát báo cáo với các sự cố lân cận. Chạm &ldquo;Đây là sự cố khác&rdquo; nếu không trùng hiện trường.
+                    </Text>
+                  </View>
+                ) : null}
 
                 {/* Actions row: Tracking / Unlink / Supplement */}
                 <View style={styles.actionsContainer}>
@@ -451,7 +457,7 @@ export const MyReportsScreen: React.FC = () => {
                     <TouchableOpacity
                       style={styles.trackingBtn}
                       activeOpacity={0.8}
-                      onPress={() => handleOpenTracking(item)}
+                      onPress={() => setTrackingState({ id: item.id, asDuplicate: false })}
                     >
                       <Navigation size={13} color="#FFFFFF" />
                       <Text style={styles.trackingBtnText}>
@@ -513,16 +519,18 @@ export const MyReportsScreen: React.FC = () => {
 
       {/* Incident Tracking Modal (Xem sự cố gốc & theo dõi xe cứu hộ tại chỗ) */}
       <CitizenTrackingModal
-        visible={Boolean(trackingIncidentId)}
-        incidentId={trackingIncidentId}
-        onClose={() => setTrackingIncidentId(null)}
+        visible={Boolean(trackingState)}
+        incidentId={trackingState?.id || null}
+        asDuplicateReporter={Boolean(trackingState?.asDuplicate)}
+        onClose={() => setTrackingState(null)}
         onOpenSupplement={(id) => {
-          setTrackingIncidentId(null);
+          setTrackingState(null);
           setSupplementIncidentId(id);
         }}
         onOpenMap={(id) => {
-          setTrackingIncidentId(null);
-          navigation.navigate('SafetyMapTab', { trackingIncidentId: id });
+          const isDup = Boolean(trackingState?.asDuplicate);
+          setTrackingState(null);
+          navigation.navigate('SafetyMapTab', { trackingIncidentId: id, asDuplicateReporter: isDup });
         }}
       />
 

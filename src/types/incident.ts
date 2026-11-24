@@ -102,6 +102,7 @@ export interface IncidentResponseDto {
   linkedTo?: LinkedToIncidentDto | null;
   cancellationReason?: string | null;
   guestCancellationToken?: string | null;
+  viewedAsDuplicateReporter?: boolean;
 }
 
 export interface PaginatedResultDto<T> {

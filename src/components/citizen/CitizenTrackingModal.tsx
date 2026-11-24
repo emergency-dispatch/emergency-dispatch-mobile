@@ -21,14 +21,18 @@ import {
   PlusCircle,
   ExternalLink,
   RefreshCw,
+  FileText,
+  Sparkles,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { incidentService } from '../../services/incident.service';
-import type { CitizenTracking } from '../../types/incident';
+import { mobileTrackingHub, mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
+import type { CitizenTracking, IncidentResponseDto } from '../../types/incident';
 
 export interface CitizenTrackingModalProps {
   visible: boolean;
   incidentId: string | null;
+  asDuplicateReporter?: boolean;
   onClose: () => void;
   onOpenSupplement?: (incidentId: string) => void;
   onOpenMap?: (incidentId: string) => void;
@@ -37,6 +41,7 @@ export interface CitizenTrackingModalProps {
 export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
   visible,
   incidentId,
+  asDuplicateReporter = false,
   onClose,
   onOpenSupplement,
   onOpenMap,
@@ -44,10 +49,13 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
   const { t } = useTranslation();
 
   const [tracking, setTracking] = useState<CitizenTracking | null>(null);
+  const [incidentDetail, setIncidentDetail] = useState<IncidentResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isForbidden, setIsForbidden] = useState<boolean>(false);
   const stopPollingRef = useRef<boolean>(false);
+
+  const isDuplicateView = Boolean(asDuplicateReporter || incidentDetail?.viewedAsDuplicateReporter);
 
   const fetchTracking = useCallback(
     async (isSilent = false) => {
@@ -55,27 +63,41 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
 
       try {
         if (!isSilent) setIsLoading(true);
-        const data = await incidentService.getTracking(incidentId);
-        if (data) {
-          setTracking(data);
-          setErrorMsg(null);
+        const [detailRes, trackRes] = await Promise.allSettled([
+          incidentService.getIncidentById(incidentId),
+          incidentService.getTracking(incidentId),
+        ]);
+
+        if (detailRes.status === 'fulfilled' && detailRes.value) {
+          setIncidentDetail(detailRes.value);
           setIsForbidden(false);
         }
-      } catch (err: any) {
-        const status = err?.response?.status || err?.status;
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Chưa thể lấy thông tin điều phối xe cứu hộ.';
 
-        if (status === 403 || msg.includes('403') || msg.toLowerCase().includes('không có quyền')) {
-          stopPollingRef.current = true;
-          setIsForbidden(true);
-          setErrorMsg(
-            'Máy chủ đang giới hạn quyền theo dõi trực tiếp sự cố gốc này (Backend chưa phân quyền cho tài khoản báo trùng).'
-          );
-        } else if (!isSilent) {
-          setErrorMsg(msg);
+        if (trackRes.status === 'fulfilled' && trackRes.value) {
+          setTracking(trackRes.value);
+          setErrorMsg(null);
+          setIsForbidden(false);
+        } else if (trackRes.status === 'rejected') {
+          const err: any = trackRes.reason;
+          const status = err?.response?.status || err?.status;
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Chưa thể lấy thông tin điều phối xe cứu hộ.';
+
+          if (status === 403 || msg.includes('403') || msg.toLowerCase().includes('không có quyền')) {
+            stopPollingRef.current = true;
+            setIsForbidden(true);
+            setErrorMsg(
+              'Báo cáo chưa được điều phối viên xác nhận trùng nên chưa thể xem sự cố gốc.'
+            );
+          } else if (detailRes.status === 'fulfilled' && detailRes.value) {
+            // Sự cố gốc hợp lệ (đã xác nhận trùng hoặc của mình), chỉ là chưa có xe nhận lệnh
+            setTracking(null);
+            setErrorMsg(null);
+          } else if (!isSilent) {
+            setErrorMsg(msg);
+          }
         }
       } finally {
         if (!isSilent) setIsLoading(false);
@@ -95,11 +117,61 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
         if (!stopPollingRef.current) {
           fetchTracking(true);
         }
-      }, 5000);
+      }, 3000);
 
-      return () => clearInterval(interval);
+      let isSubscribed = false;
+      const subscribeSignalR = async () => {
+        try {
+          await mobileTrackingHub.start();
+          await mobileTrackingHub.invoke('SubscribeIncident', incidentId);
+          isSubscribed = true;
+        } catch {
+          // polling fallback active
+        }
+        mobileIncidentHub
+          .start()
+          .then((ok) => {
+            if (ok) mobileIncidentHub.invoke('SubscribeIncident', incidentId).catch(() => {});
+          })
+          .catch(() => {});
+      };
+      subscribeSignalR();
+
+      const unsubReconnect = mobileTrackingHub.onReconnected(() => {
+        mobileTrackingHub.invoke('SubscribeIncident', incidentId).catch(() => {});
+        fetchTracking(true);
+      });
+      const unsubIncReconnect = mobileIncidentHub.onReconnected(() => {
+        mobileIncidentHub.invoke('SubscribeIncident', incidentId).catch(() => {});
+        fetchTracking(true);
+      });
+      const unsubLocation = mobileTrackingHub.on(MobileHubEvents.ReceiveRescueUnitLocation, (msg: any) => {
+        const targetId = msg?.incidentId || msg?.IncidentId;
+        if (targetId && targetId.toLowerCase() !== incidentId.toLowerCase()) return;
+        const lat = msg?.latitude ?? msg?.Latitude;
+        const lng = msg?.longitude ?? msg?.Longitude;
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          setTracking((prev) => (prev ? { ...prev, vehicleLat: lat, vehicleLng: lng } : prev));
+        }
+      });
+      const unsubAssign = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, () => fetchTracking(true));
+      const unsubInc = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentStatus, () => fetchTracking(true));
+
+      return () => {
+        clearInterval(interval);
+        if (isSubscribed) {
+          mobileTrackingHub.invoke('UnsubscribeIncident', incidentId).catch(() => {});
+          mobileIncidentHub.invoke('UnsubscribeIncident', incidentId).catch(() => {});
+        }
+        unsubReconnect();
+        unsubIncReconnect();
+        unsubLocation();
+        unsubAssign();
+        unsubInc();
+      };
     } else {
       setTracking(null);
+      setIncidentDetail(null);
       setIsLoading(true);
       setErrorMsg(null);
       setIsForbidden(false);
@@ -109,7 +181,14 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
 
   if (!visible || !incidentId) return null;
 
-  const incidentCode = `#INC-${incidentId.slice(0, 8).toUpperCase()}`;
+  const incidentCode = incidentDetail?.code || `#INC-${incidentId.slice(0, 8).toUpperCase()}`;
+
+  const getSeverityText = (sev?: string | number | null) => {
+    if (sev === 'Level3' || sev === 3) return 'Cấp 3 • Nghiêm trọng';
+    if (sev === 'Level2' || sev === 2) return 'Cấp 2 • Cao';
+    if (sev === 'Level1' || sev === 1) return 'Cấp 1 • Thấp';
+    return 'Đang phân loại';
+  };
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -174,14 +253,14 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {isLoading && !tracking ? (
+            {isLoading && !tracking && !incidentDetail ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator size="large" color="#DC2626" />
                 <Text style={styles.loadingText}>
                   {t('reports.loading_tracking', 'Đang tải thông tin xe cứu hộ...')}
                 </Text>
               </View>
-            ) : errorMsg && !tracking ? (
+            ) : errorMsg && !tracking && !incidentDetail ? (
               <View style={styles.errorWrap}>
                 <AlertTriangle size={24} color={isForbidden ? '#D97706' : '#DC2626'} />
                 <Text style={[styles.errorTitle, isForbidden && { color: '#B45309' }]}>
@@ -221,72 +300,124 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
                   </View>
                 )}
 
-                {/* Hero Telemetry Status Box */}
-                <View style={styles.heroStatusBox}>
-                  <View style={styles.heroStatusRow}>
-                    <Text style={styles.heroStatusLabel}>TIẾN ĐỘ ỨNG CỨU</Text>
-                    <View
-                      style={[
-                        styles.heroStatusBadge,
-                        { backgroundColor: statusBadge.bg, borderColor: statusBadge.border },
-                      ]}
-                    >
-                      <Text style={[styles.heroStatusBadgeText, { color: statusBadge.text }]}>
-                        {statusBadge.label}
+                {/* Redacted Original Incident Summary Card */}
+                {incidentDetail && (
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoCardHeader}>
+                      <FileText size={14} color="#DC2626" />
+                      <Text style={styles.infoCardTitle}>
+                        {isDuplicateView ? 'CHI TIẾT SỰ CỐ GỐC' : 'CHI TIẾT SỰ CỐ'}
                       </Text>
                     </View>
-                  </View>
-
-                  <View style={styles.heroStatsGrid}>
-                    <View style={styles.heroStatItem}>
-                      <View style={styles.heroStatLabelWrap}>
-                        <Clock size={12} color="#D97706" />
-                        <Text style={styles.heroStatLabel}>DỰ KIẾN (ETA)</Text>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Mã / Trạng thái</Text>
+                      <Text style={styles.infoValue}>
+                        {incidentDetail.code || incidentCode} • {incidentDetail.status}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Mức độ</Text>
+                      <Text style={styles.infoValue}>{getSeverityText(incidentDetail.severity)}</Text>
+                    </View>
+                    {incidentDetail.description ? (
+                      <Text style={styles.addressText}>{incidentDetail.description}</Text>
+                    ) : null}
+                    {incidentDetail.aiClassification?.summary ? (
+                      <View style={styles.warningBanner}>
+                        <Sparkles size={14} color="#7C3AED" />
+                        <Text style={[styles.warningBannerText, { color: '#5B21B6' }]}>
+                          AI: {incidentDetail.aiClassification.summary}
+                        </Text>
                       </View>
-                      <Text style={styles.heroStatValue}>
-                        ~{tracking?.estimatedArrivalMinutes || 1}{' '}
-                        <Text style={styles.heroStatUnit}>phút</Text>
+                    ) : null}
+                    {isDuplicateView && (
+                      <Text style={[styles.notesText, { fontStyle: 'italic' }]}>
+                        Thông tin cá nhân và hình ảnh của người báo gốc được bảo mật ẩn.
                       </Text>
-                    </View>
+                    )}
+                  </View>
+                )}
 
-                    <View style={styles.heroStatItem}>
-                      <View style={styles.heroStatLabelWrap}>
-                        <Navigation size={12} color="#0284C7" />
-                        <Text style={styles.heroStatLabel}>KHOẢNG CÁCH</Text>
+                {tracking ? (
+                  <>
+                    {/* Hero Telemetry Status Box */}
+                    <View style={styles.heroStatusBox}>
+                      <View style={styles.heroStatusRow}>
+                        <Text style={styles.heroStatusLabel}>TIẾN ĐỘ ỨNG CỨU</Text>
+                        <View
+                          style={[
+                            styles.heroStatusBadge,
+                            { backgroundColor: statusBadge.bg, borderColor: statusBadge.border },
+                          ]}
+                        >
+                          <Text style={[styles.heroStatusBadgeText, { color: statusBadge.text }]}>
+                            {statusBadge.label}
+                          </Text>
+                        </View>
                       </View>
-                      <Text style={[styles.heroStatValue, { color: '#0284C7' }]}>
-                        {tracking?.distanceKm ? tracking.distanceKm.toFixed(1) : '0.0'}{' '}
-                        <Text style={styles.heroStatUnit}>km</Text>
-                      </Text>
-                    </View>
-                  </View>
-                </View>
 
-                {/* Rescue Vehicle Info Card */}
-                <View style={styles.infoCard}>
-                  <View style={styles.infoCardHeader}>
-                    <Shield size={14} color="#2563EB" />
-                    <Text style={styles.infoCardTitle}>PHƯƠNG TIỆN ỨNG CỨU</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Biển số xe</Text>
-                    <Text style={styles.plateBadge}>
-                      {tracking?.plateNumber || '51C-001.12'}
+                      <View style={styles.heroStatsGrid}>
+                        <View style={styles.heroStatItem}>
+                          <View style={styles.heroStatLabelWrap}>
+                            <Clock size={12} color="#D97706" />
+                            <Text style={styles.heroStatLabel}>DỰ KIẾN (ETA)</Text>
+                          </View>
+                          <Text style={styles.heroStatValue}>
+                            ~{tracking?.estimatedArrivalMinutes || 1}{' '}
+                            <Text style={styles.heroStatUnit}>phút</Text>
+                          </Text>
+                        </View>
+
+                        <View style={styles.heroStatItem}>
+                          <View style={styles.heroStatLabelWrap}>
+                            <Navigation size={12} color="#0284C7" />
+                            <Text style={styles.heroStatLabel}>KHOẢNG CÁCH</Text>
+                          </View>
+                          <Text style={[styles.heroStatValue, { color: '#0284C7' }]}>
+                            {tracking?.distanceKm ? tracking.distanceKm.toFixed(1) : '0.0'}{' '}
+                            <Text style={styles.heroStatUnit}>km</Text>
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Rescue Vehicle Info Card */}
+                    <View style={styles.infoCard}>
+                      <View style={styles.infoCardHeader}>
+                        <Shield size={14} color="#2563EB" />
+                        <Text style={styles.infoCardTitle}>PHƯƠNG TIỆN ỨNG CỨU</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Biển số xe</Text>
+                        <Text style={styles.plateBadge}>
+                          {tracking?.plateNumber || '51C-001.12'}
+                        </Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Chủng loại</Text>
+                        <Text style={styles.infoValue}>
+                          {tracking?.unitTypeName || 'Xe cứu hộ / Chữa cháy'}
+                        </Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Đơn vị phụ trách</Text>
+                        <Text style={styles.infoValue} numberOfLines={1}>
+                          {tracking?.stationName || 'Trung tâm Chỉ huy CAD'}
+                        </Text>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoCardHeader}>
+                      <Truck size={14} color="#D97706" />
+                      <Text style={styles.infoCardTitle}>ĐIỀU PHỐI XE CỨU HỘ</Text>
+                    </View>
+                    <Text style={styles.notesText}>
+                      Chưa có tổ cứu hộ nhận lệnh. Vị trí xe và lộ trình sẽ tự động hiển thị ngay khi đội cứu hộ xác nhận xuất phát.
                     </Text>
                   </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Chủng loại</Text>
-                    <Text style={styles.infoValue}>
-                      {tracking?.unitTypeName || 'Xe cứu hộ / Chữa cháy'}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Đơn vị phụ trách</Text>
-                    <Text style={styles.infoValue} numberOfLines={1}>
-                      {tracking?.stationName || 'Trung tâm Chỉ huy CAD'}
-                    </Text>
-                  </View>
-                </View>
+                )}
 
                 {/* Incident Location Card */}
                 <View style={styles.infoCard}>
@@ -295,11 +426,11 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
                     <Text style={styles.infoCardTitle}>ĐỊA ĐIỂM SỰ CỐ</Text>
                   </View>
                   <Text style={styles.addressText} numberOfLines={3}>
-                    {tracking?.incidentAddress || 'Đang cập nhật địa chỉ...'}
+                    {tracking?.incidentAddress || incidentDetail?.locationAddress || 'Đang cập nhật địa chỉ...'}
                   </Text>
-                  {tracking?.incidentTitle ? (
+                  {(tracking?.incidentTitle || incidentDetail?.title) ? (
                     <Text style={styles.notesText} numberOfLines={2}>
-                      {tracking.incidentTitle}
+                      {tracking?.incidentTitle || incidentDetail?.title}
                     </Text>
                   ) : null}
                 </View>
@@ -310,7 +441,7 @@ export const CitizenTrackingModal: React.FC<CitizenTrackingModalProps> = ({
           {/* Action Footer */}
           <View style={styles.actionFooter}>
             <View style={styles.footerRow}>
-              {onOpenSupplement && (
+              {onOpenSupplement && !isDuplicateView && (
                 <TouchableOpacity
                   style={styles.supplementBtn}
                   onPress={() => onOpenSupplement(incidentId)}

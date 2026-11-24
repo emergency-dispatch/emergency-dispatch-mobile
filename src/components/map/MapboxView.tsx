@@ -1,5 +1,5 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useMemo } from 'react';
-import { StyleSheet, View, ActivityIndicator, Linking, Alert } from 'react-native';
+import { StyleSheet, View, Linking, Alert } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { MapMarkerItem, MAPBOX_ACCESS_TOKEN } from '../../services/mapbox.service';
 
@@ -298,8 +298,8 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   <meta charset="utf-8" />
   <title>Emergency Safety Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';document.head.appendChild(s);"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; background: #E2E8F0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -630,7 +630,19 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         maxZoom: 20,
         attribution: '&copy; OpenStreetMap'
       });
+      var osmFallbackLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      });
       var switched = false;
+      var fbSwitched = false;
+      fbLayer.on('tileerror', function() {
+        if (!fbSwitched && currentMapStyle === styleName) {
+          fbSwitched = true;
+          try { map.removeLayer(fbLayer); } catch(e) {}
+          activeTileLayer = osmFallbackLayer.addTo(map);
+        }
+      });
       mbLayer.on('tileerror', function() {
         if (!switched && currentMapStyle === styleName) {
           switched = true;
@@ -1204,7 +1216,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
     }, [htmlContent]);
 
     const webViewSource = useMemo(
-      () => ({ html: htmlContent, baseUrl: 'https://unpkg.com' }),
+      () => ({ html: htmlContent, baseUrl: 'https://api.mapbox.com' }),
       [htmlContent]
     );
 
@@ -1219,14 +1231,15 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           onMessage={handleMessage}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#DC2626" />
-            </View>
-          )}
           originWhitelist={['*']}
           mixedContentMode="always"
+          androidHardwareAccelerationDisabled={false}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          allowFileAccessFromFileURLs={true}
+          onError={(syntheticEvent: any) => {
+            console.warn('[MapboxView] WebView error:', syntheticEvent?.nativeEvent);
+          }}
           onShouldStartLoadWithRequest={(request: any) => {
             if (request.url.startsWith('tel:')) {
               Linking.openURL(request.url).catch(() => {});
@@ -1249,15 +1262,5 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#E2E8F0',
-  },
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

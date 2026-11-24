@@ -42,7 +42,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "build:apk": "eas build -p android --profile preview",
+    "build:ios:sim": "eas build -p ios --profile preview"
   },
   "private": true
 }

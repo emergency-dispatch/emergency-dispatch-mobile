@@ -24,10 +24,7 @@ import {
   ArrowRight,
   Sparkles,
   Phone,
-  User,
-  Truck,
   ShieldCheck,
-  Zap,
   Languages,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +36,6 @@ import { Button } from '../../components/common/Button';
 import { LanguageSelectorModal } from '../../components/common/LanguageSelectorModal';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore, mapBackendUser } from '../../store/useAppStore';
-import { UserRole } from '../../types/models';
 import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useResponsive } from '../../utils/responsive';
@@ -206,38 +202,6 @@ export const LoginScreen: React.FC = () => {
         error.response?.data?.message ||
         error.message ||
         'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin hoặc kết nối mạng.';
-      Alert.alert('Đăng nhập thất bại', errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Quick Fast-Login helper for testing (fills valid credentials and calls real BE API)
-  const handleFastLogin = async (role: UserRole) => {
-    const testEmail =
-      role === 'staff'
-        ? 'staff@emergencydispatch.com'
-        : 'citizen@emergencydispatch.com';
-    const testPassword = role === 'staff' ? 'Staff@123456' : 'Citizen@123456';
-
-    setAccount(testEmail);
-    setPassword(testPassword);
-    setErrors({});
-    setIsLoading(true);
-
-    try {
-      const authData = await authService.login({
-        email: testEmail,
-        password: testPassword,
-      });
-      const mappedUser = mapBackendUser(authData.user);
-      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
-      (navigation as any).navigate('Main');
-    } catch (error: any) {
-      const errorMsg =
-        error.response?.data?.message ||
-        error.message ||
-        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra xem Backend đã khởi động chưa.';
       Alert.alert('Đăng nhập thất bại', errorMsg);
     } finally {
       setIsLoading(false);
@@ -423,34 +387,6 @@ export const LoginScreen: React.FC = () => {
               style={styles.loginBtn}
               textStyle={styles.loginBtnText}
             />
-
-            {/* 2. Fast Demo Role Switcher Quick Access (For direct reviewer & developer testing) */}
-            <View style={styles.demoBox}>
-              <View style={styles.demoHeader}>
-                <Zap size={moderateScale(13)} color="#F59E0B" />
-                <Text style={styles.demoHeaderText}>{t('auth.demo_header')}</Text>
-              </View>
-
-              <View style={styles.demoButtonsRow}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.demoBtnCitizen}
-                  onPress={() => handleFastLogin('citizen')}
-                >
-                  <User size={moderateScale(14)} color="#DC2626" />
-                  <Text style={styles.demoBtnCitizenText}>{t('auth.demo_citizen_btn')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.demoBtnStaff}
-                  onPress={() => handleFastLogin('staff')}
-                >
-                  <Truck size={moderateScale(14)} color="#DC2626" />
-                  <Text style={styles.demoBtnStaffText}>{t('auth.demo_staff_btn')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
 
             {/* Social Logins */}
             <SocialAuthButtons
@@ -690,63 +626,6 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     fontWeight: '800',
     letterSpacing: 0.3,
-  },
-  demoBox: {
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  demoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  demoHeaderText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#B45309',
-    letterSpacing: 0.4,
-  },
-  demoButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  demoBtnCitizen: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 9,
-    borderRadius: 10,
-    gap: 6,
-  },
-  demoBtnCitizenText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-  demoBtnStaff: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 9,
-    borderRadius: 10,
-    gap: 6,
-  },
-  demoBtnStaffText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#DC2626',
   },
   footer: {
     flexDirection: 'row',

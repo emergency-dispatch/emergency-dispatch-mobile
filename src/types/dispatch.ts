@@ -186,6 +186,7 @@ export interface CompletionReportDto {
 export interface DispatchAssignmentResponseDto {
   id: string;
   incidentId: string;
+  incidentCode?: string;
   rescueUnitId: string;
   status: BackendDispatchStatus;
   dispatchedAt: string;
@@ -276,7 +277,7 @@ export const mapAssignmentToIncident = (dto: DispatchAssignmentResponseDto): Eme
     id: dto.incidentId || dto.id,
     assignmentId: dto.id,
     backendStatus: dto.status,
-    code: `#${(dto.incidentId || dto.id).slice(0, 8).toUpperCase()}`,
+    code: dto.incidentCode || `#${(dto.incidentId || dto.id).slice(0, 8).toUpperCase()}`,
     severity:
       dto.incidentSeverity === 'Level3'
         ? 'code_red'

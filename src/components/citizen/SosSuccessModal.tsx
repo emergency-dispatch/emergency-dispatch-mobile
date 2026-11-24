@@ -130,7 +130,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 
   const isLinked = Boolean(incident?.linkedTo);
   const incidentCode = incident
-    ? `#${incident.id.slice(0, 8).toUpperCase()}`
+    ? (incident.code || `#${incident.id.slice(0, 8).toUpperCase()}`)
     : `#SOS-${(Date.now() % 100000).toString()}`;
 
   return (
@@ -335,6 +335,7 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
           visible={isSupplementOpen}
           onClose={() => setIsSupplementOpen(false)}
           incidentId={incident.id}
+          incidentCode={incident.code}
           guestCancellationToken={incident.guestCancellationToken}
         />
       )}

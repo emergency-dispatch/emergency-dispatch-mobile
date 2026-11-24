@@ -580,6 +580,7 @@ export const MyReportsScreen: React.FC = () => {
           visible={Boolean(supplementIncidentId)}
           onClose={() => setSupplementIncidentId(null)}
           incidentId={supplementIncidentId}
+          incidentCode={incidents.find((i) => i.id === supplementIncidentId)?.code}
         />
       )}
 

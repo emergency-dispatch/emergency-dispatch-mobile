@@ -139,7 +139,7 @@ export const StaffDashboardScreen: React.FC = () => {
   // Convert completed assignments to RecentMissions
   const missionsList: MissionItem[] = completedAssignments.map((a) => ({
     id: a.id,
-    code: `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
+    code: a.incidentCode || `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
     type: 'traffic_accident',
     title: a.incidentTitle || 'Nhiệm vụ cứu hộ khẩn cấp',
     severity: a.incidentSeverity === 'Level3' ? 'critical' : 'urgent',

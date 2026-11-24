@@ -35,6 +35,7 @@ interface SupplementModalProps {
   visible: boolean;
   onClose: () => void;
   incidentId: string;
+  incidentCode?: string | null;
   guestCancellationToken?: string | null;
   onSuccess?: () => void;
 }
@@ -43,6 +44,7 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
   visible,
   onClose,
   incidentId,
+  incidentCode,
   guestCancellationToken,
   onSuccess,
 }) => {
@@ -204,7 +206,7 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
               <View>
                 <Text style={styles.title}>BỔ SUNG THÔNG TIN HIỆN TRƯỜNG</Text>
                 <Text style={styles.subtitle}>
-                  Sự cố #{incidentId ? incidentId.slice(0, 8).toUpperCase() : ''}
+                  Sự cố {incidentCode || (incidentId ? `#${incidentId.slice(0, 8).toUpperCase()}` : '')}
                 </Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

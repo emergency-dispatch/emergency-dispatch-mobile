@@ -179,6 +179,7 @@ export interface TrackedUnitDto {
 
 export interface CitizenTracking {
   incidentId: string;
+  incidentCode?: string;
   incidentTitle: string;
   incidentAddress: string;
   incidentLat: number;

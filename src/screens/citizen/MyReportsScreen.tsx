@@ -7,7 +7,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
   Modal,
   Linking,
 } from 'react-native';
@@ -27,7 +26,6 @@ import {
   PhoneCall,
   X,
   Link2,
-  Split,
   PlusCircle,
 } from 'lucide-react-native';
 import { incidentService } from '../../services/incident.service';
@@ -36,8 +34,9 @@ import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { storage } from '../../services/storage';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
-import { SupplementModal, CitizenTrackingModal } from '../../components/citizen';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
+import { SupplementModal, CitizenTrackingModal, AudioAttachmentCard } from '../../components/citizen';
 
 const isDuplicateCancellation = (reason?: string | number | null) => {
   const r = String(reason ?? '').toLowerCase();
@@ -60,10 +59,8 @@ const formatReportDate = (iso: string) => {
 
 interface ReportCardProps {
   item: IncidentResponseDto;
-  isUnlinking: boolean;
   onTrack: (item: IncidentResponseDto) => void;
   onTrackDuplicate: (parentId: string) => void;
-  onUnlink: (id: string) => void;
   onSupplement: (id: string) => void;
   getStatusBadge: (status: IncidentStatus) => React.ReactNode;
   getLocalizedTitle: (incident: IncidentResponseDto, rawTitle?: string) => string;
@@ -74,10 +71,8 @@ interface ReportCardProps {
 const ReportCard = React.memo<ReportCardProps>(
   ({
     item,
-    isUnlinking,
     onTrack,
     onTrackDuplicate,
-    onUnlink,
     onSupplement,
     getStatusBadge,
     getLocalizedTitle,
@@ -87,7 +82,13 @@ const ReportCard = React.memo<ReportCardProps>(
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.itemCode}>{item.code || `#${item.id.slice(0, 8).toUpperCase()}`}</Text>
-        <View style={styles.headerBadges}>{getStatusBadge(item.status)}</View>
+        <View style={styles.headerBadges}>
+          {getStatusBadge(
+            isConfirmedDuplicateReport(item) && item.linkedTo?.status
+              ? (item.linkedTo.status as IncidentStatus)
+              : item.status
+          )}
+        </View>
       </View>
 
       <Text style={styles.itemType}>{getLocalizedTitle(item, item.title)}</Text>
@@ -128,40 +129,76 @@ const ReportCard = React.memo<ReportCardProps>(
             <Calendar size={12} color="#94A3B8" />
             <Text style={styles.metaText}>{formatReportDate(item.createdAt)}</Text>
           </View>
-          {item.mediaItems && item.mediaItems.length > 0 && (
-            <View style={styles.metaItem}>
-              <ImageIcon size={12} color="#0284C7" />
-              <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
-                {t('reports.images_count', { count: item.mediaItems.length })}
-              </Text>
-            </View>
-          )}
+          {(() => {
+            const mediaList = item.mediaItems || [];
+            const visualMedia = mediaList.filter(
+              (m) => String(m.mediaType) !== 'Audio' && (m.mediaType as any) !== 2
+            );
+            const audioMedia = mediaList.filter(
+              (m) => String(m.mediaType) === 'Audio' || (m.mediaType as any) === 2
+            );
+            return (
+              <>
+                {visualMedia.length > 0 && (
+                  <View style={styles.metaItem}>
+                    <ImageIcon size={12} color="#0284C7" />
+                    <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
+                      {t('reports.images_count', { count: visualMedia.length })}
+                    </Text>
+                  </View>
+                )}
+                {audioMedia.length > 0 && (
+                  <View style={{ width: '100%', marginTop: 8, gap: 6 }}>
+                    {audioMedia.map((aud) => (
+                      <AudioAttachmentCard
+                        key={aud.id}
+                        compact
+                        durationSeconds={aud.durationSeconds}
+                        transcript={aud.transcript}
+                        transcriptionStatus={aud.transcriptionStatus}
+                        resolvePlaybackUrl={() => incidentService.getAudioPlaybackUrl(item.id, aud.id)}
+                      />
+                    ))}
+                  </View>
+                )}
+              </>
+            );
+          })()}
         </View>
 
-        {/* Confirmed duplicate vs unconfirmed Linked banner */}
-        {isConfirmedDuplicateReport(item) ? (
-          <View style={styles.linkedBanner}>
-            <Link2 size={13} color="#4F46E5" />
-            <Text style={styles.linkedBannerText}>
-              {item.linkedTo?.code || item.linkedTo?.title
-                ? `Báo cáo của bạn trùng với sự cố ${item.linkedTo?.code || `#INC-${item.linkedToIncidentId!.slice(0, 8).toUpperCase()}`}${item.linkedTo?.title ? ` (${item.linkedTo.title})` : ''} đang được xử lý.`
-                : 'Báo cáo của bạn trùng với sự cố đang được xử lý.'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => onTrackDuplicate(item.linkedToIncidentId!)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        {/* Confirmed duplicate notice (only after Operator confirms) */}
+        {isConfirmedDuplicateReport(item) ? (() => {
+          const parentStatus = item.linkedTo?.status as string | undefined;
+          const codeTag = item.linkedTo?.code ? ` ${item.linkedTo.code}` : '';
+          const isParentCompleted = parentStatus === 'Completed' || parentStatus === IncidentStatus.Completed;
+          const isParentCancelled = parentStatus === 'Cancelled' || parentStatus === IncidentStatus.Cancelled;
+          const isParentClosed = isParentCompleted || isParentCancelled;
+          return (
+            <View
+              style={[
+                styles.linkedBanner,
+                isParentClosed ? { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' } : null,
+              ]}
             >
-              <Text style={styles.linkedBannerLink}>Xem chi tiết &amp; Theo dõi</Text>
-            </TouchableOpacity>
-          </View>
-        ) : item.status === IncidentStatus.Linked || (item.status as any) === 'Linked' ? (
-          <View style={[styles.linkedBanner, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-            <Clock size={13} color="#6366F1" />
-            <Text style={[styles.linkedBannerText, { color: '#475569' }]}>
-              Trung tâm đang đối soát báo cáo với các sự cố lân cận. Chạm &ldquo;Đây là sự cố khác&rdquo; nếu không trùng hiện trường.
-            </Text>
-          </View>
-        ) : null}
+              <Link2 size={13} color={isParentClosed ? '#64748B' : '#4F46E5'} />
+              <Text style={[styles.linkedBannerText, isParentClosed ? { color: '#475569' } : null]}>
+                {isParentCompleted
+                  ? t('reports.duplicate_confirmed_completed', { code: codeTag })
+                  : isParentCancelled
+                  ? t('reports.duplicate_confirmed_cancelled', { code: codeTag })
+                  : t('reports.duplicate_confirmed_active', { code: codeTag })}
+              </Text>
+              {!isParentClosed && (
+                <TouchableOpacity
+                  onPress={() => onTrackDuplicate(item.linkedToIncidentId!)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.linkedBannerLink}>{t('reports.view_details_track', 'View details & Track')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })() : null}
 
         {/* Actions row */}
         <View style={styles.actionsContainer}>
@@ -176,26 +213,6 @@ const ReportCard = React.memo<ReportCardProps>(
               <Text style={styles.trackingBtnText}>
                 {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
               </Text>
-            </TouchableOpacity>
-          )}
-
-          {(item.status === IncidentStatus.Linked || (item.status as any) === 'Linked') && (
-            <TouchableOpacity
-              style={styles.unlinkBtn}
-              activeOpacity={0.8}
-              onPress={() => onUnlink(item.id)}
-              disabled={isUnlinking}
-            >
-              {isUnlinking ? (
-                <ActivityIndicator size="small" color="#DC2626" />
-              ) : (
-                <>
-                  <Split size={13} color="#DC2626" />
-                  <Text style={styles.unlinkBtnText}>
-                    {t('reports.btn_unlink', 'Đây là sự cố khác')}
-                  </Text>
-                </>
-              )}
             </TouchableOpacity>
           )}
 
@@ -229,7 +246,6 @@ export const MyReportsScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [supplementIncidentId, setSupplementIncidentId] = useState<string | null>(null);
   const [trackingState, setTrackingState] = useState<{ id: string; asDuplicate: boolean } | null>(null);
-  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const fetchIncidents = useCallback(async () => {
     try {
@@ -304,6 +320,7 @@ export const MyReportsScreen: React.FC = () => {
                     items[idx] = {
                       ...items[idx],
                       linkedToIncidentId: d.linkedToIncidentId,
+                      linkedTo: (d as any).linkedTo || items[idx].linkedTo,
                       cancellationReason: d.cancellationReason || items[idx].cancellationReason,
                     };
                   }
@@ -339,50 +356,71 @@ export const MyReportsScreen: React.FC = () => {
     fetchIncidents();
   }, [fetchIncidents]);
 
+  const watchIdsKey = Array.from(
+    new Set(incidents.flatMap((i) => [i.id, i.linkedToIncidentId].filter(Boolean) as string[]))
+  )
+    .sort()
+    .join(',');
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchIncidents();
+      if (!isAuthenticated) return;
+      const watchIds = watchIdsKey ? watchIdsKey.split(',').filter(Boolean) : [];
+      const watchSet = new Set(watchIds.map((id) => id.toLowerCase()));
+      let subscribed = false;
+
+      const subscribeAll = async () => {
+        try {
+          await mobileIncidentHub.start();
+          for (const id of watchIds) {
+            await mobileIncidentHub.invoke('SubscribeIncident', id).catch(() => {});
+          }
+          subscribed = true;
+        } catch {
+          // ignore
+        }
+      };
+      void subscribeAll();
+
+      const syncNow = () => {
+        fetchIncidents();
+      };
+      const u1 = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentStatus, syncNow);
+      const u2 = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentUpdate, syncNow);
+      const u3 = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, syncNow);
+      const u4 = mobileIncidentHub.on(MobileHubEvents.ReceiveNotification, (notif: any) => {
+        const targetId = String(notif?.incidentId || notif?.IncidentId || '').toLowerCase();
+        if (!targetId || watchSet.has(targetId)) {
+          syncNow();
+        }
+      });
+      const u5 = mobileIncidentHub.onReconnected(() => {
+        void subscribeAll();
+        syncNow();
+      });
+      return () => {
+        if (subscribed) {
+          watchIds.forEach((id) => {
+            mobileIncidentHub.invoke('UnsubscribeIncident', id).catch(() => {});
+          });
+        }
+        u1();
+        u2();
+        u3();
+        u4();
+        u5();
+      };
+    }, [fetchIncidents, isAuthenticated, watchIdsKey])
+  );
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchIncidents();
   };
 
-  const handleUnlink = (incidentId: string) => {
-    Alert.alert(
-      t('reports.unlink_confirm_title', 'Tách báo cáo này?'),
-      t('reports.unlink_confirm_desc', 'Báo cáo sẽ được chuyển về hàng đợi để điều phối viên xử lý độc lập.'),
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xác nhận tách',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setUnlinkingId(incidentId);
-              const guestToken = await storage.getItem<string>('GUEST_CANCEL_TOKEN_' + incidentId);
-              await incidentService.unlinkIncident(incidentId, undefined, guestToken || undefined);
-              Alert.alert('Thành công', t('reports.unlink_success', 'Đã tách báo cáo.'));
-              fetchIncidents();
-            } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể tách báo cáo.');
-            } finally {
-              setUnlinkingId(null);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const getStatusBadge = (status: IncidentStatus) => {
     switch (status) {
-      case IncidentStatus.Linked:
-      case 'Linked' as any:
-        return (
-          <View style={[styles.statusBadge, { backgroundColor: 'rgba(99, 102, 241, 0.12)' }]}>
-            <Link2 size={13} color="#6366F1" />
-            <Text style={[styles.statusText, { color: '#6366F1' }]}>
-              Đang đối soát nhóm sự cố
-            </Text>
-          </View>
-        );
       case IncidentStatus.Cancelled:
         return (
           <View style={[styles.statusBadge, { backgroundColor: '#F1F5F9' }]}>
@@ -412,6 +450,8 @@ export const MyReportsScreen: React.FC = () => {
             <Text style={[styles.statusText, { color: '#0284C7' }]}>{t('reports.status_verified')}</Text>
           </View>
         );
+      case IncidentStatus.Linked:
+      case 'Linked' as any:
       default:
         return (
           <View style={[styles.statusBadge, styles.statusPending]}>
@@ -428,15 +468,15 @@ export const MyReportsScreen: React.FC = () => {
     const eventType = incident?.eventType || (isAiSuccess ? incident?.aiClassification?.eventType : null);
     const aiType = isAiSuccess ? incident?.aiClassification?.incidentType : null;
     if (eventType === 'FireExplosion' || aiType === 'fire') {
-      return '🔥 Hỏa Hoạn / Cháy Nổ';
+      return '🔥 ' + t('reports.fire_hazard', 'Sự Cố Hỏa Hoạn');
     }
     if (eventType === 'TrafficAccident' || aiType === 'accident') {
-      return '🚗 Tai Nạn Giao Thông';
+      return '🚗 ' + t('reports.accident_hazard', 'Tai Nạn Giao Thông');
     }
 
     const title = incident?.title || rawTitle;
     if (!title || title.includes('Tín hiệu') || title.includes('SOS')) {
-      return '🚨 Tín Hiệu SOS';
+      return '🚨 ' + t('reports.sos_signal', 'Tín Hiệu SOS');
     }
     const lower = title.toLowerCase();
     if (lower.includes('hỏa hoạn') || lower.includes('cháy') || lower.includes('fire')) {
@@ -490,12 +530,27 @@ export const MyReportsScreen: React.FC = () => {
   };
 
   const handleOpenTracking = useCallback((incident: IncidentResponseDto) => {
+    if (incident.status === IncidentStatus.Completed || incident.status === IncidentStatus.Cancelled) {
+      return;
+    }
     setTrackingState({ id: incident.id, asDuplicate: false });
   }, []);
 
-  const handleTrackDuplicate = useCallback((parentId: string) => {
-    setTrackingState({ id: parentId, asDuplicate: true });
-  }, []);
+  const handleTrackDuplicate = useCallback(
+    async (parentId: string) => {
+      try {
+        const detail = await incidentService.getIncidentById(parentId);
+        if (detail?.status === 'Completed' || detail?.status === 'Cancelled') {
+          fetchIncidents();
+          return;
+        }
+      } catch {
+        // Fallback to modal guard if offline hiccup
+      }
+      setTrackingState({ id: parentId, asDuplicate: true });
+    },
+    [fetchIncidents]
+  );
 
   const handleSupplementOpen = useCallback((id: string) => {
     setSupplementIncidentId(id);
@@ -505,10 +560,8 @@ export const MyReportsScreen: React.FC = () => {
     ({ item }: { item: IncidentResponseDto }) => (
       <ReportCard
         item={item}
-        isUnlinking={unlinkingId === item.id}
         onTrack={handleOpenTracking}
         onTrackDuplicate={handleTrackDuplicate}
-        onUnlink={handleUnlink}
         onSupplement={handleSupplementOpen}
         getStatusBadge={getStatusBadge}
         getLocalizedTitle={getLocalizedTitle}
@@ -516,7 +569,7 @@ export const MyReportsScreen: React.FC = () => {
         t={t}
       />
     ),
-    [unlinkingId, handleOpenTracking, handleTrackDuplicate, handleSupplementOpen, t]
+    [handleOpenTracking, handleTrackDuplicate, handleSupplementOpen, t]
   );
 
   const formatDate = (iso: string) => {
@@ -1020,23 +1073,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
-  },
-  unlinkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    gap: 5,
-  },
-  unlinkBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
   },
   supplementBtn: {
     flexDirection: 'row',

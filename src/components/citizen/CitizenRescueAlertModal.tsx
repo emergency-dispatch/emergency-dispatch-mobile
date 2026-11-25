@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { BellRing, CheckCircle2, Navigation, Truck, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export interface MobileRescueAlertPayload {
   id: string;
@@ -56,6 +57,8 @@ export const CitizenRescueAlertModal: React.FC<CitizenRescueAlertModalProps> = (
   onTrack,
   onDismiss,
 }) => {
+  const { i18n } = useTranslation();
+  const isVi = (i18n.language || 'vi').startsWith('vi');
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -123,7 +126,9 @@ export const CitizenRescueAlertModal: React.FC<CitizenRescueAlertModalProps> = (
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.eyebrow}>
-                  {isDuplicate ? 'CẬP NHẬT ĐỐI SOÁT SỰ CỐ' : 'THÔNG BÁO ĐIỀU PHỐI KHẨN'}
+                  {isDuplicate
+                    ? (isVi ? 'THÔNG BÁO SỰ CỐ' : 'INCIDENT NOTICE')
+                    : (isVi ? 'THÔNG BÁO ĐIỀU PHỐI KHẨN' : 'EMERGENCY DISPATCH')}
                 </Text>
                 <Text style={styles.title} numberOfLines={2}>
                   {alert.title}
@@ -142,21 +147,23 @@ export const CitizenRescueAlertModal: React.FC<CitizenRescueAlertModalProps> = (
                 color={isDuplicate ? '#4F46E5' : '#059669'}
                 style={{ marginTop: 1 }}
               />
-              <Text style={styles.messageText}>{alert.message}</Text>
+              <Text style={styles.messageText}>{alert.message.replace(/^\s*\[[^\]]+\]\s*/, '')}</Text>
             </View>
 
             {(alert.plateNumber || alert.stationName) && (
               <View style={styles.metaGrid}>
                 {alert.plateNumber && (
-                  <View style={styles.metaBox}>
-                    <Text style={styles.metaLabel}>PHƯƠNG TIỆN</Text>
-                    <Text style={styles.metaValue}>{alert.plateNumber}</Text>
+                  <View style={[styles.metaRow, styles.metaRowHighlight]}>
+                    <Text style={styles.metaLabel}>{isVi ? 'PHƯƠNG TIỆN' : 'VEHICLE'}</Text>
+                    <View style={styles.platePill}>
+                      <Text style={styles.plateText}>{alert.plateNumber}</Text>
+                    </View>
                   </View>
                 )}
                 {alert.stationName && (
-                  <View style={styles.metaBox}>
-                    <Text style={styles.metaLabel}>ĐƠN VỊ ỨNG CỨU</Text>
-                    <Text style={styles.metaValue} numberOfLines={1}>
+                  <View style={[styles.metaRow, alert.plateNumber ? styles.metaRowBorder : null]}>
+                    <Text style={styles.metaLabel}>{isVi ? 'ĐƠN VỊ ỨNG CỨU' : 'RESCUE UNIT'}</Text>
+                    <Text style={styles.metaValue} numberOfLines={2}>
                       {alert.stationName}
                     </Text>
                   </View>
@@ -176,11 +183,11 @@ export const CitizenRescueAlertModal: React.FC<CitizenRescueAlertModalProps> = (
                   }}
                 >
                   <Navigation size={15} color="#FFFFFF" />
-                  <Text style={styles.trackBtnText}>Theo dõi ngay</Text>
+                  <Text style={styles.trackBtnText}>{isVi ? 'Theo dõi ngay' : 'Track now'}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.dismissBtn} activeOpacity={0.8} onPress={onDismiss}>
-                <Text style={styles.dismissBtnText}>Đã hiểu</Text>
+                <Text style={styles.dismissBtnText}>{isVi ? 'Đã hiểu' : 'Got it'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -221,7 +228,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 15,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
   },
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     flex: 1,
   },
@@ -244,6 +251,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   eyebrow: {
     fontSize: 10,
@@ -253,6 +261,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: '800',
     color: '#FFFFFF',
     marginTop: 2,
@@ -287,26 +296,52 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   metaGrid: {
-    gap: 8,
-  },
-  metaBox: {
-    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    overflow: 'hidden',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  metaRowHighlight: {
+    backgroundColor: '#EFF6FF',
+  },
+  metaRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
   metaLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#2563EB',
+    color: '#475569',
   },
   metaValue: {
-    fontSize: 13.5,
+    flex: 1,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
-    marginTop: 2,
+    textAlign: 'right',
+  },
+  platePill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  plateText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E3A8A',
+    fontFamily: 'monospace',
   },
   actions: {
     flexDirection: 'row',
@@ -315,11 +350,13 @@ const styles = StyleSheet.create({
   },
   trackBtn: {
     flex: 1,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 12,
   },
   trackBtnEmerald: {
@@ -334,6 +371,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   dismissBtn: {
+    minHeight: 46,
+    minWidth: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,

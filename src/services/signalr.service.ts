@@ -1,3 +1,4 @@
+import { AppState, AppStateStatus } from 'react-native';
 import { AppConfig } from '../constants/config';
 import { storage } from './storage';
 
@@ -165,10 +166,14 @@ class NativeSignalRClient {
         try {
           this.ws.send(JSON.stringify({ type: 6 }) + RECORD_SEP);
         } catch {
-          // ignore
+          try {
+            this.ws.close();
+          } catch {
+            // ignore
+          }
         }
       }
-    }, 15000);
+    }, 10000);
   }
 
   private stopKeepAlive(): void {
@@ -185,7 +190,28 @@ class NativeSignalRClient {
       if (!this.manuallyStopped) {
         void this.start();
       }
-    }, 3000);
+    }, 1500);
+  }
+
+  public isConnected(): boolean {
+    return Boolean(this.ws && this.ws.readyState === WebSocket.OPEN);
+  }
+
+  public ensureConnected(): void {
+    if (this.manuallyStopped || this.handlers.size === 0) return;
+    if (!this.isConnected()) {
+      void this.start().then((ok) => {
+        if (ok) {
+          this.reconnectHandlers.forEach((cb) => {
+            try {
+              cb();
+            } catch {
+              // ignore
+            }
+          });
+        }
+      });
+    }
   }
 
   private sendInvokeFrame(target: string, args: any[]): void {
@@ -252,6 +278,13 @@ class NativeSignalRClient {
 export const mobileTrackingHub = new NativeSignalRClient('/hubs/tracking');
 export const mobileIncidentHub = new NativeSignalRClient('/hubs/incidents');
 
+AppState.addEventListener('change', (state: AppStateStatus) => {
+  if (state === 'active') {
+    mobileIncidentHub.ensureConnected();
+    mobileTrackingHub.ensureConnected();
+  }
+});
+
 export const MobileHubEvents = {
   ReceiveRescueUnitLocation: 'ReceiveRescueUnitLocation',
   ReceiveAssignmentStatus: 'ReceiveAssignmentStatus',
@@ -259,4 +292,5 @@ export const MobileHubEvents = {
   ReceiveIncidentUpdate: 'ReceiveIncidentUpdate',
   ReceiveNotification: 'ReceiveNotification',
   ReceiveCitizenMapChanged: 'ReceiveCitizenMapChanged',
+  ReceiveSettingsChanged: 'ReceiveSettingsChanged',
 } as const;

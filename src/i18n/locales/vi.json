@@ -36,8 +36,6 @@
     "login_subtitle_citizen": "Đăng nhập để liên kết hồ sơ y tế, tọa độ GPS thời gian thực và nhận điều phối 24/7",
     "login_title_staff": "Cổng Điều Phối Cứu Hộ",
     "login_subtitle_staff": "Đăng nhập ca trực cứu hộ để nhận lệnh điều động đội xe cứu nạn, GPS tác chiến & quản lý thiết bị y tế",
-    "guest_sos_title": "CẦN CỨU HỘ KHẨN CẤP?",
-    "guest_sos_sub": "Bỏ qua đăng nhập • Báo nạn ngay tức thì",
     "role_citizen": "Người Dân",
     "role_staff": "Đội Cứu Hộ Khẩn Cấp",
     "account_label_citizen": "Email hoặc Số điện thoại",
@@ -279,7 +277,12 @@
     "station_label": "Trạm điều phối:",
     "default_station": "Trạm Điều Phối CAD",
     "call_station": "Gọi trạm trực ({{phone}})",
-    "call_failed": "Không thể khởi động ứng dụng gọi điện thoại."
+    "call_failed": "Không thể khởi động ứng dụng gọi điện thoại.",
+    "duplicate_confirmed_completed": "Sự cố gốc{{code}} đã được xử lý xong.",
+    "duplicate_confirmed_cancelled": "Sự cố gốc{{code}} đã bị hủy.",
+    "duplicate_confirmed_active": "Đã có người báo cáo sự cố{{code}} và trung tâm đang xử lý.",
+    "view_details_track": "Xem chi tiết & Theo dõi",
+    "sos_signal": "Tín Hiệu SOS"
   },
   "language": {
     "select_title": "Chọn ngôn ngữ / Select Language",

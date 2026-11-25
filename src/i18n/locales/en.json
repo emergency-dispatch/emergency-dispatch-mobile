@@ -36,8 +36,6 @@
     "login_subtitle_citizen": "Sign in to sync medical profile, live GPS tracking & 24/7 emergency dispatch",
     "login_title_staff": "Rescue Dispatch Portal",
     "login_subtitle_staff": "Sign into rescue shift duty for emergency dispatch, tactical GPS & rescue gear",
-    "guest_sos_title": "NEED IMMEDIATE RESCUE?",
-    "guest_sos_sub": "Bypass login • Trigger emergency distress now",
     "role_citizen": "Citizen",
     "role_staff": "Emergency Rescue Team",
     "account_label_citizen": "Email or Phone Number",
@@ -279,7 +277,12 @@
     "station_label": "Dispatch Station:",
     "default_station": "CAD Dispatch Center",
     "call_station": "Call Station ({{phone}})",
-    "call_failed": "Could not initiate phone call application."
+    "call_failed": "Could not initiate phone call application.",
+    "duplicate_confirmed_completed": "Original incident{{code}} has been resolved.",
+    "duplicate_confirmed_cancelled": "Original incident{{code}} has been cancelled.",
+    "duplicate_confirmed_active": "Duplicate report linked to incident{{code}} (currently being handled).",
+    "view_details_track": "View details & Track",
+    "sos_signal": "SOS Signal"
   },
   "language": {
     "select_title": "Select Language / Chọn ngôn ngữ",

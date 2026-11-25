@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  AppState,
   Easing,
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import { incidentService } from '../../services/incident.service';
 import { mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
 import { storage } from '../../services/storage';
 import { useAppStore } from '../../store/useAppStore';
+import i18n from '../../i18n';
 import {
   CitizenRescueAlertModal,
   MobileRescueAlertPayload,
@@ -86,10 +88,49 @@ export const CitizenNotificationListener: React.FC = () => {
       return;
     }
 
-    const triggerAlert = (payload: MobileRescueAlertPayload) => {
-      if (handledKeysRef.current.has(payload.id)) return;
+    let cancelled = false;
+    const seenModalsKey = `SEEN_CITIZEN_ALERT_MODALS_${user?.id || 'anon'}`;
+    const seenModalsReady = storage
+      .getItem<string[]>(seenModalsKey)
+      .then((saved) => {
+        if (!cancelled && Array.isArray(saved)) {
+          saved.forEach((k) => handledKeysRef.current.add(k));
+        }
+      })
+      .catch(() => {});
+
+    const triggerAlert = async (payload: MobileRescueAlertPayload, markNotifId?: string) => {
+      await seenModalsReady;
+      if (cancelled || handledKeysRef.current.has(payload.id)) return;
       handledKeysRef.current.add(payload.id);
+      storage
+        .getItem<string[]>(seenModalsKey)
+        .then((prev) => {
+          const next = Array.isArray(prev) ? prev : [];
+          if (!next.includes(payload.id)) {
+            return storage.setItem(seenModalsKey, [...next.slice(-49), payload.id]);
+          }
+        })
+        .catch(() => {});
+      if (markNotifId) {
+        apiService.put(Endpoints.NOTIFICATIONS.READ(markNotifId)).catch(() => {});
+      }
       setActiveAlert(payload);
+    };
+
+    const verifyOwnActiveIncident = async (incidentId: string | null | undefined): Promise<boolean> => {
+      if (!incidentId || !user?.id) return false;
+      try {
+        const detail = await incidentService.getIncidentById(incidentId);
+        if (!detail || detail.viewedAsDuplicateReporter) return false;
+        if (detail.status === 'Completed' || detail.status === 'Cancelled') return false;
+        if (detail.reportedByUserId && detail.reportedByUserId.toLowerCase() !== user.id.toLowerCase()) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
     };
 
     const showAreaBanner = async (payload: AreaBannerPayload) => {
@@ -118,6 +159,8 @@ export const CitizenNotificationListener: React.FC = () => {
       const key = `notif-${notif.id}`;
       let parsedData: {
         type?: string;
+        status?: string;
+        assignmentId?: string;
         publicAlertId?: string;
         parentIncidentId?: string;
         plateNumber?: string;
@@ -164,7 +207,11 @@ export const CitizenNotificationListener: React.FC = () => {
           id: areaKey,
           publicAlertId,
           notificationId: notif.id,
-          message: notif.message || 'Có sự cố tại khu vực gần đây.',
+          message:
+            notif.message ||
+            ((i18n.language || 'vi').startsWith('vi')
+              ? 'Có sự cố tại khu vực gần đây.'
+              : 'An incident has been reported nearby.'),
         });
         return;
       }
@@ -176,24 +223,59 @@ export const CitizenNotificationListener: React.FC = () => {
 
       const text = `${notif.title || ''} ${notif.message || ''}`.toLowerCase();
       const isDuplicateConfirmed = text.includes('trùng với sự cố') || text.includes('duplicate');
-      const isTeamAccepted =
-        notif.type === 'JobAssigned' ||
-        text.includes('nhận lệnh') ||
-        text.includes('đang đến') ||
-        text.includes('đã giao đội') ||
-        text.includes('accepted');
+      const statusNorm = String(parsedData.status || '').toLowerCase();
+      const isDispatchedPendingAccept =
+        statusNorm === 'dispatched' ||
+        text.includes('đang chờ đội xác nhận') ||
+        text.includes('đã giao sự cố') ||
+        text.includes('waiting for the team to accept');
+      const isAccepted =
+        !isDispatchedPendingAccept &&
+        (statusNorm === 'accepted' ||
+          text.includes('đã nhận lệnh') ||
+          text.includes('accepted'));
 
-      if (!isDuplicateConfirmed && !isTeamAccepted) return;
+      if (!isDuplicateConfirmed && !isAccepted) return;
 
-      triggerAlert({
-        id: key,
-        kind: isDuplicateConfirmed ? 'duplicate_confirmed' : 'accepted',
-        title: notif.title || (isDuplicateConfirmed ? 'Xác nhận báo cáo trùng' : 'Đội cứu hộ đã tiếp nhận'),
-        message: notif.message || 'Yêu cầu cứu hộ của bạn đã được cập nhật tiến độ xử lý.',
-        incidentId: parsedData.parentIncidentId || notif.incidentId || null,
-        plateNumber: parsedData.plateNumber || null,
-        stationName: parsedData.stationName || null,
-      });
+      const targetIncidentId = parsedData.parentIncidentId || notif.incidentId || null;
+      if (!isDuplicateConfirmed) {
+        const isOwn = await verifyOwnActiveIncident(targetIncidentId);
+        if (!isOwn) return;
+      }
+
+      const alertDedupId = isDuplicateConfirmed
+        ? key
+        : `accepted-${targetIncidentId || parsedData.assignmentId || notif.id}`;
+
+      const cleanRawMsg = String(notif.message || '').replace(/^\s*\[[^\]]+\]\s*/, '').trim();
+      const plateMatch = cleanRawMsg.match(/(?:Vehicle|Xe)\s+(.+?)\s+(?:has accepted|đã nhận lệnh)/i);
+      const resolvedPlate = parsedData.plateNumber || plateMatch?.[1]?.trim() || null;
+      const isVi = (i18n.language || 'vi').startsWith('vi');
+
+      await triggerAlert(
+        {
+          id: alertDedupId,
+          kind: isDuplicateConfirmed ? 'duplicate_confirmed' : 'accepted',
+          title: isDuplicateConfirmed
+            ? (isVi ? 'Sự cố đã có người báo cáo' : 'Incident already reported')
+            : (isVi ? 'Đội cứu hộ đã nhận lệnh' : 'Rescue team accepted'),
+          message: isDuplicateConfirmed
+            ? (isVi
+                ? 'Đã có người báo cáo sự cố này và trung tâm đang xử lý.'
+                : 'This incident has already been reported and dispatch is handling it.')
+            : (isVi
+                ? (resolvedPlate
+                    ? `Xe ${resolvedPlate} đã nhận lệnh và đang chuẩn bị xuất phát tới vị trí của bạn.`
+                    : 'Đội cứu hộ đã nhận lệnh và đang chuẩn bị xuất phát tới vị trí của bạn.')
+                : (resolvedPlate
+                    ? `Vehicle ${resolvedPlate} has accepted and is preparing to head to your location.`
+                    : 'Rescue team has accepted and is preparing to head to your location.')),
+          incidentId: targetIncidentId,
+          plateNumber: parsedData.plateNumber || null,
+          stationName: parsedData.stationName || null,
+        },
+        notif.id
+      );
     };
 
     const pollRecentNotifications = async () => {
@@ -223,35 +305,56 @@ export const CitizenNotificationListener: React.FC = () => {
 
     mobileIncidentHub.start().catch(() => {});
     const unsubNotif = mobileIncidentHub.on(MobileHubEvents.ReceiveNotification, (notif: RawNotificationDto) => {
-      seededInitialRef.current = true;
       void handleNotification(notif, false);
     });
-    const unsubAssign = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, (evt: any) => {
+    const unsubReconn = mobileIncidentHub.onReconnected(() => {
+      void pollRecentNotifications();
+    });
+    const unsubCitizenMap = mobileIncidentHub.on(MobileHubEvents.ReceiveCitizenMapChanged, () => {
+      void pollRecentNotifications();
+    });
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void pollRecentNotifications();
+      }
+    });
+    const unsubAssign = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, async (evt: any) => {
       if (!evt) return;
       const st = String(evt.status || evt.Status || '');
-      if (st !== 'Accepted' && st !== 'EnRoute') return;
+      if (st !== 'Accepted') return;
       const incId = evt.incidentId || evt.IncidentId;
-      triggerAlert({
-        id: `assign-${incId}-${st}`,
+      const assignId = evt.assignmentId || evt.AssignmentId;
+      const isOwn = await verifyOwnActiveIncident(incId);
+      if (!isOwn) return;
+      const isVi = (i18n.language || 'vi').startsWith('vi');
+      await triggerAlert({
+        id: `accepted-${incId || assignId}`,
         kind: 'accepted',
-        title: st === 'EnRoute' ? 'Xe cứu hộ đang xuất phát!' : 'Đội cứu hộ đã nhận lệnh!',
-        message:
-          st === 'EnRoute'
-            ? 'Xe cứu hộ đang trên đường đến hiện trường qua GPS thời gian thực.'
-            : 'Đội trực chiến đã nhận lệnh điều phối và chuẩn bị xuất phát.',
+        title: isVi ? 'Đội cứu hộ đã nhận lệnh!' : 'Rescue team accepted!',
+        message: isVi
+          ? 'Đội trực chiến đã nhận lệnh điều phối và chuẩn bị xuất phát.'
+          : 'Rescue team has accepted and is preparing to head to your location.',
         incidentId: incId || null,
-        plateNumber: evt.plateNumber || evt.PlateNumber || null,
+        plateNumber: evt.plateNumber || evt.PlateNumber || evt.rescueUnitPlate || evt.RescueUnitPlate || null,
         stationName: evt.stationName || evt.StationName || null,
       });
     });
 
     return () => {
+      cancelled = true;
+      seededInitialRef.current = false;
+      handledKeysRef.current.clear();
+      setActiveAlert(null);
+      setAreaBanner(null);
       clearInterval(pollTimer);
+      appStateSub.remove();
       if (bannerTimerRef.current) {
         clearTimeout(bannerTimerRef.current);
         bannerTimerRef.current = null;
       }
       unsubNotif();
+      unsubReconn();
+      unsubCitizenMap();
       unsubAssign();
     };
   }, [isCitizen, user?.id]);
@@ -295,8 +398,12 @@ export const CitizenNotificationListener: React.FC = () => {
             </View>
             <View style={styles.bannerContent}>
               <View style={styles.bannerTopRow}>
-                <Text style={styles.bannerTitle}>Cảnh báo sự cố</Text>
-                <Text style={styles.bannerTime}>Vừa xong</Text>
+                <Text style={styles.bannerTitle}>
+                  {(i18n.language || 'vi').startsWith('vi') ? 'Cảnh báo sự cố' : 'Incident alert'}
+                </Text>
+                <Text style={styles.bannerTime}>
+                  {(i18n.language || 'vi').startsWith('vi') ? 'Vừa xong' : 'Just now'}
+                </Text>
               </View>
               <Text style={styles.bannerMessage} numberOfLines={2}>
                 {areaBanner.message}

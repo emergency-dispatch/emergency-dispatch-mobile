@@ -18,7 +18,7 @@ export interface MapMarkerItem {
   description: string;
   latitude: number;
   longitude: number;
-  type: 'hospital' | 'incident' | 'shelter' | 'fire_station' | 'ambulance' | 'rescue_unit' | 'station';
+  type: 'hospital' | 'incident' | 'public_incident' | 'shelter' | 'fire_station' | 'ambulance' | 'rescue_unit' | 'station';
   severity?: 'Low' | 'Medium' | 'High' | 'Critical' | 0 | 1 | 2 | 3 | 'Unclassified' | 'Level1' | 'Level2' | 'Level3' | string;
   category?: 'fire' | 'accident' | 'medical' | 'hazard' | string;
   unitType?: string;

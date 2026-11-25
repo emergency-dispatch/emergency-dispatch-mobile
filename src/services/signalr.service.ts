@@ -258,4 +258,5 @@ export const MobileHubEvents = {
   ReceiveIncidentStatus: 'ReceiveIncidentStatus',
   ReceiveIncidentUpdate: 'ReceiveIncidentUpdate',
   ReceiveNotification: 'ReceiveNotification',
+  ReceiveCitizenMapChanged: 'ReceiveCitizenMapChanged',
 } as const;

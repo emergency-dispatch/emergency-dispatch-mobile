@@ -1021,6 +1021,22 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           var catTitle = resolvedCat === 'accident' ? 'TAI NẠN HIỆN TRƯỜNG' : resolvedCat === 'fire' ? 'HỎA HOẠN HIỆN TRƯỜNG' : 'SỰ CỐ KHẨN CẤP';
           badgeText = catTitle + ' • CẤP ' + sevNum;
           badgeClass = (sevNum === 3 ? 'badge-red' : sevNum === 2 ? 'badge-amber' : 'badge-green');
+        } else if (m.type === 'public_incident') {
+          var pCat = (m.category || '').toLowerCase();
+          if (pCat !== 'fire' && pCat !== 'accident' && pCat !== 'other') pCat = 'unknown';
+          var pPalette = pCat === 'fire'
+            ? { bg: '#FEF2F2', border: '#DC2626', icon: '#B91C1C', badge: 'badge-red', label: 'HỎA HOẠN KHU VỰC' }
+            : pCat === 'accident'
+              ? { bg: '#FFFBEB', border: '#D97706', icon: '#B45309', badge: 'badge-amber', label: 'TAI NẠN KHU VỰC' }
+              : { bg: '#F0F9FF', border: '#0284C7', icon: '#0369A1', badge: 'badge-blue', label: 'CẢNH BÁO KHU VỰC' };
+          var pGlyph = SVG_ICONS[pCat] || SVG_ICONS.unknown;
+          customHtml = '<div style="width:28px;height:28px;border-radius:9px;background:' + pPalette.bg + ';border:2px solid ' + pPalette.border + ';box-shadow:0 2px 8px rgba(15,23,42,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
+            pGlyph.replace('width="16" height="16"', 'width="14" height="14"').replace(/\{COLOR\}/g, pPalette.icon) +
+            '</div>';
+          iconSize = [28, 28];
+          iconAnchor = [14, 14];
+          badgeText = pPalette.label;
+          badgeClass = pPalette.badge;
         } else if (m.type === 'hospital') {
           customHtml = '<div class="emergency-marker marker-hospital">🏥</div>';
           badgeText = 'Y TẾ KHẨN CẤP';
@@ -1057,6 +1073,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         var zOffset = 500;
         if (m.type === 'incident') zOffset = 2500;
         else if (m.type === 'rescue_unit') zOffset = 2000;
+        else if (m.type === 'public_incident') zOffset = 1800;
         else if (m.type === 'station') zOffset = 1500;
 
         var visualKey = [

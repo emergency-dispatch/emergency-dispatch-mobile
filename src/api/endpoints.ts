@@ -84,4 +84,12 @@ export const Endpoints = {
   SETTINGS: {
     SERVICE_AREA: '/settings/service-area',
   },
+  CITIZEN_MAP: {
+    INCIDENTS: '/citizen-map/incidents',
+    BY_ALERT: (publicAlertId: string) => `/citizen-map/incidents/by-alert/${publicAlertId}`,
+  },
+  CITIZEN_INCIDENT_ALERTS: {
+    BASE: '/citizen-incident-alerts',
+    BY_ID: (id: string) => `/citizen-incident-alerts/${id}`,
+  },
 } as const;

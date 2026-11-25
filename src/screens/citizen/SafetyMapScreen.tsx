@@ -59,6 +59,7 @@ export const SafetyMapScreen: React.FC = () => {
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const trackingIncidentId = route.params?.trackingIncidentId;
+  const focusPublicAlertId = route.params?.focusPublicAlertId;
   const isViewingDuplicateHistory = Boolean(route.params?.asDuplicateReporter);
   const [mapStyle, setMapStyle] = useState<'satellite' | 'streets' | 'dark'>('satellite');
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
@@ -456,11 +457,14 @@ export const SafetyMapScreen: React.FC = () => {
 
       activeIncidents = activeIncidents.filter((inc) => !isCompletedOrCancelled(inc.id, inc.status));
 
-      // 4. Load public rescue units, stations, and service area configuration
-      const [rescueUnitsRes, stationsRes, serviceAreaRes] = await Promise.allSettled([
+      const isCitizenRole = isAuthenticated && user?.role !== 'staff';
+
+      // 4. Load public rescue units, stations, service area, and public citizen incidents
+      const [rescueUnitsRes, stationsRes, serviceAreaRes, citizenMapRes] = await Promise.allSettled([
         incidentService.getRescueUnits(),
         incidentService.getStations(),
         incidentService.getServiceArea(),
+        isCitizenRole ? incidentService.getCitizenMapIncidents() : Promise.resolve([]),
       ]);
 
       if (serviceAreaRes.status === 'fulfilled' && serviceAreaRes.value) {
@@ -542,7 +546,39 @@ export const SafetyMapScreen: React.FC = () => {
           };
         });
 
-      setMarkers([...stationMarkers, ...unitMarkers, ...incidentMarkers]);
+      const ownIncidentIds = new Set(activeIncidents.map((i) => i.id));
+      const publicIncidentList = citizenMapRes.status === 'fulfilled' ? citizenMapRes.value || [] : [];
+      const publicIncidentMarkers: MapMarkerItem[] = publicIncidentList
+        .filter(
+          (item) =>
+            !ownIncidentIds.has(item.id) &&
+            typeof item.latitude === 'number' &&
+            typeof item.longitude === 'number'
+        )
+        .map((item) => {
+          const ev = item.eventType || '';
+          const pCat =
+            ev === 'TrafficAccident'
+              ? 'accident'
+              : ev === 'FireExplosion'
+                ? 'fire'
+                : ev !== 'None' && ev !== 'Unknown'
+                  ? 'other'
+                  : 'unknown';
+          return {
+            id: item.id,
+            title: item.message || item.area || 'Cảnh báo sự cố',
+            description: `📍 ${item.area}`,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            type: 'public_incident',
+            category: pCat,
+            severity: item.severity,
+            status: item.status,
+          };
+        });
+
+      setMarkers([...stationMarkers, ...unitMarkers, ...incidentMarkers, ...publicIncidentMarkers]);
       setRouteCoordinates(calculatedRoute);
       setActiveTrackingEta(latestEtaInfo);
       setPendingIncident(pendingIncidentInfo);
@@ -670,6 +706,59 @@ export const SafetyMapScreen: React.FC = () => {
       unsubIncStatus();
     };
   }, [isAuthenticated, liveTrackIncId]);
+
+  // Đăng ký nhận thay đổi bản đồ sự cố công khai Citizen qua SignalR
+  const lastCitizenMapRevisionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated || user?.role === 'staff') return;
+    let active = true;
+    mobileIncidentHub
+      .start()
+      .then((ok) => {
+        if (ok && active) mobileIncidentHub.invoke('SubscribeCitizenMap').catch(() => {});
+      })
+      .catch(() => {});
+
+    const unsubReconn = mobileIncidentHub.onReconnected(() => {
+      mobileIncidentHub.invoke('SubscribeCitizenMap').catch(() => {});
+      loadMapData(true);
+    });
+    const unsubMapChanged = mobileIncidentHub.on(MobileHubEvents.ReceiveCitizenMapChanged, (evt: any) => {
+      const rev = evt?.revision;
+      if (rev && rev === lastCitizenMapRevisionRef.current) return;
+      lastCitizenMapRevisionRef.current = rev || null;
+      loadMapData(true);
+    });
+
+    return () => {
+      active = false;
+      unsubReconn();
+      unsubMapChanged();
+      mobileIncidentHub.invoke('UnsubscribeCitizenMap').catch(() => {});
+    };
+  }, [isAuthenticated, user?.role]);
+
+  // Nếu mở bản đồ từ thông báo khu vực Citizen: căn giữa tới marker còn hiệu lực
+  useEffect(() => {
+    if (!focusPublicAlertId || !isAuthenticated || user?.role === 'staff') return;
+    let cancelled = false;
+    incidentService.getCitizenMapIncidentByAlert(focusPublicAlertId).then((item) => {
+      if (cancelled) return;
+      navigation.setParams({ focusPublicAlertId: undefined });
+      if (!item) {
+        loadMapData(true);
+        return;
+      }
+      loadMapData(true).then(() => {
+        if (cancelled) return;
+        mapRef.current?.flyTo(item.latitude, item.longitude, 15);
+        setTimeout(() => mapRef.current?.openMarkerPopup?.(item.id), 350);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [focusPublicAlertId, isAuthenticated, user?.role]);
 
   useEffect(() => {
     const tmr = setTimeout(() => mapRef.current?.invalidateSize?.(), 100);

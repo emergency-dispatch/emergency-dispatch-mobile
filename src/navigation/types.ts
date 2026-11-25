@@ -18,6 +18,7 @@ export type CitizenTabParamList = {
   SafetyMapTab:
     | {
         trackingIncidentId?: string;
+        focusPublicAlertId?: string;
         asDuplicateReporter?: boolean;
         fromHistory?: boolean;
         fullscreenMap?: boolean;

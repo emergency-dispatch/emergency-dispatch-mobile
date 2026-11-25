@@ -234,3 +234,23 @@ export interface StationDto {
   totalUnitsCount?: number;
   staffCount?: number;
 }
+
+export interface CitizenMapIncidentDto {
+  id: string;
+  latitude: number;
+  longitude: number;
+  area: string;
+  message: string;
+  eventType: string;
+  severity: string;
+  status: string;
+  reportedAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CitizenIncidentAlertDto {
+  id: string;
+  area: string;
+  message: string;
+  createdAt: string;
+}

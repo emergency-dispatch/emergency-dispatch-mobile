@@ -2,6 +2,8 @@ import { apiService } from '../api/client';
 import { Endpoints } from '../api/endpoints';
 import { BackendApiResponse } from '../types/auth';
 import {
+  CitizenIncidentAlertDto,
+  CitizenMapIncidentDto,
   CitizenTracking,
   CreateIncidentDto,
   IncidentResponseDto,
@@ -363,6 +365,41 @@ export const incidentService = {
         distanceOutsideKm: outside > 0 ? Math.round(outside * 10) / 10 : 0,
         area: DEFAULT_SERVICE_AREA,
       };
+    }
+  },
+
+  async getCitizenMapIncidents(pageIndex = 1, pageSize = 200): Promise<CitizenMapIncidentDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<PaginatedResultDto<CitizenMapIncidentDto>>>(
+        Endpoints.CITIZEN_MAP.INCIDENTS,
+        { params: { pageIndex, pageSize } }
+      );
+      return response.success && response.data?.items ? response.data.items : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async getCitizenMapIncidentByAlert(publicAlertId: string): Promise<CitizenMapIncidentDto | null> {
+    try {
+      const response = await apiService.get<BackendApiResponse<CitizenMapIncidentDto>>(
+        Endpoints.CITIZEN_MAP.BY_ALERT(publicAlertId)
+      );
+      return response.success && response.data ? response.data : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async getCitizenIncidentAlerts(pageIndex = 1, pageSize = 10): Promise<CitizenIncidentAlertDto[]> {
+    try {
+      const response = await apiService.get<BackendApiResponse<PaginatedResultDto<CitizenIncidentAlertDto>>>(
+        Endpoints.CITIZEN_INCIDENT_ALERTS.BASE,
+        { params: { pageIndex, pageSize } }
+      );
+      return response.success && response.data?.items ? response.data.items : [];
+    } catch {
+      return [];
     }
   },
 };

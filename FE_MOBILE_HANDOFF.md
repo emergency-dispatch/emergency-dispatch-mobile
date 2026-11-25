@@ -305,3 +305,6 @@ Các `TODO(backend)` trong Web đang ghi **tên API tự đặt** không khớp 
 | `out_of_service` | *(chưa có)* |
 
 **Loại xe**: Web có 4 loại (`ambulance`, `fire_truck`, `police`, `rescue`), backend có 6 (`Ambulance`, `FireTruck`, `LadderTruck`, `RescueBoat`, `HeavyRescueVehicle`, `PolicePatrol`). Đề xuất map `rescue` ↔ `HeavyRescueVehicle`, `police` ↔ `PolicePatrol`, và hiển thị thêm `LadderTruck`, `RescueBoat`.
+
+
+Lệnh khi bạn muốn tự xuất APK: npm run build:apk (cần đăng nhập tài khoản Expo qua eas login nếu chưa login).

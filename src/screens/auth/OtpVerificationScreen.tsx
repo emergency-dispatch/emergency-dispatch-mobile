@@ -25,7 +25,8 @@ type OtpNavProp = NativeStackNavigationProp<AuthStackParamList, 'OtpVerification
 type OtpRouteProp = RouteProp<AuthStackParamList, 'OtpVerification'>;
 
 export const OtpVerificationScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const navigation = useNavigation<OtpNavProp>();
   const route = useRoute<OtpRouteProp>();
   const { setAuth } = useAppStore();
@@ -39,7 +40,7 @@ export const OtpVerificationScreen: React.FC = () => {
   const handleVerify = async (submittedOtp?: string) => {
     const code = submittedOtp || otpValue;
     if (code.length < 6) {
-      setError('Vui lòng nhập đủ 6 chữ số mã xác thực');
+      setError(isEn ? 'Please enter all 6 verification digits' : 'Vui lòng nhập đủ 6 chữ số mã xác thực');
       return;
     }
 
@@ -51,27 +52,35 @@ export const OtpVerificationScreen: React.FC = () => {
           token: code,
         });
 
-        Alert.alert('Xác thực thành công 🎉', 'Tài khoản của bạn đã được kích hoạt. Hãy đăng nhập để bắt đầu sử dụng dịch vụ.', [
-          {
-            text: 'Đăng Nhập Ngay',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]);
+        Alert.alert(
+          isEn ? 'Verification Successful 🎉' : 'Xác thực thành công 🎉',
+          isEn ? 'Your account is now activated. Please sign in to get started.' : 'Tài khoản của bạn đã được kích hoạt. Hãy đăng nhập để bắt đầu sử dụng dịch vụ.',
+          [
+            {
+              text: isEn ? 'Sign In Now' : 'Đăng Nhập Ngay',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
       } else if (flow === 'forgot_password') {
         navigation.navigate('ForgotPassword', { emailOrPhone });
       } else {
-        Alert.alert('Xác thực thành công', 'Mã OTP của bạn đã được xác minh hợp lệ.', [
-          {
-            text: 'Đăng Nhập',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]);
+        Alert.alert(
+          isEn ? 'Verification Successful' : 'Xác thực thành công',
+          isEn ? 'Your OTP code has been verified.' : 'Mã OTP của bạn đã được xác minh hợp lệ.',
+          [
+            {
+              text: isEn ? 'Sign In' : 'Đăng Nhập',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
       }
     } catch (e: any) {
       const errorMsg =
         e.response?.data?.message ||
         e.message ||
-        'Mã OTP không chính xác hoặc đã hết hạn.';
+        (isEn ? 'OTP code is incorrect or expired.' : 'Mã OTP không chính xác hoặc đã hết hạn.');
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -81,10 +90,13 @@ export const OtpVerificationScreen: React.FC = () => {
   const handleResend = async () => {
     try {
       await authService.resendVerification({ email: emailOrPhone });
-      Alert.alert('Đã gửi lại mã', `Mã xác thực OTP mới đã được gửi tới ${emailOrPhone}`);
+      Alert.alert(
+        isEn ? 'Code Resent' : 'Đã gửi lại mã',
+        isEn ? `A new OTP verification code has been sent to ${emailOrPhone}` : `Mã xác thực OTP mới đã được gửi tới ${emailOrPhone}`
+      );
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể gửi lại mã xác thực.';
-      Alert.alert('Lỗi gửi mã', msg);
+      const msg = err.response?.data?.message || err.message || (isEn ? 'Unable to resend verification code.' : 'Không thể gửi lại mã xác thực.');
+      Alert.alert(isEn ? 'Failed to Resend' : 'Lỗi gửi mã', msg);
     }
   };
 
@@ -110,7 +122,7 @@ export const OtpVerificationScreen: React.FC = () => {
             subtitle={t('auth.verify_otp_sub', { target: emailOrPhone })}
             showBack
             onBack={() => navigation.goBack()}
-            badgeText="XÁC THỰC BẢO MẬT 2 LỚP"
+            badgeText={isEn ? '2-FACTOR SECURITY VERIFICATION' : 'XÁC THỰC BẢO MẬT 2 LỚP'}
           />
 
           {/* OTP Card */}
@@ -122,7 +134,9 @@ export const OtpVerificationScreen: React.FC = () => {
             </View>
 
             <Text style={styles.promptText}>
-              Nhập mã OTP gồm 6 chữ số để xác minh quyền sở hữu tài khoản
+              {isEn
+                ? 'Enter the 6-digit OTP code to verify account ownership'
+                : 'Nhập mã OTP gồm 6 chữ số để xác minh quyền sở hữu tài khoản'}
             </Text>
 
             <OtpInput

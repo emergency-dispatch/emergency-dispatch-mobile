@@ -16,16 +16,19 @@ import {
   Info,
   X,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../store/useNotificationStore';
 
 export const AppNotificationModal: React.FC = () => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const { visible, options, hide } = useNotificationStore();
   const {
     type = 'info',
     title,
     message,
-    confirmText = 'Đã Hiểu',
-    cancelText = 'Hủy Bỏ',
+    confirmText = isEn ? 'Got it' : 'Đã Hiểu',
+    cancelText = isEn ? 'Cancel' : 'Hủy Bỏ',
     singleButton = true,
     onConfirm,
     onCancel,
@@ -76,7 +79,7 @@ export const AppNotificationModal: React.FC = () => {
           ringBg: 'rgba(16, 185, 129, 0.14)',
           btnBg: '#DC2626',
           btnShadow: '#DC2626',
-          badgeText: 'THÀNH CÔNG',
+          badgeText: isEn ? 'SUCCESS' : 'THÀNH CÔNG',
           badgeColor: '#059669',
           badgeBg: '#ECFDF5',
         };
@@ -88,7 +91,7 @@ export const AppNotificationModal: React.FC = () => {
           ringBg: 'rgba(220, 38, 38, 0.14)',
           btnBg: '#DC2626',
           btnShadow: '#DC2626',
-          badgeText: 'CẢNH BÁO LỖI',
+          badgeText: isEn ? 'ERROR ALERT' : 'CẢNH BÁO LỖI',
           badgeColor: '#DC2626',
           badgeBg: '#FEF2F2',
         };
@@ -100,7 +103,7 @@ export const AppNotificationModal: React.FC = () => {
           ringBg: 'rgba(245, 158, 11, 0.14)',
           btnBg: '#DC2626',
           btnShadow: '#DC2626',
-          badgeText: 'LƯU Ý QUAN TRỌNG',
+          badgeText: isEn ? 'IMPORTANT NOTICE' : 'LƯU Ý QUAN TRỌNG',
           badgeColor: '#D97706',
           badgeBg: '#FFFBEB',
         };
@@ -113,7 +116,7 @@ export const AppNotificationModal: React.FC = () => {
           ringBg: 'rgba(220, 38, 38, 0.12)',
           btnBg: '#DC2626',
           btnShadow: '#DC2626',
-          badgeText: 'THÔNG BÁO HỆ THỐNG',
+          badgeText: isEn ? 'SYSTEM NOTICE' : 'THÔNG BÁO HỆ THỐNG',
           badgeColor: '#DC2626',
           badgeBg: '#FEF2F2',
         };

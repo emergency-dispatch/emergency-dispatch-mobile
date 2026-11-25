@@ -42,7 +42,8 @@ type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>
 const BLOOD_TYPES: BloodType[] = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-', 'Chưa rõ'];
 
 export const RegisterScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const navigation = useNavigation<RegisterNavProp>();
   const { setAuth } = useAppStore();
   const { profile, updateProfile } = useProfileStore();
@@ -72,39 +73,39 @@ export const RegisterScreen: React.FC = () => {
     const newErrors: Record<string, string | undefined> = {};
 
     if (!fullName.trim()) {
-      newErrors.fullName = 'Vui lòng nhập họ và tên đầy đủ';
+      newErrors.fullName = isEn ? 'Please enter your full name' : 'Vui lòng nhập họ và tên đầy đủ';
     } else if (fullName.trim().length < 2) {
-      newErrors.fullName = 'Họ và tên quá ngắn';
+      newErrors.fullName = isEn ? 'Full name is too short' : 'Họ và tên quá ngắn';
     }
 
     if (!phone.trim()) {
-      newErrors.phone = 'Vui lòng nhập số điện thoại';
+      newErrors.phone = isEn ? 'Please enter your phone number' : 'Vui lòng nhập số điện thoại';
     } else if (!isValidPhoneNumber(phone.trim())) {
-      newErrors.phone = 'Số điện thoại không hợp lệ (gồm 10 chữ số)';
+      newErrors.phone = isEn ? 'Invalid phone number (10 digits)' : 'Số điện thoại không hợp lệ (gồm 10 chữ số)';
     }
 
     if (!email.trim()) {
-      newErrors.email = 'Vui lòng nhập địa chỉ email';
+      newErrors.email = isEn ? 'Please enter your email address' : 'Vui lòng nhập địa chỉ email';
     } else if (!isValidEmail(email.trim())) {
-      newErrors.email = 'Email không đúng định dạng';
+      newErrors.email = isEn ? 'Invalid email format' : 'Email không đúng định dạng';
     }
 
     if (!password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
+      newErrors.password = isEn ? 'Please enter a password' : 'Vui lòng nhập mật khẩu';
     } else if (password.length < 8) {
-      newErrors.password = 'Mật khẩu phải có tối thiểu 8 ký tự';
+      newErrors.password = isEn ? 'Password must be at least 8 characters' : 'Mật khẩu phải có tối thiểu 8 ký tự';
     }
 
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp';
+      newErrors.confirmPassword = isEn ? 'Passwords do not match' : 'Mật khẩu xác nhận không trùng khớp';
     }
 
     if (icePhone.trim() && !isValidPhoneNumber(icePhone.trim())) {
-      newErrors.icePhone = 'Số điện thoại người thân không hợp lệ';
+      newErrors.icePhone = isEn ? 'Emergency contact phone number is invalid' : 'Số điện thoại người thân không hợp lệ';
     }
 
     if (!agreedTerms) {
-      newErrors.terms = 'Bạn cần đồng ý với Điều khoản dịch vụ cứu hộ để tiếp tục';
+      newErrors.terms = isEn ? 'Please accept the Emergency Service Terms to continue' : 'Bạn cần đồng ý với Điều khoản dịch vụ cứu hộ để tiếp tục';
     }
 
     setErrors(newErrors);
@@ -138,9 +139,9 @@ export const RegisterScreen: React.FC = () => {
             ? [
                 {
                   id: 'ice_' + Date.now(),
-                  name: iceName.trim() || 'Người thân khẩn cấp',
+                  name: iceName.trim() || (isEn ? 'Emergency Contact' : 'Người thân khẩn cấp'),
                   phoneNumber: icePhone.trim(),
-                  relationship: 'Gia đình',
+                  relationship: isEn ? 'Family' : 'Gia đình',
                   isPrimary: true,
                 },
               ]
@@ -149,11 +150,13 @@ export const RegisterScreen: React.FC = () => {
       });
 
       Alert.alert(
-        'Đăng Ký Thành Công 🎉',
-        'Mã xác thực OTP 6 số đã được gửi tới email của bạn. Vui lòng nhập mã để kích hoạt tài khoản.',
+        isEn ? 'Registration Successful 🎉' : 'Đăng Ký Thành Công 🎉',
+        isEn
+          ? 'A 6-digit OTP verification code has been sent to your email. Please enter it to activate your account.'
+          : 'Mã xác thực OTP 6 số đã được gửi tới email của bạn. Vui lòng nhập mã để kích hoạt tài khoản.',
         [
           {
-            text: 'Nhập Mã OTP',
+            text: isEn ? 'Enter OTP Code' : 'Nhập Mã OTP',
             onPress: () => {
               navigation.navigate('OtpVerification', {
                 emailOrPhone: email.trim(),
@@ -167,8 +170,8 @@ export const RegisterScreen: React.FC = () => {
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
-        'Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại.';
-      Alert.alert('Đăng ký thất bại', errorMsg);
+        (isEn ? 'An error occurred while creating your account. Please try again.' : 'Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại.');
+      Alert.alert(isEn ? 'Registration Failed' : 'Đăng ký thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -317,8 +320,12 @@ export const RegisterScreen: React.FC = () => {
                   <HeartPulse color="#DC2626" size={16} />
                 </View>
                 <View>
-                  <Text style={styles.accordionTitle}>2. Thiết lập Cứu hộ nhanh (Khuyên dùng)</Text>
-                  <Text style={styles.accordionSubtitle}>Nhóm máu & Liên hệ người thân ICE</Text>
+                  <Text style={styles.accordionTitle}>
+                    {isEn ? '2. Quick Rescue Setup (Recommended)' : '2. Thiết lập Cứu hộ nhanh (Khuyên dùng)'}
+                  </Text>
+                  <Text style={styles.accordionSubtitle}>
+                    {isEn ? 'Blood Type & Emergency Contact (ICE)' : 'Nhóm máu & Liên hệ người thân ICE'}
+                  </Text>
                 </View>
               </View>
               {showEmergencySection ? (
@@ -331,7 +338,7 @@ export const RegisterScreen: React.FC = () => {
             {showEmergencySection && (
               <View style={styles.emergencyBox}>
                 {/* Blood Type Selection */}
-                <Text style={styles.fieldLabel}>Nhóm máu của bạn:</Text>
+                <Text style={styles.fieldLabel}>{isEn ? 'Your blood type:' : 'Nhóm máu của bạn:'}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bloodList}>
                   {BLOOD_TYPES.map((bt) => (
                     <TouchableOpacity
@@ -349,7 +356,7 @@ export const RegisterScreen: React.FC = () => {
                           selectedBloodType === bt && styles.bloodBadgeTextSelected,
                         ]}
                       >
-                        {bt}
+                        {bt === 'Chưa rõ' && isEn ? 'Unknown' : bt}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -357,16 +364,16 @@ export const RegisterScreen: React.FC = () => {
 
                 {/* ICE Contact Name & Phone */}
                 <Input
-                  label="Tên người thân liên hệ khẩn cấp"
-                  placeholder="Nhập tên người thân (Bố, Mẹ, Vợ...)"
+                  label={isEn ? 'Emergency Contact Name' : 'Tên người thân liên hệ khẩn cấp'}
+                  placeholder={isEn ? 'Enter relative name (Parent, Spouse...)' : 'Nhập tên người thân (Bố, Mẹ, Vợ...)'}
                   value={iceName}
                   onChangeText={setIceName}
                   variant="light"
                   leftIcon={<User size={18} color="#64748B" />}
                 />
                 <Input
-                  label="Số điện thoại người thân (ICE)"
-                  placeholder="Nhập số điện thoại người thân"
+                  label={isEn ? 'Emergency Contact Phone (ICE)' : 'Số điện thoại người thân (ICE)'}
+                  placeholder={isEn ? 'Enter emergency contact phone number' : 'Nhập số điện thoại người thân'}
                   value={icePhone}
                   onChangeText={(val) => {
                     setIcePhone(val);

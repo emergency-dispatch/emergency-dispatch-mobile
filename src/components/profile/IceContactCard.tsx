@@ -17,27 +17,30 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
   onDelete,
   showActions = true,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
 
   const handleCall = () => {
     const cleanPhone = contact.phoneNumber.replace(/[^0-9+]/g, '');
     if (!cleanPhone) {
-      Alert.alert(t('common.error'), 'Số điện thoại không hợp lệ');
+      Alert.alert(t('common.error'), isEn ? 'Invalid phone number' : 'Số điện thoại không hợp lệ');
       return;
     }
     Linking.openURL(`tel:${cleanPhone}`).catch(() => {
-      Alert.alert('Không thể thực hiện cuộc gọi', `Số: ${contact.phoneNumber}`);
+      Alert.alert(isEn ? 'Unable to make call' : 'Không thể thực hiện cuộc gọi', `${isEn ? 'Number' : 'Số'}: ${contact.phoneNumber}`);
     });
   };
 
   const handleDelete = () => {
     Alert.alert(
-      'Xác nhận xoá',
-      `Bạn có chắc chắn muốn xoá người liên hệ khẩn cấp "${contact.name}" không?`,
+      isEn ? 'Confirm Delete' : 'Xác nhận xoá',
+      isEn
+        ? `Are you sure you want to delete emergency contact "${contact.name}"?`
+        : `Bạn có chắc chắn muốn xoá người liên hệ khẩn cấp "${contact.name}" không?`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Xoá',
+          text: isEn ? 'Delete' : 'Xoá',
           style: 'destructive',
           onPress: () => onDelete?.(contact.id),
         },
@@ -74,7 +77,7 @@ export const IceContactCard: React.FC<IceContactCardProps> = ({
           onPress={handleCall}
           activeOpacity={0.7}
           accessible={true}
-          accessibilityLabel={`Gọi khẩn cấp cho ${contact.name}`}
+          accessibilityLabel={isEn ? `Emergency call to ${contact.name}` : `Gọi khẩn cấp cho ${contact.name}`}
         >
           <Phone size={18} color="#FFFFFF" fill="#FFFFFF" />
         </TouchableOpacity>

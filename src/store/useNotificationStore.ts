@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -33,6 +34,8 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 /**
  * Universal imperative notification helper for anywhere in the app
  */
+const isEnLang = () => !(i18n.language || 'vi').startsWith('vi');
+
 export const notify = {
   show: (options: NotificationOptions) => useNotificationStore.getState().show(options),
   success: (title: string, message?: string, onConfirm?: () => void) =>
@@ -40,7 +43,7 @@ export const notify = {
       type: 'success',
       title,
       message,
-      confirmText: 'Đã Hiểu',
+      confirmText: isEnLang() ? 'Got it' : 'Đã Hiểu',
       singleButton: true,
       onConfirm,
     }),
@@ -49,7 +52,7 @@ export const notify = {
       type: 'error',
       title,
       message,
-      confirmText: 'Đóng',
+      confirmText: isEnLang() ? 'Close' : 'Đóng',
       singleButton: true,
       onConfirm,
     }),
@@ -58,7 +61,7 @@ export const notify = {
       type: 'warning',
       title,
       message,
-      confirmText: 'Đã Hiểu',
+      confirmText: isEnLang() ? 'Got it' : 'Đã Hiểu',
       singleButton: true,
       onConfirm,
     }),
@@ -67,15 +70,15 @@ export const notify = {
       type: 'info',
       title,
       message,
-      confirmText: 'Đóng',
+      confirmText: isEnLang() ? 'Close' : 'Đóng',
       singleButton: true,
       onConfirm,
     }),
   confirm: ({
     title,
     message,
-    confirmText = 'Xác Nhận',
-    cancelText = 'Hủy Bỏ',
+    confirmText,
+    cancelText,
     type = 'warning',
     onConfirm,
     onCancel,
@@ -92,8 +95,8 @@ export const notify = {
       type,
       title,
       message,
-      confirmText,
-      cancelText,
+      confirmText: confirmText || (isEnLang() ? 'Confirm' : 'Xác Nhận'),
+      cancelText: cancelText || (isEnLang() ? 'Cancel' : 'Hủy Bỏ'),
       singleButton: false,
       onConfirm,
       onCancel,

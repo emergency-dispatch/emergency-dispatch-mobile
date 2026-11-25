@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 interface SocialAuthButtonsProps {
   onGooglePress?: () => void;
@@ -32,15 +33,18 @@ const GoogleIcon = () => (
 
 export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
   onGooglePress,
-  dividerText = 'HOẶC ĐĂNG NHẬP VỚI',
+  dividerText,
   style,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
+  const displayDivider = dividerText || (isEn ? 'OR SIGN IN WITH' : 'HOẶC ĐĂNG NHẬP VỚI');
   return (
     <View style={[styles.container, style]}>
       {/* Divider */}
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>{dividerText}</Text>
+        <Text style={styles.dividerText}>{displayDivider}</Text>
         <View style={styles.dividerLine} />
       </View>
 
@@ -51,7 +55,7 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
         activeOpacity={0.7}
       >
         <GoogleIcon />
-        <Text style={styles.socialBtnText}>Đăng nhập với Google</Text>
+        <Text style={styles.socialBtnText}>{isEn ? 'Continue with Google' : 'Đăng nhập với Google'}</Text>
       </TouchableOpacity>
     </View>
   );

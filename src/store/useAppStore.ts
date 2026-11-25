@@ -4,6 +4,7 @@ import { UserDto } from '../types/auth';
 import { storage } from '../services/storage';
 import { AppConfig } from '../constants/config';
 import { authService } from '../services/auth.service';
+import { mobileIncidentHub, mobileTrackingHub } from '../services/signalr.service';
 
 export const mapBackendUser = (dto: UserDto): User => {
   const roleStr = (dto.role || '').toString().toLowerCase();
@@ -41,7 +42,7 @@ interface AppState {
   isAuthenticated: boolean;
   isLoadingAuth: boolean;
   initAuth: () => Promise<void>;
-  setAuth: (user: User, token: string, refreshToken?: string) => Promise<void>;
+  setAuth: (user: User, token: string, refreshToken?: string, rememberMe?: boolean) => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
   setUserRole: (role: UserRole) => void;
   switchDemoRole: (role: UserRole) => void;
@@ -60,6 +61,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   initAuth: async () => {
     try {
+      const rememberFlag = await storage.getItem<string>(AppConfig.STORAGE_KEYS.REMEMBER_ME);
+      if (rememberFlag === '0') {
+        await Promise.all([
+          storage.removeItem(AppConfig.STORAGE_KEYS.AUTH_TOKEN),
+          storage.removeItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
+          storage.removeItem(AppConfig.STORAGE_KEYS.USER_INFO),
+        ]);
+        set({ isLoadingAuth: false });
+        return;
+      }
+
       const [token, refreshToken, user] = await Promise.all([
         storage.getItem<string>(AppConfig.STORAGE_KEYS.AUTH_TOKEN),
         storage.getItem<string>(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
@@ -82,17 +94,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isLoadingAuth: false });
   },
 
-  setAuth: async (user, token, refreshToken) => {
-    set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true });
+  setAuth: async (user, token, refreshToken, rememberMe = true) => {
+    const prev = get();
+    if (prev.token !== token || prev.user?.id !== user.id) {
+      mobileIncidentHub.stop();
+      mobileTrackingHub.stop();
+    }
     try {
       await Promise.all([
+        storage.setItem(AppConfig.STORAGE_KEYS.REMEMBER_ME, rememberMe ? '1' : '0'),
         storage.setItem(AppConfig.STORAGE_KEYS.AUTH_TOKEN, token),
         storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, user),
-        refreshToken ? storage.setItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN, refreshToken) : Promise.resolve(),
+        refreshToken
+          ? storage.setItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+          : storage.removeItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
+        !rememberMe ? storage.removeItem(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT) : Promise.resolve(),
       ]);
     } catch {
       // Ignore storage persistence failure
     }
+    set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true });
   },
 
   updateUser: (patch) => {
@@ -123,6 +144,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout: async () => {
     const currentRefresh = get().refreshToken;
     const currentUser = get().user;
+    mobileIncidentHub.stop();
+    mobileTrackingHub.stop();
     set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
     try {
       await Promise.all([
@@ -130,6 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         storage.removeItem(AppConfig.STORAGE_KEYS.REFRESH_TOKEN),
         storage.removeItem(AppConfig.STORAGE_KEYS.USER_INFO),
         storage.removeItem('@emergency_user_profile'),
+        storage.removeItem('MY_REPORTED_INCIDENTS_CACHE'),
         storage.removeItem('LAST_SOS_REPORTED_AT'),
         currentUser?.id ? storage.removeItem(`LAST_SOS_REPORTED_AT_${currentUser.id}`) : Promise.resolve(),
         currentRefresh ? authService.logout(currentRefresh) : Promise.resolve(),

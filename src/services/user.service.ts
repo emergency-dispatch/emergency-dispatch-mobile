@@ -1,5 +1,8 @@
 import { apiService } from '../api/client';
+import { getCurrentLanguage } from '../i18n';
 import { Endpoints } from '../api/endpoints';
+
+const isEn = () => getCurrentLanguage() === 'en';
 import { BackendApiResponse } from '../types/auth';
 import { UserResponseDto, UpdateProfileDto, UpdateFcmTokenDto } from '../types/user';
 
@@ -15,7 +18,7 @@ export const userService = {
       Endpoints.USER.PROFILE
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể lấy thông tin cá nhân.');
+      throw new Error(response.message || (isEn() ? 'Unable to load profile.' : 'Không thể lấy thông tin cá nhân.'));
     }
     return response.data;
   },
@@ -29,7 +32,7 @@ export const userService = {
       dto
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Cập nhật thông tin cá nhân thất bại.');
+      throw new Error(response.message || (isEn() ? 'Failed to update profile.' : 'Cập nhật thông tin cá nhân thất bại.'));
     }
     return response.data;
   },
@@ -43,7 +46,7 @@ export const userService = {
       { fcmToken: fcmToken.trim() } as UpdateFcmTokenDto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Cập nhật FCM Token không thành công.');
+      throw new Error(response.message || (isEn() ? 'Failed to update FCM Token.' : 'Cập nhật FCM Token không thành công.'));
     }
     return true;
   },

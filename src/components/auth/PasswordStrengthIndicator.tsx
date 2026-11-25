@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { Check, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface PasswordStrengthIndicatorProps {
   password: string;
@@ -10,6 +11,8 @@ interface PasswordStrengthIndicatorProps {
 export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
   password,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   if (!password) {
     return null;
   }
@@ -21,24 +24,24 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
   const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
 
   const criteria = [
-    { label: 'Tối thiểu 8 ký tự', met: hasMinLength },
-    { label: 'Có chữ hoa & chữ thường', met: hasUpperCase && hasLowerCase },
-    { label: 'Có ít nhất 1 chữ số', met: hasNumber },
-    { label: 'Có ký tự đặc biệt (@, #, $...)', met: hasSpecialChar },
+    { label: isEn ? 'At least 8 characters' : 'Tối thiểu 8 ký tự', met: hasMinLength },
+    { label: isEn ? 'Uppercase & lowercase letters' : 'Có chữ hoa & chữ thường', met: hasUpperCase && hasLowerCase },
+    { label: isEn ? 'At least 1 digit' : 'Có ít nhất 1 chữ số', met: hasNumber },
+    { label: isEn ? 'Special character (@, #, $...)' : 'Có ký tự đặc biệt (@, #, $...)', met: hasSpecialChar },
   ];
 
   const metCount = criteria.filter((c) => c.met).length;
 
-  let strengthLabel = 'Yếu';
+  let strengthLabel = isEn ? 'Weak' : 'Yếu';
   let strengthColor = '#DC2626'; // Emergency Red
   if (metCount === 2) {
-    strengthLabel = 'Trung bình';
+    strengthLabel = isEn ? 'Fair' : 'Trung bình';
     strengthColor = '#D97706'; // Amber
   } else if (metCount === 3) {
-    strengthLabel = 'Khá';
+    strengthLabel = isEn ? 'Good' : 'Khá';
     strengthColor = '#2563EB'; // Electric Blue
   } else if (metCount === 4) {
-    strengthLabel = 'Mạnh & An toàn';
+    strengthLabel = isEn ? 'Strong & Secure' : 'Mạnh & An toàn';
     strengthColor = '#059669'; // Emerald
   }
 
@@ -51,7 +54,7 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
           allowFontScaling={false}
           maxFontSizeMultiplier={1.2}
         >
-          Độ mạnh mật khẩu:
+          {isEn ? 'Password strength:' : 'Độ mạnh mật khẩu:'}
         </Text>
         <Text
           style={[styles.strengthLabel, { color: strengthColor }]}

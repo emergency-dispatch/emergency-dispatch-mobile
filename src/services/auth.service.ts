@@ -1,5 +1,8 @@
 import { apiService } from '../api/client';
+import { getCurrentLanguage } from '../i18n';
 import { Endpoints } from '../api/endpoints';
+
+const isEn = () => getCurrentLanguage() === 'en';
 import {
   LoginRequestDto,
   RegisterRequestDto,
@@ -27,7 +30,7 @@ export const authService = {
       dto
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Đăng nhập không thành công');
+      throw new Error(response.message || (isEn() ? 'Sign in failed' : 'Đăng nhập không thành công'));
     }
     return response.data;
   },
@@ -41,7 +44,7 @@ export const authService = {
       dto
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Đăng ký tài khoản không thành công');
+      throw new Error(response.message || (isEn() ? 'Registration failed' : 'Đăng ký tài khoản không thành công'));
     }
     return response.data;
   },
@@ -55,7 +58,7 @@ export const authService = {
       dto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Mã OTP không chính xác hoặc đã hết hạn');
+      throw new Error(response.message || (isEn() ? 'OTP code is incorrect or expired' : 'Mã OTP không chính xác hoặc đã hết hạn'));
     }
     return response.data ?? true;
   },
@@ -69,7 +72,7 @@ export const authService = {
       dto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Không thể gửi lại mã xác thực');
+      throw new Error(response.message || (isEn() ? 'Unable to resend verification code' : 'Không thể gửi lại mã xác thực'));
     }
     return response.data ?? true;
   },
@@ -83,7 +86,7 @@ export const authService = {
       dto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Không thể yêu cầu đặt lại mật khẩu');
+      throw new Error(response.message || (isEn() ? 'Unable to request password reset' : 'Không thể yêu cầu đặt lại mật khẩu'));
     }
     return response.data ?? true;
   },
@@ -97,7 +100,7 @@ export const authService = {
       dto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Đặt lại mật khẩu thất bại');
+      throw new Error(response.message || (isEn() ? 'Password reset failed' : 'Đặt lại mật khẩu thất bại'));
     }
     return response.data ?? true;
   },
@@ -111,7 +114,7 @@ export const authService = {
       dto
     );
     if (!response.success) {
-      throw new Error(response.message || 'Đổi mật khẩu thất bại');
+      throw new Error(response.message || (isEn() ? 'Password change failed' : 'Đổi mật khẩu thất bại'));
     }
     return true;
   },
@@ -140,7 +143,7 @@ export const authService = {
       dto
     );
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Đăng nhập Google thất bại');
+      throw new Error(response.message || (isEn() ? 'Google sign-in failed' : 'Đăng nhập Google thất bại'));
     }
     return response.data;
   },

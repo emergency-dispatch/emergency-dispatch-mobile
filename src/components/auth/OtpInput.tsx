@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { RotateCw } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface OtpInputProps {
   length?: number;
@@ -26,6 +27,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   onResend,
   initialCountdown = 60,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const inputsRef = useRef<Array<any>>([]);
   const [countdown, setCountdown] = useState(initialCountdown);
   const [canResend, setCanResend] = useState(false);
@@ -151,7 +154,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
               allowFontScaling={false}
               maxFontSizeMultiplier={1.2}
             >
-              Gửi lại mã xác thực
+              {isEn ? 'Resend verification code' : 'Gửi lại mã xác thực'}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -160,7 +163,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             allowFontScaling={false}
             maxFontSizeMultiplier={1.2}
           >
-            Gửi lại mã OTP sau{' '}
+            {isEn ? 'Resend OTP in ' : 'Gửi lại mã OTP sau '}
             <Text style={styles.countdownHighlight}>{countdown}s</Text>
           </Text>
         )}

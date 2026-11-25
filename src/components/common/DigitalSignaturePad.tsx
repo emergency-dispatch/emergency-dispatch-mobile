@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { PenTool, RotateCcw, CheckCircle2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export interface DigitalSignaturePadProps {
@@ -22,14 +23,18 @@ export interface DigitalSignaturePadProps {
 }
 
 export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
-  title = 'CHỮ KÝ SỐ CỦA CHỈ HUY HIỆN TRƯỜNG / NGƯỜI BÀN GIAO',
-  placeholder = 'Ký trực tiếp bằng ngón tay vào đây',
+  title,
+  placeholder,
   onSignatureChange,
   onDrawingChange,
   strokeColor = '#0F172A',
   strokeWidth = 2.5,
   height = verticalScale(130),
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
+  const displayTitle = title || (isEn ? 'SCENE COMMANDER / HANDOVER DIGITAL SIGNATURE' : 'CHỮ KÝ SỐ CỦA CHỈ HUY HIỆN TRƯỜNG / NGƯỜI BÀN GIAO');
+  const displayPlaceholder = placeholder || (isEn ? 'Sign directly here with your finger' : 'Ký trực tiếp bằng ngón tay vào đây');
   const [strokes, setStrokes] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
   const currentPathRef = useRef<string>('');
@@ -105,7 +110,7 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <PenTool size={moderateScale(15)} color="#DC2626" />
-          <Text style={styles.titleText}>{title}</Text>
+          <Text style={styles.titleText}>{displayTitle}</Text>
         </View>
 
         {hasSignature && (
@@ -116,7 +121,7 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <RotateCcw size={moderateScale(12)} color="#DC2626" />
-            <Text style={styles.clearBtnText}>Ký lại</Text>
+            <Text style={styles.clearBtnText}>{isEn ? 'Clear' : 'Ký lại'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -152,14 +157,14 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
 
         {!hasSignature && (
           <View style={styles.placeholderContainer} pointerEvents="none">
-            <Text style={styles.placeholderText}>{placeholder}</Text>
+            <Text style={styles.placeholderText}>{displayPlaceholder}</Text>
           </View>
         )}
 
         {hasSignature && (
           <View style={styles.signedBadge} pointerEvents="none">
             <CheckCircle2 size={moderateScale(12)} color="#059669" />
-            <Text style={styles.signedBadgeText}>ĐÃ KÝ SỐ</Text>
+            <Text style={styles.signedBadgeText}>{isEn ? 'SIGNED' : 'ĐÃ KÝ SỐ'}</Text>
           </View>
         )}
       </View>

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { ArrowLeft, ShieldAlert } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface AuthHeaderProps {
   title: string;
@@ -31,6 +32,8 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   showLogo = true,
   style,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   // Pulse animation for the emergency badge dot
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -67,7 +70,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               style={styles.backButton}
               onPress={onBack}
               activeOpacity={0.7}
-              accessibilityLabel="Quay lại"
+              accessibilityLabel={isEn ? 'Go back' : 'Quay lại'}
             >
               <ArrowLeft color="#0F172A" size={moderateScale(20)} strokeWidth={2.4} />
             </TouchableOpacity>

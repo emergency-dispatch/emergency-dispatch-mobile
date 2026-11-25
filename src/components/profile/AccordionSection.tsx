@@ -9,6 +9,7 @@ import {
   UIManager,
 } from 'react-native';
 import { ChevronDown, ChevronUp, Edit3 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 // Only enable experimental layout animation on Old Architecture Android (no-op & warns on New Architecture)
 const isFabric = Boolean(
@@ -55,6 +56,8 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
   onQuickEdit,
   children,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const handleToggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onToggle();
@@ -74,7 +77,11 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
         activeOpacity={0.7}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={`${title}. ${isExpanded ? 'Đang mở' : 'Đang đóng'}. Chạm để ${isExpanded ? 'thu gọn' : 'mở rộng'}`}
+        accessibilityLabel={
+          isEn
+            ? `${title}. ${isExpanded ? 'Expanded' : 'Collapsed'}. Tap to ${isExpanded ? 'collapse' : 'expand'}`
+            : `${title}. ${isExpanded ? 'Đang mở' : 'Đang đóng'}. Chạm để ${isExpanded ? 'thu gọn' : 'mở rộng'}`
+        }
       >
         <View style={[styles.iconWrap, { backgroundColor: iconBgColor }]}>
           {icon}
@@ -139,10 +146,10 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
               onPress={onQuickEdit}
               activeOpacity={0.7}
               accessible={true}
-              accessibilityLabel={`Chỉnh sửa ${title}`}
+              accessibilityLabel={`${isEn ? 'Edit' : 'Chỉnh sửa'} ${title}`}
             >
               <Edit3 size={14} color="#DC2626" />
-              <Text style={styles.quickEditText}>Chỉnh sửa mục này</Text>
+              <Text style={styles.quickEditText}>{isEn ? 'Edit this section' : 'Chỉnh sửa mục này'}</Text>
             </TouchableOpacity>
           )}
         </View>

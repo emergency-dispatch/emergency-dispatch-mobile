@@ -41,7 +41,8 @@ type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
 type Step = 'REQUEST' | 'VERIFY_OTP' | 'RESET_PASSWORD' | 'SUCCESS';
 
 export const ForgotPasswordScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ForgotPasswordNavProp>();
   const route = useRoute<ForgotPasswordRouteProp>();
@@ -67,9 +68,9 @@ export const ForgotPasswordScreen: React.FC = () => {
   const handleRequestOtp = async () => {
     const newErrors: Record<string, string> = {};
     if (!account.trim()) {
-      newErrors.account = 'Vui lòng nhập Email hoặc Số điện thoại';
+      newErrors.account = isEn ? 'Please enter Email or Phone Number' : 'Vui lòng nhập Email hoặc Số điện thoại';
     } else if (!isValidEmail(account.trim()) && !isValidPhoneNumber(account.trim())) {
-      newErrors.account = 'Email hoặc Số điện thoại không đúng định dạng';
+      newErrors.account = isEn ? 'Invalid Email or Phone Number format' : 'Email hoặc Số điện thoại không đúng định dạng';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -83,8 +84,8 @@ export const ForgotPasswordScreen: React.FC = () => {
       setErrors({});
       setCurrentStep('VERIFY_OTP');
     } catch (e: any) {
-      const msg = e.response?.data?.message || e.message || 'Không thể gửi mã xác thực. Vui lòng thử lại.';
-      Alert.alert('Lỗi', msg);
+      const msg = e.response?.data?.message || e.message || (isEn ? 'Unable to send verification code. Please try again.' : 'Không thể gửi mã xác thực. Vui lòng thử lại.');
+      Alert.alert(isEn ? 'Error' : 'Lỗi', msg);
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +94,7 @@ export const ForgotPasswordScreen: React.FC = () => {
   // Step 2: Verify OTP
   const handleVerifyOtp = async () => {
     if (otpValue.length < 6) {
-      setErrors({ otp: 'Vui lòng nhập đủ 6 chữ số mã OTP' });
+      setErrors({ otp: isEn ? 'Please enter all 6 digits of the OTP code' : 'Vui lòng nhập đủ 6 chữ số mã OTP' });
       return;
     }
 
@@ -105,13 +106,13 @@ export const ForgotPasswordScreen: React.FC = () => {
   const handleResetPassword = async () => {
     const newErrors: Record<string, string> = {};
     if (!newPassword) {
-      newErrors.password = 'Vui lòng nhập mật khẩu mới';
+      newErrors.password = isEn ? 'Please enter a new password' : 'Vui lòng nhập mật khẩu mới';
     } else if (newPassword.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      newErrors.password = isEn ? 'Password must be at least 6 characters' : 'Mật khẩu phải có ít nhất 6 ký tự';
     }
 
     if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp';
+      newErrors.confirmPassword = isEn ? 'Confirmation password does not match' : 'Mật khẩu xác nhận không trùng khớp';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -130,8 +131,8 @@ export const ForgotPasswordScreen: React.FC = () => {
       setErrors({});
       setCurrentStep('SUCCESS');
     } catch (e: any) {
-      const msg = e.response?.data?.message || e.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
-      Alert.alert('Lỗi đặt lại mật khẩu', msg);
+      const msg = e.response?.data?.message || e.message || (isEn ? 'Unable to reset password. Please try again.' : 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
+      Alert.alert(isEn ? 'Reset Password Error' : 'Lỗi đặt lại mật khẩu', msg);
     } finally {
       setIsLoading(false);
     }
@@ -196,7 +197,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                 else if (currentStep === 'RESET_PASSWORD') setCurrentStep('VERIFY_OTP');
                 else navigation.goBack();
               }}
-              badgeText="BẢO MẬT & KHÔI PHỤC TÀI KHOẢN"
+              badgeText={isEn ? 'SECURITY & ACCOUNT RECOVERY' : 'BẢO MẬT & KHÔI PHỤC TÀI KHOẢN'}
             />
 
             {/* Wizard Step Progress Bar */}
@@ -248,8 +249,8 @@ export const ForgotPasswordScreen: React.FC = () => {
                   </View>
 
                   <Input
-                    label="Email hoặc Số điện thoại đã đăng ký"
-                    placeholder="Nhập email hoặc số điện thoại"
+                    label={isEn ? 'Registered Email or Phone Number' : 'Email hoặc Số điện thoại đã đăng ký'}
+                    placeholder={isEn ? 'Enter email or phone number' : 'Nhập email hoặc số điện thoại'}
                     value={account}
                     onChangeText={(val) => {
                       setAccount(val);
@@ -292,7 +293,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                     allowFontScaling={false}
                     maxFontSizeMultiplier={1.2}
                   >
-                    Vui lòng nhập mã số gồm 6 chữ số được gửi đến{' '}
+                    {isEn ? 'Please enter the 6-digit code sent to ' : 'Vui lòng nhập mã số gồm 6 chữ số được gửi đến '}
                     <Text style={styles.highlightText}>{account}</Text>
                   </Text>
 
@@ -308,9 +309,15 @@ export const ForgotPasswordScreen: React.FC = () => {
                     onResend={async () => {
                       try {
                         await authService.forgotPassword({ email: account.trim() });
-                        Alert.alert('Đã gửi lại OTP', `Mã xác thực mới đã được gửi tới ${account.trim()}`);
+                        Alert.alert(
+                          isEn ? 'OTP Resent' : 'Đã gửi lại OTP',
+                          isEn ? `A new verification code has been sent to ${account.trim()}` : `Mã xác thực mới đã được gửi tới ${account.trim()}`
+                        );
                       } catch (err: any) {
-                        Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể gửi lại mã OTP.');
+                        Alert.alert(
+                          isEn ? 'Error' : 'Lỗi',
+                          err.response?.data?.message || err.message || (isEn ? 'Unable to resend OTP code.' : 'Không thể gửi lại mã OTP.')
+                        );
                       }
                     }}
                   />
@@ -342,7 +349,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                       allowFontScaling={false}
                       maxFontSizeMultiplier={1.2}
                     >
-                      Đổi Email / Số điện thoại khác
+                      {isEn ? 'Use another Email / Phone Number' : 'Đổi Email / Số điện thoại khác'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -358,8 +365,8 @@ export const ForgotPasswordScreen: React.FC = () => {
                   </View>
 
                   <Input
-                    label="Mật khẩu mới *"
-                    placeholder="Tối thiểu 8 ký tự"
+                    label={isEn ? 'New Password *' : 'Mật khẩu mới *'}
+                    placeholder={isEn ? 'At least 8 characters' : 'Tối thiểu 8 ký tự'}
                     value={newPassword}
                     onChangeText={(val) => {
                       setNewPassword(val);
@@ -386,8 +393,8 @@ export const ForgotPasswordScreen: React.FC = () => {
                   <PasswordStrengthIndicator password={newPassword} />
 
                   <Input
-                    label="Xác nhận mật khẩu mới *"
-                    placeholder="Nhập lại mật khẩu mới"
+                    label={isEn ? 'Confirm New Password *' : 'Xác nhận mật khẩu mới *'}
+                    placeholder={isEn ? 'Re-enter new password' : 'Nhập lại mật khẩu mới'}
                     value={confirmPassword}
                     onChangeText={(val) => {
                       setConfirmPassword(val);
@@ -434,19 +441,20 @@ export const ForgotPasswordScreen: React.FC = () => {
                     allowFontScaling={false}
                     maxFontSizeMultiplier={1.2}
                   >
-                    Đổi Mật Khẩu Thành Công!
+                    {isEn ? 'Password Updated Successfully!' : 'Đổi Mật Khẩu Thành Công!'}
                   </Text>
                   <Text
                     style={styles.successSubtitle}
                     allowFontScaling={false}
                     maxFontSizeMultiplier={1.2}
                   >
-                    Mật khẩu tài khoản cứu hộ của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập ngay
-                    bây giờ.
+                    {isEn
+                      ? 'Your emergency account password has been safely updated. You can sign in now.'
+                      : 'Mật khẩu tài khoản cứu hộ của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập ngay bây giờ.'}
                   </Text>
 
                   <Button
-                    title="Đăng Nhập Ngay"
+                    title={isEn ? 'Sign In Now' : 'Đăng Nhập Ngay'}
                     onPress={() => navigation.navigate('Login')}
                     style={styles.successBtn}
                     textStyle={styles.btnText}
@@ -470,7 +478,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                   allowFontScaling={false}
                   maxFontSizeMultiplier={1.2}
                 >
-                  Quay lại màn hình Đăng nhập
+                  {isEn ? 'Back to Sign In' : 'Quay lại màn hình Đăng nhập'}
                 </Text>
               </TouchableOpacity>
             </View>

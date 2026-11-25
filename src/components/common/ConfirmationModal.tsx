@@ -21,6 +21,7 @@ import {
   LogOut,
   Flame,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export type ConfirmationType =
@@ -53,14 +54,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   description,
   highlightBadge,
   highlightText,
-  confirmText = 'Xác Nhận',
-  cancelText = 'Hủy Bỏ',
+  confirmText,
+  cancelText,
   singleButton = false,
   loading = false,
   icon,
   onConfirm,
   onCancel,
 }) => {
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
+  const displayConfirmText = confirmText || (isEn ? 'Confirm' : 'Xác Nhận');
+  const displayCancelText = cancelText || (isEn ? 'Cancel' : 'Hủy Bỏ');
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -264,7 +269,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     onPress={onCancel}
                     disabled={loading}
                   >
-                    <Text style={styles.cancelBtnText}>{cancelText}</Text>
+                    <Text style={styles.cancelBtnText}>{displayCancelText}</Text>
                   </TouchableOpacity>
                 )}
 
@@ -290,7 +295,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         { color: theme.btnText },
                       ]}
                     >
-                      {confirmText}
+                      {displayConfirmText}
                     </Text>
                   )}
                 </TouchableOpacity>

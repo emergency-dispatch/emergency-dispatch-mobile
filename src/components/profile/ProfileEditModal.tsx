@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Save,
@@ -114,6 +115,35 @@ const SUGGESTED_MOBILITY = [
   'Gãy xương đang cố định',
 ];
 
+const SUGGESTED_ALLERGIES_EN = [
+  'Penicillin',
+  'Aspirin',
+  'Sulfonamide antibiotics',
+  'Seafood (Shrimp, Crab)',
+  'Peanuts',
+  'Pollen',
+  'Insect / Bee stings',
+];
+
+const SUGGESTED_CONDITIONS_EN = [
+  'Asthma',
+  'Heart disease / Ischemia',
+  'Hypertension',
+  'Type 2 Diabetes',
+  'Epilepsy',
+  'Bleeding disorder',
+  'Chronic kidney disease',
+];
+
+const SUGGESTED_MOBILITY_EN = [
+  'Hearing impairment',
+  'Visual impairment',
+  'Wheelchair user',
+  'Limb paralysis / Weakness',
+  'Exertional dyspnea',
+  'Immobilized fracture',
+];
+
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   visible,
   onClose,
@@ -122,6 +152,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   initialTab = 'identity',
 }) => {
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
   // Form states initialized with current profile
@@ -137,9 +169,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       setIsUploadingAvatar(true);
       const url = await mediaService.uploadMedia(asset);
       setAvatarUrl(url);
-      Alert.alert('Thành công', 'Đã tải ảnh đại diện lên máy chủ!');
+      Alert.alert(isEn ? 'Success' : 'Thành công', isEn ? 'Avatar uploaded to server!' : 'Đã tải ảnh đại diện lên máy chủ!');
     } catch (err: any) {
-      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh lên máy chủ.');
+      Alert.alert(isEn ? 'Upload Error' : 'Lỗi tải ảnh', err.message || (isEn ? 'Unable to upload image to server.' : 'Không thể tải ảnh lên máy chủ.'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -152,9 +184,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       setIsUploadingAvatar(true);
       const url = await mediaService.uploadMedia(asset);
       setAvatarUrl(url);
-      Alert.alert('Thành công', 'Đã tải ảnh đại diện lên!');
+      Alert.alert(isEn ? 'Success' : 'Thành công', isEn ? 'Avatar uploaded!' : 'Đã tải ảnh đại diện lên!');
     } catch (err: any) {
-      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh lên!');
+      Alert.alert(isEn ? 'Upload Error' : 'Lỗi tải ảnh', err.message || (isEn ? 'Unable to upload image!' : 'Không thể tải ảnh lên!'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -309,18 +341,24 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     if (!isPickerValid) {
       if (!isNotFuture) {
         Alert.alert(
-          'Ngày sinh không hợp lệ',
-          `Ngày sinh không thể ở tương lai (Năm ${pickerYear}). Yêu cầu từ đủ 18 tuổi trở lên (sinh năm ${MAX_BIRTH_YEAR} trở về trước).`
+          isEn ? 'Invalid Birth Date' : 'Ngày sinh không hợp lệ',
+          isEn
+            ? `Birth date cannot be in the future (Year ${pickerYear}). Users must be at least 18 years old (born ${MAX_BIRTH_YEAR} or earlier).`
+            : `Ngày sinh không thể ở tương lai (Năm ${pickerYear}). Yêu cầu từ đủ 18 tuổi trở lên (sinh năm ${MAX_BIRTH_YEAR} trở về trước).`
         );
       } else if (!isDayValid) {
         Alert.alert(
-          'Ngày không hợp lệ',
-          `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày.`
+          isEn ? 'Invalid Day' : 'Ngày không hợp lệ',
+          isEn
+            ? `Month ${pickerMonth}/${pickerYear} has at most ${daysInSelectedMonth} days.`
+            : `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày.`
         );
       } else if (!isAgeValid) {
         Alert.alert(
-          'Chưa đủ 18 tuổi',
-          `Người dùng phải từ đủ 18 tuổi trở lên (Hiện tại: ${pickerAge} tuổi). Yêu cầu sinh ngày ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR} trở về trước.`
+          isEn ? 'Under 18 Years Old' : 'Chưa đủ 18 tuổi',
+          isEn
+            ? `Users must be at least 18 years old (Currently: ${pickerAge}). Must be born on or before ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR}.`
+            : `Người dùng phải từ đủ 18 tuổi trở lên (Hiện tại: ${pickerAge} tuổi). Yêu cầu sinh ngày ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR} trở về trước.`
         );
       }
       return;
@@ -407,18 +445,24 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   const handleAddIceContact = () => {
     if (!newContactName.trim() || !newContactPhone.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập họ tên và số điện thoại người thân.');
+      Alert.alert(
+        isEn ? 'Missing Info' : 'Thiếu thông tin',
+        isEn ? 'Please enter contact name and phone number.' : 'Vui lòng nhập họ tên và số điện thoại người thân.'
+      );
       return;
     }
     const cleanContactPhone = newContactPhone.trim().replace(/\s/g, '');
     if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(cleanContactPhone)) {
-      Alert.alert('Số điện thoại không hợp lệ', 'Số điện thoại người thân không đúng định dạng di động Việt Nam (ví dụ: 0912345678).');
+      Alert.alert(
+        isEn ? 'Invalid Phone Number' : 'Số điện thoại không hợp lệ',
+        isEn ? 'Emergency contact phone does not match valid Vietnam mobile format (e.g. 0912345678).' : 'Số điện thoại người thân không đúng định dạng di động Việt Nam (ví dụ: 0912345678).'
+      );
       return;
     }
     const newContact: IceContact = {
       id: `ice_${Date.now()}`,
       name: newContactName.trim(),
-      relationship: newContactRelation.trim() || 'Người thân',
+      relationship: newContactRelation.trim() || (isEn ? 'Relative' : 'Người thân'),
       phoneNumber: cleanContactPhone,
       isPrimary: contacts.length === 0,
     };
@@ -435,37 +479,46 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   const handleSaveAll = () => {
     if (!fullName.trim()) {
-      Alert.alert('Lỗi', 'Họ và tên không được để trống.');
+      Alert.alert(isEn ? 'Error' : 'Lỗi', isEn ? 'Full name cannot be empty.' : 'Họ và tên không được để trống.');
       return;
     }
     const cleanPhone = phoneNumber.trim().replace(/\s/g, '');
     if (!cleanPhone) {
-      Alert.alert('Lỗi', 'Số điện thoại không được để trống.');
+      Alert.alert(isEn ? 'Error' : 'Lỗi', isEn ? 'Phone number cannot be empty.' : 'Số điện thoại không được để trống.');
       return;
     }
     if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(cleanPhone)) {
-      Alert.alert('Số điện thoại không hợp lệ', 'Số điện thoại không đúng định dạng di động Việt Nam (ví dụ: 0912345678).');
+      Alert.alert(
+        isEn ? 'Invalid Phone Number' : 'Số điện thoại không hợp lệ',
+        isEn ? 'Phone number does not match valid Vietnam mobile format (e.g. 0912345678).' : 'Số điện thoại không đúng định dạng di động Việt Nam (ví dụ: 0912345678).'
+      );
       return;
     }
 
     if (!dateOfBirth.trim()) {
-      setDobError('Vui lòng chọn ngày sinh (từ đủ 18 tuổi trở lên)');
-      Alert.alert('Lỗi ngày sinh', 'Ngày sinh là bắt buộc. Ứng dụng yêu cầu người dùng từ đủ 18 tuổi trở lên.');
+      setDobError(isEn ? 'Please select date of birth (18+ required)' : 'Vui lòng chọn ngày sinh (từ đủ 18 tuổi trở lên)');
+      Alert.alert(
+        isEn ? 'Birth Date Required' : 'Lỗi ngày sinh',
+        isEn ? 'Date of birth is required. Users must be at least 18 years old.' : 'Ngày sinh là bắt buộc. Ứng dụng yêu cầu người dùng từ đủ 18 tuổi trở lên.'
+      );
       setActiveTab('identity');
       return;
     }
 
     const ageCheck = validateDobAge18(dateOfBirth);
     if (!ageCheck.isValid) {
-      setDobError(ageCheck.error || 'Ngày sinh không hợp lệ');
-      Alert.alert('Lỗi ngày sinh', ageCheck.error);
+      setDobError(ageCheck.error || (isEn ? 'Invalid birth date' : 'Ngày sinh không hợp lệ'));
+      Alert.alert(isEn ? 'Birth Date Error' : 'Lỗi ngày sinh', ageCheck.error);
       setActiveTab('identity');
       return;
     }
 
     const cleanId = idCardNumber.trim();
     if (cleanId && !/^[0-9]{9}([0-9]{3})?$/.test(cleanId)) {
-      Alert.alert('Số CCCD không hợp lệ', 'Số CMND/CCCD phải gồm đúng 9 hoặc 12 chữ số.');
+      Alert.alert(
+        isEn ? 'Invalid ID Number' : 'Số CCCD không hợp lệ',
+        isEn ? 'National ID number must be 9 or 12 digits.' : 'Số CMND/CCCD phải gồm đúng 9 hoặc 12 chữ số.'
+      );
       setActiveTab('identity');
       return;
     }
@@ -504,7 +557,10 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     onSave(updatedProfile);
     onClose();
     setTimeout(() => {
-      Alert.alert('Thành Công', 'Đã lưu thông tin hồ sơ cứu hộ và đồng bộ dữ liệu.');
+      Alert.alert(
+        isEn ? 'Saved' : 'Thành Công',
+        isEn ? 'Emergency profile saved and synchronized.' : 'Đã lưu thông tin hồ sơ cứu hộ và đồng bộ dữ liệu.'
+      );
     }, 200);
   };
 
@@ -525,16 +581,16 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               {/* Header */}
               <View style={styles.header}>
                 <View>
-                  <Text style={styles.headerTitle}>Chỉnh Sửa Hồ Sơ Cứu Hộ</Text>
+                  <Text style={styles.headerTitle}>{isEn ? 'Edit Emergency Profile' : 'Chỉnh Sửa Hồ Sơ Cứu Hộ'}</Text>
                   <Text style={styles.headerSubtitle}>
-                    Cập nhật các trường thông tin phục vụ cứu nạn
+                    {isEn ? 'Update information used during rescue operations' : 'Cập nhật các trường thông tin phục vụ cứu nạn'}
                   </Text>
                 </View>
                 <TouchableOpacity
                   onPress={onClose}
                   style={styles.closeBtn}
                   accessible={true}
-                  accessibilityLabel="Đóng modal chỉnh sửa"
+                  accessibilityLabel={isEn ? 'Close edit modal' : 'Đóng modal chỉnh sửa'}
                 >
                   <X size={20} color="#94A3B8" />
                 </TouchableOpacity>
@@ -560,7 +616,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     ]}
                     numberOfLines={1}
                   >
-                    Định Danh
+                    {isEn ? 'Identity' : 'Định Danh'}
                   </Text>
                 </TouchableOpacity>
 
@@ -582,7 +638,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     ]}
                     numberOfLines={1}
                   >
-                    Y Tế
+                    {isEn ? 'Medical' : 'Y Tế'}
                   </Text>
                 </TouchableOpacity>
 
@@ -605,7 +661,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     ]}
                     numberOfLines={1}
                   >
-                    Người Thân
+                    {isEn ? 'Contacts' : 'Người Thân'}
                   </Text>
                 </TouchableOpacity>
 
@@ -628,7 +684,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     ]}
                     numberOfLines={1}
                   >
-                    Đặc Thù
+                    {isEn ? 'Special' : 'Đặc Thù'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -644,7 +700,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   <View style={styles.tabContainer}>
                     {/* Avatar Edit Section */}
                     <View style={styles.avatarEditCard}>
-                      <Text style={styles.label}>Ảnh đại diện</Text>
+                      <Text style={styles.label}>{isEn ? 'Profile Photo' : 'Ảnh đại diện'}</Text>
                       <View style={styles.avatarRow}>
                         <View style={styles.avatarPreviewWrap}>
                           {avatarUrl ? (
@@ -674,7 +730,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                               activeOpacity={0.8}
                             >
                               <Camera size={13} color="#FFFFFF" />
-                              <Text style={styles.avatarCameraMiniBtnText}>Chụp ảnh</Text>
+                              <Text style={styles.avatarCameraMiniBtnText}>{isEn ? 'Camera' : 'Chụp ảnh'}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -684,7 +740,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                               activeOpacity={0.8}
                             >
                               <Images size={13} color="#0284C7" />
-                              <Text style={styles.avatarLibraryMiniBtnText}>Thư viện</Text>
+                              <Text style={styles.avatarLibraryMiniBtnText}>{isEn ? 'Library' : 'Thư viện'}</Text>
                             </TouchableOpacity>
                           </View>
 
@@ -692,7 +748,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                             style={[styles.input, { height: 38, fontSize: 12.5, paddingVertical: 4 }]}
                             value={avatarUrl}
                             onChangeText={setAvatarUrl}
-                            placeholder="Hoặc dán liên kết ảnh (URL)"
+                            placeholder={isEn ? 'Or paste image URL' : 'Hoặc dán liên kết ảnh (URL)'}
                             placeholderTextColor="#94A3B8"
                             autoCapitalize="none"
                             editable={!isUploadingAvatar}
@@ -703,13 +759,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                               style={styles.clearAvatarBtn}
                               disabled={isUploadingAvatar}
                             >
-                              <Text style={styles.clearAvatarText}>Xóa ảnh đại diện</Text>
+                              <Text style={styles.clearAvatarText}>{isEn ? 'Remove photo' : 'Xóa ảnh đại diện'}</Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
                       </View>
 
-                      <Text style={[styles.subLabel, { marginTop: 8 }]}>Hoặc chọn ảnh mẫu nhanh:</Text>
+                      <Text style={[styles.subLabel, { marginTop: 8 }]}>{isEn ? 'Or pick a quick preset:' : 'Hoặc chọn ảnh mẫu nhanh:'}</Text>
                       <View style={styles.presetRow}>
                         {AVATAR_PRESETS.map((preset, idx) => (
                           <TouchableOpacity
@@ -727,31 +783,31 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     </View>
 
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Họ và tên đầy đủ *</Text>
+                      <Text style={styles.label}>{isEn ? 'Full Name *' : 'Họ và tên đầy đủ *'}</Text>
                       <TextInput
                         style={styles.input}
                         value={fullName}
                         onChangeText={setFullName}
-                        placeholder="VD: Nguyễn Văn An"
+                        placeholder={isEn ? 'e.g. Nguyen Van An' : 'VD: Nguyễn Văn An'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
 
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Số điện thoại chính chủ *</Text>
+                      <Text style={styles.label}>{isEn ? 'Primary Phone Number *' : 'Số điện thoại chính chủ *'}</Text>
                       <TextInput
                         style={styles.input}
                         value={phoneNumber}
                         onChangeText={setPhoneNumber}
                         keyboardType="phone-pad"
-                        placeholder="VD: 0912 345 678"
+                        placeholder={isEn ? 'e.g. 0912 345 678' : 'VD: 0912 345 678'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>
-                        Địa chỉ thường trú / Nơi ở cố định *
+                        {isEn ? 'Permanent / Home Address *' : 'Địa chỉ thường trú / Nơi ở cố định *'}
                       </Text>
                       <TextInput
                         style={[styles.input, styles.textArea]}
@@ -759,7 +815,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         onChangeText={setAddress}
                         multiline={true}
                         numberOfLines={2}
-                        placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/TP"
+                        placeholder={isEn ? 'Street, Ward, District, City' : 'Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/TP'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
@@ -767,8 +823,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     <View style={styles.rowInputs}>
                       <View style={[styles.inputGroup, { flex: 1.1 }]}>
                         <Text style={styles.label}>
-                          Ngày sinh <Text style={{ color: '#DC2626' }}>*</Text>{' '}
-                          <Text style={styles.subLabel}>(≥ 18 tuổi)</Text>
+                          {isEn ? 'Date of Birth' : 'Ngày sinh'} <Text style={{ color: '#DC2626' }}>*</Text>{' '}
+                          <Text style={styles.subLabel}>{isEn ? '(≥ 18 yrs)' : '(≥ 18 tuổi)'}</Text>
                         </Text>
                         <TouchableOpacity
                           style={[
@@ -786,7 +842,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                             ]}
                             numberOfLines={1}
                           >
-                            {formatDobWithAge(dateOfBirth) || 'Chọn ngày sinh'}
+                            {formatDobWithAge(dateOfBirth) || (isEn ? 'Select birth date' : 'Chọn ngày sinh')}
                           </Text>
                           {dateOfBirth ? (
                             <TouchableOpacity
@@ -806,26 +862,26 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         {dobError ? (
                           <Text style={styles.dobErrorText}>{dobError}</Text>
                         ) : dateOfBirth ? (
-                          <Text style={styles.dobValidText}>✓ Đã xác thực ≥ 18 tuổi</Text>
+                          <Text style={styles.dobValidText}>{isEn ? '✓ Verified ≥ 18 years old' : '✓ Đã xác thực ≥ 18 tuổi'}</Text>
                         ) : (
-                          <Text style={styles.dobHintText}>Bắt buộc từ đủ 18 tuổi</Text>
+                          <Text style={styles.dobHintText}>{isEn ? 'Required: 18+ years old' : 'Bắt buộc từ đủ 18 tuổi'}</Text>
                         )}
                       </View>
 
                       <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.label}>Số CCCD / CMND</Text>
+                        <Text style={styles.label}>{isEn ? 'National ID / CCCD' : 'Số CCCD / CMND'}</Text>
                         <TextInput
                           style={styles.input}
                           value={idCardNumber}
                           onChangeText={setIdCardNumber}
-                          placeholder="12 chữ số"
+                          placeholder={isEn ? '12 digits' : '12 chữ số'}
                           placeholderTextColor="#64748B"
                         />
                       </View>
                     </View>
 
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Giới tính</Text>
+                      <Text style={styles.label}>{isEn ? 'Gender' : 'Giới tính'}</Text>
                       <View style={styles.genderRow}>
                         {(['Nam', 'Nữ', 'Khác'] as const).map((g) => (
                           <TouchableOpacity
@@ -842,7 +898,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                                 gender === g && styles.genderTextActive,
                               ]}
                             >
-                              {g}
+                              {isEn ? (g === 'Nam' ? 'Male' : g === 'Nữ' ? 'Female' : 'Other') : g}
                             </Text>
                           </TouchableOpacity>
                         ))}
@@ -856,7 +912,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   <View style={styles.tabContainer}>
                     {/* Blood Type Selector */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Nhóm máu (Blood Type)</Text>
+                      <Text style={styles.label}>{isEn ? 'Blood Type' : 'Nhóm máu (Blood Type)'}</Text>
                       <View style={styles.bloodTypeGrid}>
                         {BLOOD_TYPES.map((bt) => (
                           <TouchableOpacity
@@ -877,7 +933,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                                 bloodType === bt && styles.bloodTextActive,
                               ]}
                             >
-                              {bt}
+                              {isEn && bt === 'Chưa rõ' ? 'Unknown' : bt}
                             </Text>
                           </TouchableOpacity>
                         ))}
@@ -887,7 +943,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {/* Allergies */}
                     <View style={styles.inputGroup}>
                       <Text style={[styles.label, { color: '#FCA5A5' }]}>
-                        Dị ứng (Thuốc, Thức ăn, Môi trường)
+                        {isEn ? 'Allergies (Medication, Food, Environment)' : 'Dị ứng (Thuốc, Thức ăn, Môi trường)'}
                       </Text>
                       <View style={styles.chipsWrap}>
                         {allergies.map((alg, index) => (
@@ -905,7 +961,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                           style={[styles.input, { flex: 1 }]}
                           value={customAllergy}
                           onChangeText={setCustomAllergy}
-                          placeholder="Thêm dị ứng khác (vd: Dị ứng Paracetamol)..."
+                          placeholder={isEn ? 'Add allergy (e.g. Paracetamol)...' : 'Thêm dị ứng khác (vd: Dị ứng Paracetamol)...'}
                           placeholderTextColor="#64748B"
                         />
                         <TouchableOpacity
@@ -916,9 +972,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         </TouchableOpacity>
                       </View>
                       {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>Gợi ý phổ biến:</Text>
+                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
                       <View style={styles.suggestionWrap}>
-                        {SUGGESTED_ALLERGIES.filter((s) => !allergies.includes(s))
+                        {(isEn ? SUGGESTED_ALLERGIES_EN : SUGGESTED_ALLERGIES).filter((s) => !allergies.includes(s))
                           .slice(0, 4)
                           .map((sug) => (
                             <TouchableOpacity
@@ -935,7 +991,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {/* Chronic Conditions */}
                     <View style={styles.inputGroup}>
                       <Text style={[styles.label, { color: '#FCD34D' }]}>
-                        Tiền sử bệnh nền mãn tính
+                        {isEn ? 'Chronic Medical Conditions' : 'Tiền sử bệnh nền mãn tính'}
                       </Text>
                       <View style={styles.chipsWrap}>
                         {chronicConditions.map((cond, index) => (
@@ -953,7 +1009,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                           style={[styles.input, { flex: 1 }]}
                           value={customCondition}
                           onChangeText={setCustomCondition}
-                          placeholder="Thêm bệnh nền khác..."
+                          placeholder={isEn ? 'Add chronic condition...' : 'Thêm bệnh nền khác...'}
                           placeholderTextColor="#64748B"
                         />
                         <TouchableOpacity
@@ -964,9 +1020,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         </TouchableOpacity>
                       </View>
                       {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>Gợi ý phổ biến:</Text>
+                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
                       <View style={styles.suggestionWrap}>
-                        {SUGGESTED_CONDITIONS.filter(
+                        {(isEn ? SUGGESTED_CONDITIONS_EN : SUGGESTED_CONDITIONS).filter(
                           (s) => !chronicConditions.includes(s)
                         )
                           .slice(0, 4)
@@ -985,7 +1041,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {/* Current Medications */}
                     <View style={styles.inputGroup}>
                       <Text style={[styles.label, { color: '#7DD3FC' }]}>
-                        Thuốc đang điều trị thường xuyên
+                        {isEn ? 'Regular Medications' : 'Thuốc đang điều trị thường xuyên'}
                       </Text>
                       <View style={styles.chipsWrap}>
                         {currentMedications.map((med, index) => (
@@ -1003,7 +1059,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                           style={[styles.input, { flex: 1 }]}
                           value={customMed}
                           onChangeText={setCustomMed}
-                          placeholder="Thêm tên thuốc & liều lượng..."
+                          placeholder={isEn ? 'Add medication & dosage...' : 'Thêm tên thuốc & liều lượng...'}
                           placeholderTextColor="#64748B"
                         />
                         <TouchableOpacity
@@ -1018,7 +1074,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {/* Mobility Limitations */}
                     <View style={styles.inputGroup}>
                       <Text style={[styles.label, { color: '#D8B4FE' }]}>
-                        Tình trạng khuyết tật / Khó khăn vận động
+                        {isEn ? 'Disabilities / Mobility Limitations' : 'Tình trạng khuyết tật / Khó khăn vận động'}
                       </Text>
                       <View style={styles.chipsWrap}>
                         {mobilityLimitations.map((mob, index) => (
@@ -1036,7 +1092,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                           style={[styles.input, { flex: 1 }]}
                           value={customMobility}
                           onChangeText={setCustomMobility}
-                          placeholder="Thêm tình trạng hạn chế..."
+                          placeholder={isEn ? 'Add mobility limitation...' : 'Thêm tình trạng hạn chế...'}
                           placeholderTextColor="#64748B"
                         />
                         <TouchableOpacity
@@ -1047,9 +1103,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         </TouchableOpacity>
                       </View>
                       {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>Gợi ý phổ biến:</Text>
+                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
                       <View style={styles.suggestionWrap}>
-                        {SUGGESTED_MOBILITY.filter(
+                        {(isEn ? SUGGESTED_MOBILITY_EN : SUGGESTED_MOBILITY).filter(
                           (s) => !mobilityLimitations.includes(s)
                         )
                           .slice(0, 3)
@@ -1067,14 +1123,14 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
                     {/* Additional notes */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Ghi chú y khoa khác</Text>
+                      <Text style={styles.label}>{isEn ? 'Additional Medical Notes' : 'Ghi chú y khoa khác'}</Text>
                       <TextInput
                         style={[styles.input, styles.textArea]}
                         value={additionalNotes}
                         onChangeText={setAdditionalNotes}
                         multiline={true}
                         numberOfLines={2}
-                        placeholder="Ghi chú chi tiết cho bác sĩ/cứu hộ..."
+                        placeholder={isEn ? 'Detailed notes for doctors / rescuers...' : 'Ghi chú chi tiết cho bác sĩ/cứu hộ...'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
@@ -1088,10 +1144,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     <View style={styles.switchBox}>
                       <View style={styles.switchTextCol}>
                         <Text style={styles.switchTitle}>
-                          Tự động gửi SMS toạ độ khi bấm SOS
+                          {isEn ? 'Auto-send GPS SMS on SOS' : 'Tự động gửi SMS toạ độ khi bấm SOS'}
                         </Text>
                         <Text style={styles.switchDesc}>
-                          Hệ thống sẽ ngay lập tức soạn và gửi tin nhắn chứa toạ độ GPS cứu hộ tới các số liên hệ ICE khi kích hoạt báo động.
+                          {isEn
+                            ? 'Automatically compose and send an SMS with your GPS coordinates to emergency contacts when SOS is triggered.'
+                            : 'Hệ thống sẽ ngay lập tức soạn và gửi tin nhắn chứa toạ độ GPS cứu hộ tới các số liên hệ ICE khi kích hoạt báo động.'}
                         </Text>
                       </View>
                       <Switch
@@ -1103,7 +1161,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     </View>
 
                     <Text style={[styles.sectionHeading, { marginTop: 16 }]}>
-                      Danh sách người thân khẩn cấp (1 - 2 người)
+                      {isEn ? 'Emergency Contacts (1 - 2 people)' : 'Danh sách người thân khẩn cấp (1 - 2 người)'}
                     </Text>
 
                     {contacts.map((c) => (
@@ -1111,7 +1169,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         <View style={styles.contactItemInfo}>
                           <Text style={styles.contactItemName}>{c.name}</Text>
                           <Text style={styles.contactItemMeta}>
-                            Mối quan hệ: {c.relationship} • SĐT: {c.phoneNumber}
+                            {isEn ? 'Relationship' : 'Mối quan hệ'}: {c.relationship} • {isEn ? 'Phone' : 'SĐT'}: {c.phoneNumber}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -1127,20 +1185,20 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {isAddingContact ? (
                       <View style={styles.addContactCard}>
                         <Text style={styles.addContactTitle}>
-                          Thêm người thân khẩn cấp mới
+                          {isEn ? 'Add New Emergency Contact' : 'Thêm người thân khẩn cấp mới'}
                         </Text>
                         <TextInput
                           style={styles.input}
                           value={newContactName}
                           onChangeText={setNewContactName}
-                          placeholder="Họ và tên người thân"
+                          placeholder={isEn ? 'Contact full name' : 'Họ và tên người thân'}
                           placeholderTextColor="#64748B"
                         />
                         <TextInput
                           style={styles.input}
                           value={newContactRelation}
                           onChangeText={setNewContactRelation}
-                          placeholder="Mối quan hệ (VD: Vợ, Bố, Chồng, Bạn thân)"
+                          placeholder={isEn ? 'Relationship (e.g. Spouse, Parent, Friend)' : 'Mối quan hệ (VD: Vợ, Bố, Chồng, Bạn thân)'}
                           placeholderTextColor="#64748B"
                         />
                         <TextInput
@@ -1148,7 +1206,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                           value={newContactPhone}
                           onChangeText={setNewContactPhone}
                           keyboardType="phone-pad"
-                          placeholder="Số điện thoại"
+                          placeholder={isEn ? 'Phone number' : 'Số điện thoại'}
                           placeholderTextColor="#64748B"
                         />
                         <View style={styles.addContactActions}>
@@ -1156,13 +1214,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                             style={styles.cancelAddBtn}
                             onPress={() => setIsAddingContact(false)}
                           >
-                            <Text style={styles.cancelAddText}>Huỷ</Text>
+                            <Text style={styles.cancelAddText}>{isEn ? 'Cancel' : 'Huỷ'}</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.confirmAddBtn}
                             onPress={handleAddIceContact}
                           >
-                            <Text style={styles.confirmAddText}>Thêm</Text>
+                            <Text style={styles.confirmAddText}>{isEn ? 'Add' : 'Thêm'}</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -1174,7 +1232,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         >
                           <Plus size={18} color="#38BDF8" />
                           <Text style={styles.addNewContactText}>
-                            + Thêm Người Liên Hệ Khẩn Cấp
+                            {isEn ? '+ Add Emergency Contact' : '+ Thêm Người Liên Hệ Khẩn Cấp'}
                           </Text>
                         </TouchableOpacity>
                       )
@@ -1186,33 +1244,33 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 {activeTab === 'special' && (
                   <View style={styles.tabContainer}>
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Ngôn ngữ ưu tiên giao tiếp</Text>
+                      <Text style={styles.label}>{isEn ? 'Preferred Communication Language' : 'Ngôn ngữ ưu tiên giao tiếp'}</Text>
                       <TextInput
                         style={styles.input}
                         value={preferredLanguage}
                         onChangeText={setPreferredLanguage}
-                        placeholder="VD: Tiếng Việt, Tiếng Anh, Tiếng Trung..."
+                        placeholder={isEn ? 'e.g. English, Vietnamese, Chinese...' : 'VD: Tiếng Việt, Tiếng Anh, Tiếng Trung...'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>
-                        Số lượng thành viên trong hộ gia đình
+                        {isEn ? 'Household Members Count' : 'Số lượng thành viên trong hộ gia đình'}
                       </Text>
                       <TextInput
                         style={styles.input}
                         value={householdMembersCount}
                         onChangeText={(txt) => setHouseholdMembersCount(txt.replace(/[^0-9]/g, ''))}
                         keyboardType="number-pad"
-                        placeholder="VD: 4"
+                        placeholder={isEn ? 'e.g. 4' : 'VD: 4'}
                         placeholderTextColor="#64748B"
                       />
                     </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>
-                        Ghi chú người phụ thuộc trong hộ gia đình
+                        {isEn ? 'Household Dependents Note' : 'Ghi chú người phụ thuộc trong hộ gia đình'}
                       </Text>
                       <TextInput
                         style={[styles.input, styles.textArea]}
@@ -1220,11 +1278,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         onChangeText={setDependentsNote}
                         multiline={true}
                         numberOfLines={3}
-                        placeholder="VD: Căn hộ có trẻ sơ sinh 8 tháng tuổi và người già 80 tuổi đi lại khó khăn..."
+                        placeholder={isEn ? 'e.g. Infant (8 months) and elderly (80 years) living together...' : 'VD: Căn hộ có trẻ sơ sinh 8 tháng tuổi và người già 80 tuổi đi lại khó khăn...'}
                         placeholderTextColor="#64748B"
                       />
                       <Text style={styles.helperText}>
-                        * Thông tin này cực kỳ quan trọng giúp đội cứu hộ huy động lực lượng đưa người phụ thuộc ra khỏi vùng nguy hiểm trước.
+                        {isEn
+                          ? '* Crucial for rescue teams to prioritize evacuating dependents first.'
+                          : '* Thông tin này cực kỳ quan trọng giúp đội cứu hộ huy động lực lượng đưa người phụ thuộc ra khỏi vùng nguy hiểm trước.'}
                       </Text>
                     </View>
                   </View>
@@ -1243,7 +1303,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   onPress={onClose}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.cancelBtnText}>Huỷ bỏ</Text>
+                  <Text style={styles.cancelBtnText}>{isEn ? 'Cancel' : 'Huỷ bỏ'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1252,7 +1312,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   activeOpacity={0.8}
                 >
                   <Save size={18} color="#FFFFFF" />
-                  <Text style={styles.saveBtnText}>Lưu Thay Đổi</Text>
+                  <Text style={styles.saveBtnText}>{isEn ? 'Save Changes' : 'Lưu Thay Đổi'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1269,9 +1329,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                       <Calendar size={17} color="#DC2626" />
                     </View>
                     <View>
-                      <Text style={styles.dobModalTitle}>Chọn Ngày Sinh</Text>
+                      <Text style={styles.dobModalTitle}>{isEn ? 'Select Date of Birth' : 'Chọn Ngày Sinh'}</Text>
                       <Text style={styles.dobModalSubtitle}>
-                        Yêu cầu từ đủ 18 tuổi trở lên
+                        {isEn ? '18 years or older required' : 'Yêu cầu từ đủ 18 tuổi trở lên'}
                       </Text>
                     </View>
                   </View>
@@ -1303,32 +1363,34 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                       ]}
                     >
                       {isPickerValid
-                        ? `${String(pickerDay).padStart(2, '0')}/${String(pickerMonth).padStart(2, '0')}/${pickerYear} • ${pickerAge} tuổi (Hợp lệ)`
+                        ? `${String(pickerDay).padStart(2, '0')}/${String(pickerMonth).padStart(2, '0')}/${pickerYear} • ${pickerAge} ${isEn ? 'yrs (Valid)' : 'tuổi (Hợp lệ)'}`
                         : !isDayValid
-                          ? `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày`
+                          ? (isEn ? `Month ${pickerMonth}/${pickerYear} has at most ${daysInSelectedMonth} days` : `Tháng ${pickerMonth}/${pickerYear} chỉ có tối đa ${daysInSelectedMonth} ngày`)
                           : (pickerYear > CURRENT_YEAR || pickerAge < 0)
-                            ? `Ngày sinh không thể ở tương lai (Năm ${pickerYear})`
-                            : `Chưa đủ 18 tuổi (${pickerAge} tuổi)`}
+                            ? (isEn ? `Cannot be in future (Year ${pickerYear})` : `Ngày sinh không thể ở tương lai (Năm ${pickerYear})`)
+                            : (isEn ? `Under 18 years old (${pickerAge} yrs)` : `Chưa đủ 18 tuổi (${pickerAge} tuổi)`)}
                     </Text>
                   </View>
                   {!isPickerValid && (
                     <Text style={styles.ageStatusSubtext}>
                       {pickerAge < 18
-                        ? `* Cần sinh ngày ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR} trở về trước`
-                        : 'Vui lòng chọn ngày hợp lệ'}
+                        ? (isEn
+                            ? `* Must be born on or before ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR}`
+                            : `* Cần sinh ngày ${String(CURRENT_DAY).padStart(2, '0')}/${String(CURRENT_MONTH).padStart(2, '0')}/${MAX_BIRTH_YEAR} trở về trước`)
+                        : (isEn ? 'Please select a valid date' : 'Vui lòng chọn ngày hợp lệ')}
                     </Text>
                   )}
                 </View>
 
                 {/* Quick Direct Input Bar */}
                 <View style={styles.quickInputContainer}>
-                  <Text style={styles.quickInputLabel}>Nhập nhanh (DD/MM/YYYY):</Text>
+                  <Text style={styles.quickInputLabel}>{isEn ? 'Quick entry (DD/MM/YYYY):' : 'Nhập nhanh (DD/MM/YYYY):'}</Text>
                   <View style={styles.quickInputWrapper}>
                     <TextInput
                       style={styles.quickInput}
                       value={pickerInputText}
                       onChangeText={handleDirectDobInput}
-                      placeholder="VD: 14/01/2004"
+                      placeholder={isEn ? 'e.g. 14/01/2004' : 'VD: 14/01/2004'}
                       placeholderTextColor="#94A3B8"
                       keyboardType="numeric"
                       maxLength={10}
@@ -1356,7 +1418,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         pickerTab === 'year' && styles.pickerTabBtnTextActive,
                       ]}
                     >
-                      Năm {pickerYear}
+                      {isEn ? `Year ${pickerYear}` : `Năm ${pickerYear}`}
                     </Text>
                   </TouchableOpacity>
 
@@ -1373,7 +1435,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         pickerTab === 'month' && styles.pickerTabBtnTextActive,
                       ]}
                     >
-                      Tháng {pickerMonth}
+                      {isEn ? `Month ${pickerMonth}` : `Tháng ${pickerMonth}`}
                     </Text>
                   </TouchableOpacity>
 
@@ -1390,7 +1452,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         pickerTab === 'day' && styles.pickerTabBtnTextActive,
                       ]}
                     >
-                      Ngày {pickerDay}
+                      {isEn ? `Day ${pickerDay}` : `Ngày ${pickerDay}`}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1492,7 +1554,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                               pickerMonth === m && styles.monthGridItemTextActive,
                             ]}
                           >
-                            Tháng {m}
+                            {isEn ? `Month ${m}` : `Tháng ${m}`}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -1541,7 +1603,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     style={styles.dobCancelBtn}
                     onPress={() => setIsDatePickerVisible(false)}
                   >
-                    <Text style={styles.dobCancelBtnText}>Hủy</Text>
+                    <Text style={styles.dobCancelBtnText}>{isEn ? 'Cancel' : 'Hủy'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -1553,8 +1615,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   >
                     <Text style={styles.dobConfirmBtnText}>
                       {isPickerValid
-                        ? `Chọn ${String(pickerDay).padStart(2, '0')}/${String(pickerMonth).padStart(2, '0')}/${pickerYear}`
-                        : 'Chưa đủ 18 tuổi'}
+                        ? `${isEn ? 'Select' : 'Chọn'} ${String(pickerDay).padStart(2, '0')}/${String(pickerMonth).padStart(2, '0')}/${pickerYear}`
+                        : (isEn ? 'Under 18' : 'Chưa đủ 18 tuổi')}
                     </Text>
                   </TouchableOpacity>
                 </View>

@@ -23,5 +23,7 @@ export const AppConfig = {
     REFRESH_TOKEN: '@refresh_token',
     USER_INFO: '@user_info',
     APP_THEME: '@app_theme',
+    REMEMBER_ME: '@remember_me',
+    REMEMBERED_ACCOUNT: '@remembered_account',
   },
 };

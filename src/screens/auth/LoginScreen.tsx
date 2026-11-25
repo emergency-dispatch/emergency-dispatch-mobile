@@ -37,6 +37,7 @@ import { LanguageSelectorModal } from '../../components/common/LanguageSelectorM
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore, mapBackendUser } from '../../store/useAppStore';
 import { authService } from '../../services/auth.service';
+import { storage } from '../../services/storage';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useResponsive } from '../../utils/responsive';
 
@@ -62,6 +63,26 @@ export const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({});
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      storage.getItem<string>(AppConfig.STORAGE_KEYS.REMEMBER_ME),
+      storage.getItem<string>(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT),
+    ])
+      .then(([rememberFlag, savedAccount]) => {
+        if (!active) return;
+        const shouldRemember = rememberFlag !== '0';
+        setRememberMe(shouldRemember);
+        if (shouldRemember && savedAccount) {
+          setAccount((cur) => cur || savedAccount);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // SOS Logo & SOS Badge Gentle Pulse / Blink (nhấp nháy êm dịu, không phóng to/thu nhỏ)
   const logoOpacity = useRef(new Animated.Value(1)).current;
@@ -133,48 +154,60 @@ export const LoginScreen: React.FC = () => {
     try {
       const authData = await authService.googleLogin({ idToken });
       const mappedUser = mapBackendUser(authData.user);
-      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
+      await setAuth(mappedUser, authData.accessToken, authData.refreshToken, rememberMe);
+      if (rememberMe && mappedUser.email) {
+        await storage.setItem(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT, mappedUser.email);
+      }
       (navigation as any).navigate('Main');
     } catch (error: any) {
+      const isEn = !i18n.language?.startsWith('vi');
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
-        'Đăng nhập Google thất bại. Vui lòng kiểm tra kết nối.';
-      Alert.alert('Đăng nhập Google thất bại', errorMsg);
+        (isEn ? 'Google sign-in failed. Please check your connection.' : 'Đăng nhập Google thất bại. Vui lòng kiểm tra kết nối.');
+      Alert.alert(isEn ? 'Google Sign-In Failed' : 'Đăng nhập Google thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGooglePress = async () => {
+    const isEn = !i18n.language?.startsWith('vi');
     try {
       if (!googleRequest) {
-        Alert.alert('Đăng nhập Google', 'Đang khởi tạo phiên làm việc Google OAuth. Vui lòng thử lại sau giây lát.');
+        Alert.alert(
+          isEn ? 'Google Sign-In' : 'Đăng nhập Google',
+          isEn ? 'Initializing Google OAuth session. Please try again shortly.' : 'Đang khởi tạo phiên làm việc Google OAuth. Vui lòng thử lại sau giây lát.'
+        );
         return;
       }
       await promptGoogleAsync();
     } catch (err: any) {
-      Alert.alert('Lỗi', err.message || 'Không thể mở trình đăng nhập Google.');
+      Alert.alert(
+        isEn ? 'Error' : 'Lỗi',
+        err.message || (isEn ? 'Unable to open Google sign-in.' : 'Không thể mở trình đăng nhập Google.')
+      );
     }
   };
 
   // Validation
   const validateForm = () => {
+    const isEn = !i18n.language?.startsWith('vi');
     const newErrors: { account?: string; password?: string } = {};
 
     if (!account.trim()) {
-      newErrors.account = 'Vui lòng nhập Email hoặc Số điện thoại';
+      newErrors.account = isEn ? 'Please enter Email or Phone Number' : 'Vui lòng nhập Email hoặc Số điện thoại';
     } else if (
       !isValidEmail(account.trim()) &&
       !isValidPhoneNumber(account.trim())
     ) {
-      newErrors.account = 'Vui lòng nhập đúng định dạng Email hoặc Số điện thoại';
+      newErrors.account = isEn ? 'Please enter a valid Email or Phone Number' : 'Vui lòng nhập đúng định dạng Email hoặc Số điện thoại';
     }
 
     if (!password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
+      newErrors.password = isEn ? 'Please enter your password' : 'Vui lòng nhập mật khẩu';
     } else if (password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      newErrors.password = isEn ? 'Password must be at least 6 characters' : 'Mật khẩu phải có ít nhất 6 ký tự';
     }
 
     setErrors(newErrors);
@@ -194,15 +227,21 @@ export const LoginScreen: React.FC = () => {
       });
 
       const mappedUser = mapBackendUser(authData.user);
-      await setAuth(mappedUser, authData.accessToken, authData.refreshToken);
+      await setAuth(mappedUser, authData.accessToken, authData.refreshToken, rememberMe);
+      if (rememberMe) {
+        await storage.setItem(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT, email);
+      }
 
       (navigation as any).navigate('Main');
     } catch (error: any) {
+      const isEn = !i18n.language?.startsWith('vi');
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
-        'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin hoặc kết nối mạng.';
-      Alert.alert('Đăng nhập thất bại', errorMsg);
+        (isEn
+          ? 'Unable to connect to dispatch server. Please check your credentials or internet connection.'
+          : 'Không thể kết nối đến máy chủ điều phối. Vui lòng kiểm tra lại thông tin hoặc kết nối mạng.');
+      Alert.alert(isEn ? 'Sign In Failed' : 'Đăng nhập thất bại', errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -255,47 +294,6 @@ export const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Guest Emergency SOS Quick Banner */}
-          <View style={styles.sosBannerContainer}>
-            <TouchableOpacity
-              style={styles.guestSosBanner}
-              activeOpacity={0.88}
-              onPress={handleGuestSosBypass}
-            >
-              <View style={styles.guestSosLeft}>
-                {/* Gently Blinking Logo */}
-                <Animated.View style={[styles.sosIconCircle, { opacity: logoOpacity }]}>
-                  <ShieldAlert color="#DC2626" size={19} strokeWidth={2.6} />
-                </Animated.View>
-
-                <View style={styles.guestSosTextGroup}>
-                  <View style={styles.guestSosTitleRow}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.guestSosTitle, { fontSize: fontScale(12) }]}
-                    >
-                      {t('auth.guest_sos_title')}
-                    </Text>
-                    {/* Gently Blinking SOS 24/7 Tag */}
-                    <Animated.View style={[styles.sosUrgentTag, { opacity: strobeOpacity }]}>
-                      <View style={styles.livePulseDot} />
-                      <Text style={styles.sosUrgentTagText}>SOS 24/7</Text>
-                    </Animated.View>
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.guestSosSub, { fontSize: fontScale(10.5) }]}
-                  >
-                    {t('auth.guest_sos_sub')}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.sosArrowCircle}>
-                <ArrowRight color="#DC2626" size={15} strokeWidth={2.8} />
-              </View>
-            </TouchableOpacity>
-          </View>
 
           {/* Header Branding */}
           <AuthHeader
@@ -359,11 +357,20 @@ export const LoginScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.rememberMeGroup}
                 activeOpacity={0.7}
-                onPress={() => setRememberMe(!rememberMe)}
+                onPress={() => {
+                  const next = !rememberMe;
+                  setRememberMe(next);
+                  void storage.setItem(AppConfig.STORAGE_KEYS.REMEMBER_ME, next ? '1' : '0');
+                  if (!next) void storage.removeItem(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT);
+                }}
               >
                 <Switch
                   value={rememberMe}
-                  onValueChange={setRememberMe}
+                  onValueChange={(next) => {
+                    setRememberMe(next);
+                    void storage.setItem(AppConfig.STORAGE_KEYS.REMEMBER_ME, next ? '1' : '0');
+                    if (!next) void storage.removeItem(AppConfig.STORAGE_KEYS.REMEMBERED_ACCOUNT);
+                  }}
                   thumbColor={rememberMe ? '#DC2626' : '#94A3B8'}
                   trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
                   style={Platform.OS === 'ios' ? { transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] } : {}}

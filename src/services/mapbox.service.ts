@@ -1,3 +1,5 @@
+import { getCurrentLanguage } from '../i18n';
+
 export const MAPBOX_ACCESS_TOKEN =
   process.env.EXPO_PUBLIC_MAPBOX_TOKEN ||
   process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ||
@@ -23,6 +25,9 @@ export interface MapMarkerItem {
   category?: 'fire' | 'accident' | 'medical' | 'hazard' | string;
   unitType?: string;
   status?: string;
+  code?: string;
+  imageUrl?: string;
+  statusLabel?: string;
   plateNumber?: string;
   phoneNumber?: string;
   etaMinutes?: number;
@@ -97,7 +102,10 @@ class MapboxService {
       // Fallback to default
     }
 
-    return `Tọa độ GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
+    const isEn = getCurrentLanguage() === 'en';
+    return isEn
+      ? `GPS Coordinates (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`
+      : `Tọa độ GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
   }
 
   /**

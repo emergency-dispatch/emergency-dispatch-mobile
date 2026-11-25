@@ -4,7 +4,7 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { MapMarkerItem, MAPBOX_ACCESS_TOKEN } from '../../services/mapbox.service';
 
 export interface MapboxViewRef {
-  flyTo: (latitude: number, longitude: number, zoom?: number) => void;
+  flyTo: (latitude: number, longitude: number, zoom?: number, preserveCloserZoom?: boolean) => void;
   recenter: () => void;
   fitBounds: () => void;
   zoomIn: () => void;
@@ -17,6 +17,14 @@ export interface MapboxViewRef {
 export interface RouteCoordinate {
   latitude: number;
   longitude: number;
+}
+
+export interface RoutePathItem {
+  id?: string;
+  incidentId?: string;
+  coordinates: RouteCoordinate[];
+  isApproximate?: boolean;
+  color?: string;
 }
 
 export interface ServiceAreaCircle {
@@ -39,6 +47,7 @@ interface MapboxViewProps {
   userLongitude?: number;
   markers?: MapMarkerItem[];
   routeCoordinates?: RouteCoordinate[];
+  routes?: RoutePathItem[];
   isApproximateRoute?: boolean;
   serviceArea?: ServiceAreaCircle | null;
   pickedLocation?: PickedLocationItem | null;
@@ -48,6 +57,8 @@ interface MapboxViewProps {
   language?: 'vi' | 'en';
   onMarkerPress?: (marker: MapMarkerItem) => void;
   onMapPress?: (coords: { latitude: number; longitude: number }) => void;
+  onPopupOpen?: (markerId: string) => void;
+  onPopupClose?: () => void;
   style?: any;
 }
 
@@ -58,6 +69,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       userLongitude = 106.700806,
       markers = [],
       routeCoordinates = [],
+      routes = [],
       isApproximateRoute = false,
       serviceArea = null,
       pickedLocation = null,
@@ -67,6 +79,8 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       language = 'vi',
       onMarkerPress,
       onMapPress,
+      onPopupOpen,
+      onPopupClose,
       style,
     },
     ref
@@ -83,6 +97,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       pickedLocation,
       markers,
       routeCoordinates,
+      routes,
       isApproximateRoute,
       fitBounds,
     });
@@ -93,6 +108,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       pickedLocation,
       markers,
       routeCoordinates,
+      routes,
       isApproximateRoute,
       fitBounds,
     };
@@ -137,19 +153,27 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     }, [markers, fitBounds, userLatitude, userLongitude, routeCoordinates]);
 
-    // Sync route polyline coordinates
+    // Sync route polyline(s) coordinates
     useEffect(() => {
       if (isMapReadyRef.current) {
+        const effectiveRoutes: RoutePathItem[] =
+          routes.length > 0
+            ? routes
+            : routeCoordinates.length >= 2
+              ? [{ coordinates: routeCoordinates, isApproximate: isApproximateRoute }]
+              : [];
         const js = `
-          if (window.setRoute) {
+          if (window.setRoutes) {
+            window.setRoutes(${JSON.stringify(effectiveRoutes)});
+          } else if (window.setRoute) {
             window.setRoute(${JSON.stringify(routeCoordinates)}, ${isApproximateRoute ? 'true' : 'false'});
           }
-          ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}); }` : ''}
+          ${fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${userLatitude}, ${userLongitude}, ${JSON.stringify(markers)}, ${JSON.stringify(routeCoordinates)}, ${JSON.stringify(effectiveRoutes)}); }` : ''}
           true;
         `;
         webViewRef.current?.injectJavaScript(js);
       }
-    }, [routeCoordinates, isApproximateRoute, fitBounds, markers, userLatitude, userLongitude]);
+    }, [routeCoordinates, routes, isApproximateRoute, fitBounds, markers, userLatitude, userLongitude]);
 
     // Sync user location marker when user coordinates update
     useEffect(() => {
@@ -164,11 +188,25 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     }, [userLatitude, userLongitude]);
 
+    // Sync Admin-configured service area whenever fetched or updated
+    useEffect(() => {
+      if (isMapReadyRef.current) {
+        const js = `
+          if (window.setServiceArea) {
+            window.setServiceArea(${JSON.stringify(serviceArea)});
+          }
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+    }, [serviceArea]);
+
     useImperativeHandle(ref, () => ({
-      flyTo: (lat: number, lng: number, zoom = 16) => {
+      flyTo: (lat: number, lng: number, zoom = 16, preserveCloserZoom = false) => {
         const js = `
           if (window.map) {
-            window.map.flyTo([${lat}, ${lng}], ${zoom}, { duration: 1.2 });
+            var z = ${preserveCloserZoom ? 'Math.max(window.map.getZoom(), ' + zoom + ')' : zoom};
+            window.map.flyTo([${lat}, ${lng}], z, { duration: 0.6 });
           }
           true;
         `;
@@ -258,21 +296,30 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         if (payload.type === 'MAP_READY') {
           isMapReadyRef.current = true;
           const s = latestStateRef.current;
-          // Initial push of markers, route, user location, service area, and picked location
+          const effectiveInitRoutes =
+            s.routes && s.routes.length > 0
+              ? s.routes
+              : s.routeCoordinates && s.routeCoordinates.length >= 2
+                ? [{ coordinates: s.routeCoordinates, isApproximate: s.isApproximateRoute }]
+                : [];
+          // Initial push of markers, route(s), user location, service area, and picked location
           const js = `
             if (window.setMapStyle) window.setMapStyle(${JSON.stringify(mapStyle)});
             if (window.setUserLocation) window.setUserLocation(${s.userLatitude}, ${s.userLongitude});
             if (window.setServiceArea) window.setServiceArea(${JSON.stringify(s.serviceArea)});
             if (window.setPickedLocation) window.setPickedLocation(${JSON.stringify(s.pickedLocation)});
             if (window.setMarkers) window.setMarkers(${JSON.stringify(s.markers)});
-            if (window.setRoute) window.setRoute(${JSON.stringify(s.routeCoordinates)}, ${s.isApproximateRoute ? 'true' : 'false'});
-            ${s.fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${s.userLatitude}, ${s.userLongitude}, ${JSON.stringify(s.markers)}, ${JSON.stringify(s.routeCoordinates)}); }` : ''}
+            if (window.setRoutes) window.setRoutes(${JSON.stringify(effectiveInitRoutes)});
+            ${s.fitBounds ? `if (window.fitAllBounds) { window.fitAllBounds(${s.userLatitude}, ${s.userLongitude}, ${JSON.stringify(s.markers)}, ${JSON.stringify(s.routeCoordinates)}, ${JSON.stringify(effectiveInitRoutes)}); }` : ''}
             true;
           `;
           webViewRef.current?.injectJavaScript(js);
         } else if (payload.type === 'CALL_PHONE' && payload.phone) {
           Linking.openURL(`tel:${payload.phone}`).catch(() => {
-            Alert.alert('Lỗi', 'Không thể khởi chạy cuộc gọi điện thoại.');
+            Alert.alert(
+              language === 'en' ? 'Error' : 'Lỗi',
+              language === 'en' ? 'Unable to start phone call.' : 'Không thể khởi chạy cuộc gọi điện thoại.'
+            );
           });
         } else if (payload.type === 'MARKER_CLICK') {
           const found = markers.find((m) => m.id === payload.markerId);
@@ -284,6 +331,10 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             latitude: payload.latitude,
             longitude: payload.longitude,
           });
+        } else if (payload.type === 'POPUP_OPEN' && onPopupOpen && payload.markerId) {
+          onPopupOpen(payload.markerId);
+        } else if (payload.type === 'POPUP_CLOSE' && onPopupClose) {
+          onPopupClose();
         }
       } catch {
         // ignore
@@ -703,7 +754,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
       activeBoundaryPopup = null;
       window.serviceAreaLayer.clearLayers();
-      if (!area || area.enabled === false) return;
+      if (!area) return;
       var styleOpts = {
         color: '#DC2626',
         weight: 2.2,
@@ -720,8 +771,11 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         }
       }
 
+      var hasPolygon = Boolean(parsedBoundary && (parsedBoundary.type === 'Polygon' || parsedBoundary.type === 'MultiPolygon'));
+      if (area.enabled === false && !hasPolygon) return;
+
       var boundaryLayer = null;
-      if (parsedBoundary && (parsedBoundary.type === 'Polygon' || parsedBoundary.type === 'MultiPolygon')) {
+      if (hasPolygon) {
         boundaryLayer = L.geoJSON(parsedBoundary, { style: styleOpts }).addTo(window.serviceAreaLayer);
       } else {
         var centerLat = area.centerLat;
@@ -762,18 +816,24 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       });
     };
 
+    var INCIDENT_PATHS = {
+      fire: '<path fill="{COLOR}" fill-rule="evenodd" d="M12.6 2.5c.6 3.2-1.3 5-2.9 6.7C8.2 10.8 6.5 12.8 6.5 15.6A5.6 5.6 0 0 0 12 21.5a5.6 5.6 0 0 0 5.5-5.8c0-2.2-.9-3.9-2.1-5.3.1 1.6-.6 2.8-1.7 3.4.7-3.9-.2-7.8-1.1-11.3Z M12 14.2c1.3 1.4 2.3 2.5 2.3 3.8a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.4 2.3-3.8Z"/>',
+      accident: '<path fill="{COLOR}" d="M5.93 1.48 7.34 4.47 9.58 3.25 8.64 5.62 11.6 6.64 8.56 7.36 9.02 9.49 7.15 8.37 5.55 10.83 5.48 7.9 3.12 7.96 4.8 6.3 2.94 4.3 5.63 4.78Z"/>' +
+        '<g transform="translate(17.2 10.2) rotate(25) scale(.55) translate(-12 -12.25)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>' +
+        '<g transform="translate(-.5 10.5) scale(.6)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>',
+      other: '<path d="M12 3.4 21.6 20H2.4Z" fill="none" stroke="{COLOR}" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 9.6v4.8" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.45" fill="{COLOR}"/>',
+      unknown: '<path d="M8.6 8.6a3.4 3.4 0 1 1 5 3c-1 .5-1.6 1.2-1.6 2.3v1" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="18.8" r="1.6" fill="{COLOR}"/>'
+    };
+
     // Shared 3D & Glow SVG icons matching web src/assets/map-icons & map-icons-3d
     var SVG_ICONS = {
       pickPin: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 40" width="30" height="40" style="display:block;overflow:visible">' +
         '<path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.3 15 39 15 39s14-13.7 14-24.1C29 7.2 22.7 1 15 1z" fill="#0F172A" stroke="#F87171" stroke-width="2.5"/>' +
         '<path d="M15 9.8v10.4 M9.8 15h10.4" stroke="#FCA5A5" stroke-width="2.8" stroke-linecap="round"/></svg>',
-      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path fill="{COLOR}" fill-rule="evenodd" d="M12.6 2.5c.6 3.2-1.3 5-2.9 6.7C8.2 10.8 6.5 12.8 6.5 15.6A5.6 5.6 0 0 0 12 21.5a5.6 5.6 0 0 0 5.5-5.8c0-2.2-.9-3.9-2.1-5.3.1 1.6-.6 2.8-1.7 3.4.7-3.9-.2-7.8-1.1-11.3Z M12 14.2c1.3 1.4 2.3 2.5 2.3 3.8a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.4 2.3-3.8Z"/></svg>',
-      accident: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' +
-        '<path fill="{COLOR}" d="M5.93 1.48 7.34 4.47 9.58 3.25 8.64 5.62 11.6 6.64 8.56 7.36 9.02 9.49 7.15 8.37 5.55 10.83 5.48 7.9 3.12 7.96 4.8 6.3 2.94 4.3 5.63 4.78Z"/>' +
-        '<g transform="translate(17.2 10.2) rotate(25) scale(.55) translate(-12 -12.25)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g>' +
-        '<g transform="translate(-.5 10.5) scale(.6)"><path fill="{COLOR}" fill-rule="evenodd" d="M7.4 5h9.2a2 2 0 0 1 1.9 1.4L19.6 10H20a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1H20v1.5a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V17H7.6v1.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V17h-.5a1 1 0 0 1-1-1v-4.5A1.5 1.5 0 0 1 4 10h.4l1.1-3.6A2 2 0 0 1 7.4 5Z M7.6 7h8.8l.9 3H6.7Z M5.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z M16.2 13.4a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0Z"/></g></svg>',
-      other: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M12 3.4 21.6 20H2.4Z" fill="none" stroke="{COLOR}" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 9.6v4.8" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.45" fill="{COLOR}"/></svg>',
-      unknown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block"><path d="M8.6 8.6a3.4 3.4 0 1 1 5 3c-1 .5-1.6 1.2-1.6 2.3v1" fill="none" stroke="{COLOR}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="18.8" r="1.6" fill="{COLOR}"/></svg>',
+      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' + INCIDENT_PATHS.fire + '</svg>',
+      accident: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' + INCIDENT_PATHS.accident + '</svg>',
+      other: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' + INCIDENT_PATHS.other + '</svg>',
+      unknown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="display:block">' + INCIDENT_PATHS.unknown + '</svg>',
       stationMine: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:block;overflow:visible">' +
         '<ellipse cx="34.7" cy="34.3" rx="22" ry="9" fill="#0F172A" opacity="0.24"/>' +
         '<polygon points="6.3,30.5 36.6,45.7 36.6,43.9 6.3,28.7" fill="#94A3B8"/><polygon points="58.3,34.8 36.6,45.7 36.6,43.9 58.3,33.0" fill="#7C8BA1"/><polygon points="28.0,17.8 58.3,33.0 36.6,43.9 6.3,28.7" fill="#E2E8F0"/>' +
@@ -926,7 +986,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         var customHtml = '';
         var iconSize = [36, 36];
         var iconAnchor = [18, 18];
-        var badgeText = 'ĐIỂM AN TOÀN';
+        var badgeText = isEn ? 'SAFE POINT' : 'ĐIỂM AN TOÀN';
         var badgeClass = 'badge-blue';
 
         if (m.type === 'station') {
@@ -935,23 +995,23 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             '</div>';
           iconSize = [48, 48];
           iconAnchor = [24, 24];
-          badgeText = 'TRẠM CỨU HỘ TRỰC CHIẾN';
+          badgeText = isEn ? 'ACTIVE RESCUE STATION' : 'TRẠM CỨU HỘ TRỰC CHIẾN';
           badgeClass = 'badge-navy';
         } else if (m.type === 'rescue_unit') {
           var status = (m.status || '').toLowerCase();
           var dotColor = '#10B981';
-          var statusLabel = 'SẴN SÀNG';
+          var statusLabel = isEn ? 'READY' : 'SẴN SÀNG';
           var vehBadgeClass = 'badge-green';
           var isEnRoute = false;
 
           if (status === 'dispatched' || status === 'enroute' || status === 'en_route' || status === 'accepted') {
             dotColor = '#2563EB';
-            statusLabel = 'ĐANG ĐẾN';
+            statusLabel = isEn ? 'EN ROUTE' : 'ĐANG ĐẾN';
             vehBadgeClass = 'badge-blue';
             isEnRoute = true;
           } else if (status === 'onscene' || status === 'on_scene') {
             dotColor = '#F97316';
-            statusLabel = 'TẠI HIỆN TRƯỜNG';
+            statusLabel = isEn ? 'ON SCENE' : 'TẠI HIỆN TRƯỜNG';
             vehBadgeClass = 'badge-amber';
           }
 
@@ -969,7 +1029,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             ? '<span class="glow-ping" style="' + dotStyle + 'background:' + dotColor + ';opacity:0.6;"></span>'
             : '';
           var etaPill = (typeof m.etaMinutes === 'number' && m.etaMinutes > 0)
-            ? '<div class="vehicle-eta-pill">~' + m.etaMinutes + 'p</div>'
+            ? '<div class="vehicle-eta-pill">~' + m.etaMinutes + (isEn ? 'm' : 'p') + '</div>'
             : '';
           customHtml = '<div style="position:relative;width:48px;height:48px;cursor:pointer;">' +
             etaPill +
@@ -980,7 +1040,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
             '</div></div>';
           iconSize = [48, 48];
           iconAnchor = [24, 24];
-          badgeText = 'LỰC LƯỢNG CỨU HỘ • ' + statusLabel;
+          badgeText = (isEn ? 'RESCUE UNIT • ' : 'LỰC LƯỢNG CỨU HỘ • ') + statusLabel;
           badgeClass = vehBadgeClass;
         } else if (m.type === 'incident') {
           var cat = (m.category || '').toLowerCase();
@@ -994,7 +1054,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
 
           var glowColor = resolvedCat === 'accident' ? '#F97316' : resolvedCat === 'other' ? '#0891B2' : '#DC2626';
           var glyphColor = resolvedCat === 'accident' ? '#FDBA74' : resolvedCat === 'other' ? '#67E8F9' : '#FF7A6E';
-          var glyphArt = SVG_ICONS[resolvedCat] || SVG_ICONS.unknown;
+          var glyphPaths = (INCIDENT_PATHS[resolvedCat] || INCIDENT_PATHS.unknown).replace(/\{COLOR\}/g, glyphColor);
 
           var sevNum = 1;
           if (m.severity === 'Level3' || m.severity === 3 || m.severity === 'Critical') sevNum = 3;
@@ -1003,32 +1063,33 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           else if (m.severity === 'Unclassified' || m.severity === 0) sevNum = 1;
 
           var incSize = 52;
-          var k = incSize / 48;
-          var gSize = (16 * k).toFixed(2);
-          var gOffset = (16 * k).toFixed(2);
           customHtml = '<div style="position:relative;width:' + incSize + 'px;height:' + incSize + 'px;cursor:pointer;">' +
-            '<svg viewBox="0 0 48 48" width="' + incSize + '" height="' + incSize + '" style="position:absolute;inset:0;overflow:visible;pointer-events:none;">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="' + incSize + '" height="' + incSize + '" style="display:block;overflow:visible;pointer-events:none;">' +
             '<circle cx="24" cy="24" r="22" fill="' + glowColor + '" opacity="0.22" class="glow-pulse"/>' +
             '<circle cx="24" cy="24" r="23.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>' +
-            '<circle cx="24" cy="24" r="13.5" fill="#0F172A" stroke="' + glowColor + '" stroke-width="1.5"/>' +
+            '<circle cx="24" cy="24" r="14" fill="#0F172A" stroke="' + glowColor + '" stroke-width="1.5"/>' +
             buildSeverityArcs(sevNum) +
-            '</svg>' +
-            '<div style="position:absolute;left:' + gOffset + 'px;top:' + gOffset + 'px;width:' + gSize + 'px;height:' + gSize + 'px;pointer-events:none;">' +
-            glyphArt.replace('width="16" height="16"', 'width="' + gSize + '" height="' + gSize + '"').replace(/\{COLOR\}/g, glyphColor) +
-            '</div></div>';
+            '<g transform="translate(15 15) scale(0.75)">' + glyphPaths + '</g>' +
+            '</svg></div>';
           iconSize = [incSize, incSize];
           iconAnchor = [incSize / 2, incSize / 2];
-          var catTitle = resolvedCat === 'accident' ? 'TAI NẠN HIỆN TRƯỜNG' : resolvedCat === 'fire' ? 'HỎA HOẠN HIỆN TRƯỜNG' : 'SỰ CỐ KHẨN CẤP';
-          badgeText = catTitle + ' • CẤP ' + sevNum;
+          var catTitle = resolvedCat === 'accident'
+            ? (isEn ? 'TRAFFIC ACCIDENT' : 'TAI NẠN HIỆN TRƯỜNG')
+            : resolvedCat === 'fire'
+              ? (isEn ? 'FIRE & EXPLOSION' : 'HỎA HOẠN HIỆN TRƯỜNG')
+              : (isEn ? 'EMERGENCY INCIDENT' : 'SỰ CỐ KHẨN CẤP');
+          badgeText = catTitle + (isEn ? ' • LEVEL ' : ' • CẤP ') + sevNum;
           badgeClass = (sevNum === 3 ? 'badge-red' : sevNum === 2 ? 'badge-amber' : 'badge-green');
         } else if (m.type === 'public_incident') {
           var pCat = (m.category || '').toLowerCase();
           if (pCat !== 'fire' && pCat !== 'accident' && pCat !== 'other') pCat = 'unknown';
           var pPalette = pCat === 'fire'
-            ? { bg: '#FEF2F2', border: '#DC2626', icon: '#B91C1C', badge: 'badge-red', label: 'HỎA HOẠN KHU VỰC' }
+            ? { bg: '#FEF2F2', border: '#DC2626', icon: '#B91C1C', badge: 'badge-red', label: isEn ? 'AREA FIRE ALERT' : 'HỎA HOẠN KHU VỰC' }
             : pCat === 'accident'
-              ? { bg: '#FFFBEB', border: '#D97706', icon: '#B45309', badge: 'badge-amber', label: 'TAI NẠN KHU VỰC' }
-              : { bg: '#F0F9FF', border: '#0284C7', icon: '#0369A1', badge: 'badge-blue', label: 'CẢNH BÁO KHU VỰC' };
+              ? { bg: '#FFFBEB', border: '#D97706', icon: '#B45309', badge: 'badge-amber', label: isEn ? 'AREA TRAFFIC ALERT' : 'TAI NẠN KHU VỰC' }
+              : pCat === 'other'
+                ? { bg: '#F0F9FF', border: '#0284C7', icon: '#0369A1', badge: 'badge-blue', label: isEn ? 'AREA WARNING' : 'CẢNH BÁO KHU VỰC' }
+                : { bg: '#FFF7ED', border: '#EA580C', icon: '#C2410C', badge: 'badge-amber', label: isEn ? 'AREA INCIDENT' : 'SỰ CỐ KHU VỰC' };
           var pGlyph = SVG_ICONS[pCat] || SVG_ICONS.unknown;
           customHtml = '<div style="width:28px;height:28px;border-radius:9px;background:' + pPalette.bg + ';border:2px solid ' + pPalette.border + ';box-shadow:0 2px 8px rgba(15,23,42,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
             pGlyph.replace('width="16" height="16"', 'width="14" height="14"').replace(/\{COLOR\}/g, pPalette.icon) +
@@ -1039,36 +1100,73 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           badgeClass = pPalette.badge;
         } else if (m.type === 'hospital') {
           customHtml = '<div class="emergency-marker marker-hospital">🏥</div>';
-          badgeText = 'Y TẾ KHẨN CẤP';
+          badgeText = isEn ? 'EMERGENCY MEDICAL' : 'Y TẾ KHẨN CẤP';
           badgeClass = 'badge-green';
         } else if (m.type === 'fire_station') {
           customHtml = '<div class="emergency-marker marker-fire">🚒</div>';
-          badgeText = 'TRẠM PCCC';
+          badgeText = isEn ? 'FIRE STATION' : 'TRẠM PCCC';
           badgeClass = 'badge-red';
         } else if (m.type === 'ambulance') {
           customHtml = '<div class="emergency-marker marker-ambulance">🚑</div>';
-          badgeText = 'XE CỨU THƯƠNG';
+          badgeText = isEn ? 'AMBULANCE' : 'XE CỨU THƯƠNG';
           badgeClass = 'badge-blue';
         } else {
           customHtml = '<div class="emergency-marker marker-shelter">🛡️</div>';
-          badgeText = 'ĐIỂM TRÚ ẨN';
+          badgeText = isEn ? 'SAFE SHELTER' : 'ĐIỂM TRÚ ẨN';
           badgeClass = 'badge-blue';
         }
 
         var phoneHtml = m.phoneNumber
-          ? '<br/><button type="button" onclick="window.callPhone(\\'' + m.phoneNumber + '\\')" class="popup-phone-link">📞 ' + m.phoneNumber + ' (Gọi ngay)</button>'
+          ? '<br/><button type="button" onclick="window.callPhone(\\'' + m.phoneNumber + '\\')" class="popup-phone-link">📞 ' + m.phoneNumber + (isEn ? ' (Call now)' : ' (Gọi ngay)') + '</button>'
           : '';
 
         var etaPopupHtml = (typeof m.etaMinutes === 'number' && m.etaMinutes > 0)
-          ? '<div class="popup-eta-box">⏱️ <b>Dự kiến đến (ETA):</b> ~' + m.etaMinutes + ' phút' +
+          ? '<div class="popup-eta-box">⏱️ <b>' + (isEn ? 'Estimated Arrival (ETA):' : 'Dự kiến đến (ETA):') + '</b> ~' + m.etaMinutes + (isEn ? ' min' : ' phút') +
             (m.distanceKm ? ' (' + m.distanceKm.toFixed(1) + ' km)' : '') + '</div>'
           : '';
 
-        var popupHtml = '<span class="popup-badge ' + badgeClass + '">' + badgeText + '</span>' +
-          '<div class="popup-title">' + m.title + '</div>' +
-          '<div class="popup-desc">' + m.description + '</div>' +
-          etaPopupHtml +
-          phoneHtml;
+        var popupHtml = '';
+        if (m.type === 'incident') {
+          var imgHtml = m.imageUrl
+            ? '<img src="' + m.imageUrl + '" style="width:100%;height:75px;object-fit:cover;border-radius:6px;margin-bottom:6px;display:block;" />'
+            : '';
+          var incLabel = m.category === 'fire'
+            ? (isEn ? 'Fire &amp; Explosion' : 'Hỏa hoạn &amp; Cháy nổ')
+            : m.category === 'accident'
+              ? (isEn ? 'Traffic Accident' : 'Tai nạn giao thông')
+              : m.category === 'other'
+                ? (isEn ? 'Area Incident' : 'Sự cố khu vực')
+                : (isEn ? 'SOS Signal' : 'Tín hiệu SOS');
+          var stRaw = String(m.status || '').toLowerCase();
+          var stText = m.statusLabel || (stRaw === 'dispatched' || stRaw === 'inprogress'
+            ? (isEn ? 'RESCUE IN PROGRESS' : 'ĐANG CỨU HỘ')
+            : stRaw === 'verified'
+              ? (isEn ? 'VERIFIED' : 'ĐÃ XÁC MINH')
+              : stRaw === 'completed' || stRaw === 'resolved'
+                ? (isEn ? 'COMPLETED' : 'ĐÃ HOÀN THÀNH')
+                : stRaw === 'cancelled'
+                  ? (isEn ? 'CANCELLED' : 'ĐÃ HỦY')
+                  : (isEn ? 'PENDING' : 'CHỜ XỬ LÝ'));
+          var isGreenSt = stRaw === 'dispatched' || stRaw === 'inprogress' || stRaw === 'onscene' || stRaw === 'enroute' || stRaw === 'accepted' || stText === 'ĐANG CỨU HỘ' || stText === 'ĐÃ ĐẾN HIỆN TRƯỜNG' || stText === 'RESCUE IN PROGRESS' || stText === 'ON SCENE';
+          var stColor = isGreenSt ? '#059669' : '#DC2626';
+          var stPrefix = isEn ? 'STATUS: ' : 'TRẠNG THÁI: ';
+          popupHtml = '<div style="min-width:195px;max-width:240px;font-family:system-ui,-apple-system,sans-serif;">' +
+            imgHtml +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;">' +
+            '<span style="font-size:11px;font-weight:800;color:#DC2626;">' + incLabel + '</span>' +
+            (m.code ? '<span style="font-size:10px;font-family:monospace;color:#64748B;flex-shrink:0;">' + m.code + '</span>' : '') +
+            '</div>' +
+            '<div style="font-size:11.5px;font-weight:700;color:#0F172A;line-height:1.3;">' + m.title + '</div>' +
+            '<div style="font-size:10px;color:#64748B;margin-top:3px;line-height:1.35;">📍 ' + m.description + '</div>' +
+            '<div style="font-size:10px;font-weight:700;color:' + stColor + ';margin-top:5px;padding-top:5px;border-top:1px solid #E2E8F0;">' + stPrefix + stText + '</div>' +
+            '</div>';
+        } else {
+          popupHtml = '<span class="popup-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '<div class="popup-title">' + m.title + '</div>' +
+            '<div class="popup-desc">' + m.description + '</div>' +
+            etaPopupHtml +
+            phoneHtml;
+        }
 
         var zOffset = 500;
         if (m.type === 'incident') zOffset = 2500;
@@ -1117,7 +1215,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
         var marker = L.marker([m.latitude, m.longitude], {
           icon: customIcon,
           zIndexOffset: zOffset
-        }).bindPopup(popupHtml);
+        }).bindPopup(popupHtml, { autoPan: false });
 
         marker.on('click', function(e) {
           if (e && e.originalEvent) {
@@ -1157,38 +1255,46 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
       }
     };
 
-    // Update route polyline
-    window.setRoute = function(coords, isApproximate) {
+    // Update multiple route polylines simultaneously
+    window.setRoutes = function(routesList) {
       window.routeLayer.clearLayers();
-      if (!coords || !Array.isArray(coords) || coords.length < 2) return;
-      var latLngs = coords.map(function(c) { return [c.latitude, c.longitude]; });
-
-      // Outer polyline glow
-      L.polyline(latLngs, {
-        color: '#38BDF8',
-        weight: 6,
-        opacity: 0.45,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(window.routeLayer);
-
-      // Core crisp polyline - solid road line by default, dashed only when approximate
-      var polyOptions = {
-        color: '#0284C7',
-        weight: 3.5,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round'
-      };
-      if (isApproximate === true) {
-        polyOptions.dashArray = '6, 8';
-      }
-
-      L.polyline(latLngs, polyOptions).addTo(window.routeLayer);
+      if (!routesList || !Array.isArray(routesList)) return;
+      routesList.forEach(function(item) {
+        var coords = item && item.coordinates;
+        if (!coords || !Array.isArray(coords) || coords.length < 2) return;
+        var latLngs = coords.map(function(c) { return [c.latitude, c.longitude]; });
+        var lineColor = (item && item.color) || '#0284C7';
+        L.polyline(latLngs, {
+          color: lineColor,
+          weight: 6.5,
+          opacity: 0.25,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(window.routeLayer);
+        var polyOptions = {
+          color: lineColor,
+          weight: 3.5,
+          opacity: 0.95,
+          lineCap: 'round',
+          lineJoin: 'round'
+        };
+        if (item && item.isApproximate === true) {
+          polyOptions.dashArray = '6, 8';
+        }
+        L.polyline(latLngs, polyOptions).addTo(window.routeLayer);
+      });
     };
 
-    // Fit bounds including markers and route
-    window.fitAllBounds = function(userLat, userLng, markersData, routeCoords) {
+    window.setRoute = function(coords, isApproximate) {
+      if (!coords || !Array.isArray(coords) || coords.length < 2) {
+        window.routeLayer.clearLayers();
+        return;
+      }
+      window.setRoutes([{ coordinates: coords, isApproximate: isApproximate === true, color: '#0284C7' }]);
+    };
+
+    // Fit bounds including markers and route(s)
+    window.fitAllBounds = function(userLat, userLng, markersData, routeCoords, routesList) {
       var bounds = L.latLngBounds([]);
       if (typeof userLat === 'number' && typeof userLng === 'number') {
         bounds.extend([userLat, userLng]);
@@ -1207,14 +1313,47 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           }
         });
       }
+      if (routesList && Array.isArray(routesList)) {
+        routesList.forEach(function(r) {
+          if (r && Array.isArray(r.coordinates)) {
+            r.coordinates.forEach(function(c) {
+              if (typeof c.latitude === 'number' && typeof c.longitude === 'number') {
+                bounds.extend([c.latitude, c.longitude]);
+              }
+            });
+          }
+        });
+      }
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [35, 35], maxZoom: 16 });
       }
     };
 
-    // Map tap listener
+    // Map tap listener & popup open/close listeners
     map.on('click', function(e) {
       emitMapClick(e.latlng);
+    });
+    map.on('popupopen', function(e) {
+      if (window.__popupCloseTimer) {
+        clearTimeout(window.__popupCloseTimer);
+        window.__popupCloseTimer = null;
+      }
+      var src = e && e.popup && e.popup._source;
+      if (src && src.markerId && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'POPUP_OPEN',
+          markerId: src.markerId
+        }));
+      }
+    });
+    map.on('popupclose', function() {
+      if (window.__popupCloseTimer) clearTimeout(window.__popupCloseTimer);
+      window.__popupCloseTimer = setTimeout(function() {
+        window.__popupCloseTimer = null;
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'POPUP_CLOSE' }));
+        }
+      }, 25);
     });
 
     // Notify React Native that map is ready
@@ -1259,7 +1398,7 @@ export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
           }}
           onShouldStartLoadWithRequest={(request: any) => {
             if (request.url.startsWith('tel:')) {
-              Linking.openURL(request.url).catch(() => {});
+              Linking.openURL(request.url).catch(() => { });
               return false;
             }
             return true;

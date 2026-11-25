@@ -39,7 +39,8 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
   isLoading,
   loadingMessage,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   return (
     <Modal
       visible={visible}
@@ -87,7 +88,7 @@ export const SosActionModal: React.FC<SosActionModalProps> = ({
               <ActivityIndicator size="large" color="#DC2626" />
               <Text style={styles.loadingTitle}>{t('sos_modal.connecting_dispatch')}</Text>
               <Text style={styles.loadingSubtitle}>
-                {loadingMessage || 'Đang tải dữ liệu hiện trường và truyền tín hiệu cứu hộ...'}
+                {loadingMessage || (isEn ? 'Uploading scene data and transmitting SOS signal...' : 'Đang tải dữ liệu hiện trường và truyền tín hiệu cứu hộ...')}
               </Text>
             </View>
           ) : (

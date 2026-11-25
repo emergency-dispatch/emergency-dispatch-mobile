@@ -19,6 +19,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Cho phép Emergency Dispatch truy cập vị trí của bạn để gửi SOS chính xác và theo dõi xe cứu hộ.",
         "NSCameraUsageDescription": "Cho phép Emergency Dispatch sử dụng máy ảnh để chụp ảnh hiện trường sự cố.",
+        "NSMicrophoneUsageDescription": "Cho phép Emergency Dispatch sử dụng micro để ghi âm lời mô tả sự cố khi gửi SOS.",
         "NSPhotoLibraryUsageDescription": "Cho phép Emergency Dispatch truy cập thư viện ảnh để đính kèm ảnh hiện trường."
       }
     },
@@ -37,7 +38,8 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -58,6 +60,26 @@
         {
           "photosPermission": "Cho phép truy cập thư viện ảnh để đính kèm ảnh hiện trường.",
           "cameraPermission": "Cho phép sử dụng máy ảnh để chụp ảnh hiện trường sự cố."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép sử dụng máy ảnh để chụp ảnh hiện trường sự cố.",
+          "microphonePermission": "Cho phép sử dụng micro để ghi âm mô tả tình huống khi gửi SOS.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Cho phép Emergency Dispatch sử dụng micro để ghi âm và chuyển giọng nói thành chữ khi gửi SOS.",
+          "speechRecognitionPermission": "Cho phép Emergency Dispatch chuyển giọng nói thành văn bản hỗ trợ xử lý SOS.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.as"
+          ]
         }
       ]
     ]

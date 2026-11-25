@@ -25,7 +25,17 @@ export enum SeverityLevel {
 export interface IncidentMediaDto {
   id: string;
   mediaUrl: string;
-  mediaType: string;
+  mediaType: 'Photo' | 'Video' | 'Audio' | string;
+  fileSizeBytes?: number;
+  mimeType?: string;
+  publicId?: string | null;
+  durationSeconds?: number | null;
+  transcript?: string | null;
+  transcriptionStatus?: string | null;
+}
+
+export interface AudioAttachmentInputDto {
+  uploadToken: string;
 }
 
 export interface AiClassificationResultDto {
@@ -49,6 +59,7 @@ export interface CreateIncidentDto {
   reporterName?: string;
   reporterPhone?: string;
   mediaUrls?: string[];
+  audioAttachments?: AudioAttachmentInputDto[];
   reportedEventType?: 'FireExplosion' | 'TrafficAccident';
 }
 
@@ -69,6 +80,7 @@ export interface IncidentSupplementDto {
   targetIncidentId: string;
   note: string;
   mediaUrls: string[];
+  audioAttachments?: IncidentMediaDto[];
   reporterName?: string | null;
   createdAt: string;
 }

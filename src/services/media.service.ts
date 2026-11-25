@@ -1,8 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
+import { getCurrentLanguage } from '../i18n';
 import { apiService } from '../api/client';
+
+const isEn = () => getCurrentLanguage() === 'en';
 import { Endpoints } from '../api/endpoints';
 import { BackendApiResponse } from '../types/auth';
+import { AudioAttachmentInputDto } from '../types/incident';
 
 export interface MediaUploadResult {
   url: string;
@@ -10,8 +14,17 @@ export interface MediaUploadResult {
   mediaType?: number;
   fileSizeBytes?: number;
   mimeType?: string;
+  durationSeconds?: number;
+  uploadToken?: string;
+  transcript?: string | null;
+  transcriptionStatus?: string | null;
   isSuccess?: boolean;
   errorMessage?: string;
+}
+
+export interface AudioPlaybackUrlDto {
+  url: string;
+  expiresAt: string;
 }
 
 export const mediaService = {
@@ -23,8 +36,10 @@ export const mediaService = {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Quyền máy ảnh',
-          'Ứng dụng cần quyền sử dụng máy ảnh để chụp ảnh đại diện. Vui lòng cấp quyền trong cài đặt thiết bị.'
+          isEn() ? 'Camera Permission' : 'Quyền máy ảnh',
+          isEn()
+            ? 'Camera access is required to take a photo. Please allow permission in device settings.'
+            : 'Ứng dụng cần quyền sử dụng máy ảnh để chụp ảnh đại diện. Vui lòng cấp quyền trong cài đặt thiết bị.'
         );
         return null;
       }
@@ -42,7 +57,10 @@ export const mediaService = {
       return null;
     } catch (err: any) {
       console.warn('Camera error:', err);
-      Alert.alert('Lỗi chụp ảnh', err.message || 'Không thể mở máy ảnh.');
+      Alert.alert(
+        isEn() ? 'Camera Error' : 'Lỗi chụp ảnh',
+        err.message || (isEn() ? 'Unable to open camera.' : 'Không thể mở máy ảnh.')
+      );
       return null;
     }
   },
@@ -55,8 +73,10 @@ export const mediaService = {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Quyền thư viện ảnh',
-          'Ứng dụng cần quyền truy cập thư viện để chọn ảnh đại diện. Vui lòng cấp quyền trong cài đặt thiết bị.'
+          isEn() ? 'Photo Library Permission' : 'Quyền thư viện ảnh',
+          isEn()
+            ? 'Photo library access is required to choose an image. Please allow permission in device settings.'
+            : 'Ứng dụng cần quyền truy cập thư viện để chọn ảnh đại diện. Vui lòng cấp quyền trong cài đặt thiết bị.'
         );
         return null;
       }
@@ -74,7 +94,10 @@ export const mediaService = {
       return null;
     } catch (err: any) {
       console.warn('Library picker error:', err);
-      Alert.alert('Lỗi chọn ảnh', err.message || 'Không thể mở thư viện ảnh.');
+      Alert.alert(
+        isEn() ? 'Image Picker Error' : 'Lỗi chọn ảnh',
+        err.message || (isEn() ? 'Unable to open photo library.' : 'Không thể mở thư viện ảnh.')
+      );
       return null;
     }
   },
@@ -84,21 +107,39 @@ export const mediaService = {
    * @param asset Thông tin tệp ảnh thu được từ ImagePicker
    * @returns URL ảnh bảo mật từ Cloudinary
    */
-  async uploadMedia(asset: {
+  async uploadMediaAsset(asset: {
     uri: string;
     fileName?: string | null;
     mimeType?: string | null;
-  }): Promise<string> {
-    const rawName = asset.fileName || asset.uri.split('/').pop() || 'avatar.jpg';
-    const isPng = rawName.toLowerCase().endsWith('.png');
-    const mimeType = asset.mimeType || (isPng ? 'image/png' : 'image/jpeg');
-    const cleanFileName = rawName.includes('.') ? rawName : `${rawName}.jpg`;
+  }): Promise<MediaUploadResult> {
+    const rawName = asset.fileName || asset.uri.split('/').pop() || 'upload.jpg';
+    const lowerName = rawName.toLowerCase();
+    const inferredMime =
+      asset.mimeType ||
+      (lowerName.endsWith('.png')
+        ? 'image/png'
+        : lowerName.endsWith('.m4a') || lowerName.endsWith('.mp4')
+        ? 'audio/mp4'
+        : lowerName.endsWith('.mp3')
+        ? 'audio/mpeg'
+        : lowerName.endsWith('.aac')
+        ? 'audio/aac'
+        : lowerName.endsWith('.wav')
+        ? 'audio/wav'
+        : lowerName.endsWith('.ogg')
+        ? 'audio/ogg'
+        : lowerName.endsWith('.webm')
+        ? 'audio/webm'
+        : 'image/jpeg');
+    const cleanFileName = rawName.includes('.')
+      ? rawName
+      : `${rawName}.${inferredMime.startsWith('audio/') ? 'm4a' : 'jpg'}`;
 
     const formData = new FormData();
     formData.append('file', {
       uri: asset.uri,
       name: cleanFileName,
-      type: mimeType,
+      type: inferredMime,
     } as any);
 
     const response = await apiService.post<BackendApiResponse<MediaUploadResult>>(
@@ -113,18 +154,68 @@ export const mediaService = {
     );
 
     if (!response.success || !response.data?.url) {
-      throw new Error(response.message || 'Tải ảnh lên máy chủ thất bại.');
+      throw new Error(response.message || (isEn() ? 'Failed to upload file to server.' : 'Tải tệp lên máy chủ thất bại.'));
     }
 
-    let finalUrl = response.data.url;
+    return response.data;
+  },
+
+  /**
+   * POST /api/media/upload — Tải ảnh/media từ máy lên Cloudinary qua BE
+   */
+  async uploadMedia(asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+  }): Promise<string> {
+    const uploaded = await mediaService.uploadMediaAsset(asset);
+    let finalUrl = uploaded.url;
     // Backend Cloudinary MediaUrlPolicy yêu cầu domain res.cloudinary.com.
     // Nếu BE chạy chế độ mock trả về URL Unsplash, chuyển sang mẫu Cloudinary để không bị chặn 400.
-    if (finalUrl.includes('images.unsplash.com') || !finalUrl.includes('res.cloudinary.com')) {
-      const pubId = response.data.publicId || 'mock_incident_photo';
+    if (
+      uploaded.mediaType !== 2 &&
+      (finalUrl.includes('images.unsplash.com') || !finalUrl.includes('res.cloudinary.com'))
+    ) {
+      const pubId = uploaded.publicId || 'mock_incident_photo';
       finalUrl = `https://res.cloudinary.com/dignpno2i/image/upload/${pubId}.jpg`;
     }
 
     return finalUrl;
+  },
+
+  /**
+   * POST /api/media/audio/preview-url — Xin link nghe lại audio (hết hạn sau 5 phút) bằng uploadToken
+   */
+  async getAudioPreviewUrl(uploadToken: string): Promise<AudioPlaybackUrlDto> {
+    const response = await apiService.post<BackendApiResponse<AudioPlaybackUrlDto>>(
+      Endpoints.MEDIA.AUDIO_PREVIEW,
+      { uploadToken }
+    );
+    if (!response.success || !response.data?.url) {
+      throw new Error(response.message || (isEn() ? 'Unable to load audio playback URL.' : 'Không lấy được link phát âm thanh.'));
+    }
+    return response.data;
+  },
+
+  async uploadAudioAttachment(draft: {
+    uri: string;
+    mimeType?: string | null;
+  }): Promise<AudioAttachmentInputDto> {
+    const isWav =
+      (draft.mimeType || '').toLowerCase().includes('wav') ||
+      draft.uri.toLowerCase().endsWith('.wav');
+    const ext = isWav ? 'wav' : 'm4a';
+    const uploaded = await mediaService.uploadMediaAsset({
+      uri: draft.uri,
+      fileName: `sos_audio_${Date.now()}.${ext}`,
+      mimeType: draft.mimeType || (isWav ? 'audio/wav' : 'audio/mp4'),
+    });
+    if (!uploaded.uploadToken) {
+      throw new Error(isEn() ? 'Server did not issue an audio upload token.' : 'Máy chủ không cấp được mã xác nhận tệp ghi âm.');
+    }
+    return {
+      uploadToken: uploaded.uploadToken,
+    };
   },
 
   /**

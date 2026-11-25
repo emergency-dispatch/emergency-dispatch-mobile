@@ -17,14 +17,11 @@ import {
   Sparkles,
   X,
   Link2,
-  Split,
   PlusCircle,
   Navigation,
 } from 'lucide-react-native';
 import { IncidentResponseDto } from '../../types/incident';
 import { useTranslation } from 'react-i18next';
-import { incidentService } from '../../services/incident.service';
-import { storage } from '../../services/storage';
 import { SupplementModal } from './SupplementModal';
 
 interface SosSuccessModalProps {
@@ -41,17 +38,16 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
   visible,
   onClose,
   onCancelIncident,
-  onUnlink,
   onTrackOriginal,
   address,
   incident,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isSupplementOpen, setIsSupplementOpen] = useState(false);
-  const [isUnlinking, setIsUnlinking] = useState(false);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
@@ -59,7 +55,6 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
       setSecondsElapsed(0);
       setIsCancelling(false);
       setShowCancelConfirm(false);
-      setIsUnlinking(false);
       Vibration.vibrate([0, 250, 100, 250]);
       timer = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
@@ -86,49 +81,6 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
     }
   };
 
-  const handleUnlink = () => {
-    Alert.alert(
-      t('sos_modal.unlink_confirm_title', 'Tách thành sự cố riêng?'),
-      t(
-        'sos_modal.unlink_confirm_desc',
-        'Nếu đây là sự cố khác độc lập, hệ thống sẽ đưa báo cáo của bạn vào hàng đợi tiếp nhận mới.'
-      ),
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xác nhận tách',
-          style: 'destructive',
-          onPress: async () => {
-            if (!incident?.id) return;
-            try {
-              setIsUnlinking(true);
-              let guestToken = incident.guestCancellationToken;
-              if (!guestToken) {
-                guestToken = await storage.getItem<string>('GUEST_CANCEL_TOKEN_' + incident.id);
-              }
-              await incidentService.unlinkIncident(incident.id, undefined, guestToken || undefined);
-              Alert.alert('Thành công', t('sos_modal.unlink_success', 'Đã tách sự cố thành công.'));
-              onUnlink?.(incident.id);
-              onClose();
-            } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể tách báo cáo.');
-            } finally {
-              setIsUnlinking(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleTrackOriginal = () => {
-    if (incident?.linkedTo?.incidentId && onTrackOriginal) {
-      onTrackOriginal(incident.linkedTo.incidentId);
-    }
-    onClose();
-  };
-
-  const isLinked = Boolean(incident?.linkedTo);
   const incidentCode = incident
     ? (incident.code || `#${incident.id.slice(0, 8).toUpperCase()}`)
     : `#SOS-${(Date.now() % 100000).toString()}`;
@@ -149,60 +101,46 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessible={true}
-              accessibilityLabel="Đóng thông báo SOS"
+              accessibilityLabel={isEn ? 'Close SOS alert' : 'Đóng thông báo SOS'}
             >
               <X size={20} color="#64748B" />
             </TouchableOpacity>
 
             {/* Top Status Icon */}
-            <View style={[styles.iconCircle, isLinked && styles.iconCircleLinked]}>
-              {isLinked ? (
-                <Link2 size={40} color="#4F46E5" strokeWidth={2.4} />
-              ) : (
-                <ShieldAlert size={44} color="#DC2626" strokeWidth={2.5} />
-              )}
+            <View style={styles.iconCircle}>
+              <ShieldAlert size={44} color="#DC2626" strokeWidth={2.5} />
             </View>
 
-            <Text style={[styles.alertHeader, isLinked && { color: '#4F46E5' }]}>
-              {isLinked
-                ? 'ĐÃ TIẾP NHẬN BÁO CÁO SOS'
-                : t('sos_modal.sos_success_title')}
+            <Text style={styles.alertHeader}>
+              {t('sos_modal.sos_success_title')}
             </Text>
-            <Text style={styles.alertCode}>{incidentCode}</Text>
+            <Text style={[styles.alertCode, { textAlign: 'center' }]}>{incidentCode}</Text>
 
-            {isLinked && incident?.linkedTo ? (
-              /* Pending duplicate verification notice */
-              <View style={styles.linkedInfoBox}>
-                <Text style={styles.linkedSubText}>
-                  Hệ thống ghi nhận có sự cố gần vị trí của bạn và đang chuyển điều phối viên đối soát. Nếu đây là sự cố khác, bạn có thể tách ngay bên dưới.
-                </Text>
+            {/* Standard Status checklist */}
+            <View style={styles.statusBox}>
+              <View style={styles.statusRow}>
+                <CheckCircle2 size={16} color="#16A34A" />
+                <Text style={styles.statusText}>{t('sos_modal.gps_sent_success')}</Text>
               </View>
-            ) : (
-              /* Standard Status checklist */
-              <View style={styles.statusBox}>
-                <View style={styles.statusRow}>
-                  <CheckCircle2 size={16} color="#16A34A" />
-                  <Text style={styles.statusText}>{t('sos_modal.gps_sent_success')}</Text>
-                </View>
-                <View style={styles.statusRow}>
-                  <CheckCircle2 size={16} color="#16A34A" />
-                  <Text style={styles.statusText}>{t('sos_modal.connected_rescue')}</Text>
-                </View>
-                {incident?.aiClassification?.isSuccess === true &&
-                  incident.aiClassification.eventType !== 'None' &&
-                  Boolean(incident.aiClassification.summary) &&
-                  !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(
-                    incident.aiClassification.summary || ''
-                  ) && (
-                    <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
-                      <Sparkles size={16} color="#0284C7" style={{ marginTop: 2 }} />
-                      <Text style={[styles.statusText, { color: '#0284C7', flex: 1 }]}>
-                        Thông tin hiện trường: {incident.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}
-                      </Text>
-                    </View>
-                  )}
+              <View style={styles.statusRow}>
+                <CheckCircle2 size={16} color="#16A34A" />
+                <Text style={styles.statusText}>{t('sos_modal.connected_rescue')}</Text>
               </View>
-            )}
+              {incident?.aiClassification?.isSuccess === true &&
+                incident.aiClassification.eventType !== 'None' &&
+                Boolean(incident.aiClassification.summary) &&
+                !/không thể phân loại|cần operator|đánh giá thủ công|unclassified|needshumanreview/i.test(
+                  incident.aiClassification.summary || ''
+                ) && (
+                  <View style={[styles.statusRow, { alignItems: 'flex-start' }]}>
+                    <Sparkles size={16} color="#0284C7" style={{ marginTop: 2 }} />
+                    <Text style={[styles.statusText, { color: '#0284C7', flex: 1 }]}>
+                      {isEn ? 'Scene summary: ' : 'Thông tin hiện trường: '}
+                      {incident.aiClassification.summary.replace(/^\[.*?\]\s*/, '')}
+                    </Text>
+                  </View>
+                )}
+            </View>
 
             {/* Location box */}
             <View style={styles.locationBox}>
@@ -213,116 +151,72 @@ export const SosSuccessModal: React.FC<SosSuccessModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              {isLinked ? (
-                <>
-                  <View style={styles.linkedActionGrid}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.callButton}
+                onPress={onClose}
+              >
+                <PhoneCall size={18} color="#FFFFFF" />
+                <Text style={styles.callButtonText}>{t('sos_modal.call_hotline_btn')}</Text>
+              </TouchableOpacity>
+
+              {showCancelConfirm ? (
+                <View style={styles.confirmBox}>
+                  <Text style={styles.confirmTitle}>
+                    {t('sos_modal.confirm_cancel_title', { defaultValue: 'Hủy Báo Động SOS?' })}
+                  </Text>
+                  <Text style={styles.confirmDesc}>
+                    {t('sos_modal.confirm_cancel_desc', { defaultValue: 'Bạn có chắc muốn hủy tín hiệu vì bấm nhầm?' })}
+                  </Text>
+                  <View style={styles.confirmButtonsRow}>
                     <TouchableOpacity
-                      activeOpacity={0.8}
-                      style={styles.supplementBtnSecondary}
-                      onPress={() => setIsSupplementOpen(true)}
+                      style={styles.keepButton}
+                      onPress={() => setShowCancelConfirm(false)}
                     >
-                      <PlusCircle size={16} color="#0284C7" />
-                      <Text style={styles.supplementBtnSecondaryText}>
-                        {t('sos_modal.btn_supplement', 'Bổ sung thông tin')}
+                      <Text style={styles.keepButtonText}>
+                        {t('sos_modal.keep_signal', { defaultValue: 'Không, giữ lại' })}
                       </Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity
-                      activeOpacity={0.8}
-                      style={styles.unlinkBtn}
-                      onPress={handleUnlink}
-                      disabled={isUnlinking}
+                      style={styles.confirmCancelButton}
+                      onPress={handleConfirmCancel}
+                      disabled={isCancelling}
                     >
-                      {isUnlinking ? (
-                        <ActivityIndicator size="small" color="#DC2626" />
+                      {isCancelling ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <>
-                          <Split size={16} color="#DC2626" />
-                          <Text style={styles.unlinkBtnText}>
-                            {t('sos_modal.btn_unlink', 'Đây là sự cố khác')}
-                          </Text>
-                        </>
+                        <Text style={styles.confirmCancelButtonText}>
+                          {t('sos_modal.confirm_cancel_btn', { defaultValue: 'Xác nhận hủy' })}
+                        </Text>
                       )}
                     </TouchableOpacity>
                   </View>
-                </>
+                </View>
               ) : (
-                <>
+                <View style={styles.secondaryActionRow}>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    style={styles.callButton}
-                    onPress={onClose}
-                  >
-                    <PhoneCall size={18} color="#FFFFFF" />
-                    <Text style={styles.callButtonText}>{t('sos_modal.call_hotline_btn')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={styles.supplementBtnPrimary}
+                    style={[styles.supplementBtnPrimary, styles.halfActionBtn]}
                     onPress={() => setIsSupplementOpen(true)}
                   >
-                    <PlusCircle size={16} color="#0284C7" />
-                    <Text style={styles.supplementBtnPrimaryText}>
+                    <PlusCircle size={15} color="#0284C7" />
+                    <Text style={styles.supplementBtnPrimaryText} numberOfLines={2}>
                       {t('sos_modal.btn_supplement', 'Bổ sung thông tin')}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={styles.dismissButton}
-                    onPress={onClose}
-                  >
-                    <Text style={styles.dismissButtonText}>{t('sos_modal.dismiss_follow_btn')}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {/* Cancel Alarm Button & Confirm Box */}
-              {!isLinked && (
-                showCancelConfirm ? (
-                  <View style={styles.confirmBox}>
-                    <Text style={styles.confirmTitle}>
-                      {t('sos_modal.confirm_cancel_title', { defaultValue: 'Hủy Báo Động SOS?' })}
-                    </Text>
-                    <Text style={styles.confirmDesc}>
-                      {t('sos_modal.confirm_cancel_desc', { defaultValue: 'Bạn có chắc muốn hủy tín hiệu vì bấm nhầm?' })}
-                    </Text>
-                    <View style={styles.confirmButtonsRow}>
-                      <TouchableOpacity
-                        style={styles.keepButton}
-                        onPress={() => setShowCancelConfirm(false)}
-                      >
-                        <Text style={styles.keepButtonText}>
-                          {t('sos_modal.keep_signal', { defaultValue: 'Không, giữ lại' })}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.confirmCancelButton}
-                        onPress={handleConfirmCancel}
-                        disabled={isCancelling}
-                      >
-                        {isCancelling ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
-                        ) : (
-                          <Text style={styles.confirmCancelButtonText}>
-                            {t('sos_modal.confirm_cancel_btn', { defaultValue: 'Xác nhận hủy' })}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <TouchableOpacity
                     activeOpacity={0.7}
-                    style={styles.cancelButton}
+                    style={[styles.cancelButton, styles.halfActionBtn]}
                     onPress={() => setShowCancelConfirm(true)}
                     disabled={isCancelling}
                   >
-                    <XCircle size={16} color="#DC2626" />
-                    <Text style={styles.cancelButtonText}>{t('sos_modal.cancel_accident')}</Text>
+                    <XCircle size={15} color="#DC2626" />
+                    <Text style={styles.cancelButtonText} numberOfLines={2}>
+                      {t('sos_modal.cancel_accident')}
+                    </Text>
                   </TouchableOpacity>
-                )
+                </View>
               )}
             </View>
           </View>
@@ -462,6 +356,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.8,
   },
+  secondaryActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  halfActionBtn: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -469,28 +372,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
     borderColor: '#FECACA',
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
-    gap: 6,
+    gap: 5,
   },
   cancelButtonText: {
     color: '#DC2626',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-  },
-  dismissButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  dismissButtonText: {
-    color: '#334155',
-    fontSize: 13,
-    fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   closeIconButton: {
     position: 'absolute',
@@ -653,23 +544,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
-  unlinkBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1.5,
-    borderColor: '#FECACA',
-    paddingVertical: 11,
-    borderRadius: 12,
-    gap: 6,
-  },
-  unlinkBtnText: {
-    color: '#DC2626',
-    fontSize: 12,
-    fontWeight: '800',
-  },
   supplementBtnPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -679,11 +553,13 @@ const styles = StyleSheet.create({
     borderColor: '#BAE6FD',
     paddingVertical: 11,
     borderRadius: 12,
-    gap: 6,
+    gap: 5,
   },
   supplementBtnPrimaryText: {
     color: '#0284C7',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 });

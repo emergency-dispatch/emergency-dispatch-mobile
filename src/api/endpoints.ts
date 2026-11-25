@@ -59,9 +59,13 @@ export const Endpoints = {
     REVEAL_PHONE: (id: string) => `/incidents/${id}/reveal-phone`,
     UNLINK: (id: string) => `/incidents/${id}/unlink`,
     SUPPLEMENTS: (id: string) => `/incidents/${id}/supplements`,
+    AUDIO_PLAYBACK: (incidentId: string, mediaId: string) => `/incidents/${incidentId}/audio/${mediaId}/playback-url`,
+    SUPPLEMENT_AUDIO_PLAYBACK: (incidentId: string, supplementId: string, mediaId: string) =>
+      `/incidents/${incidentId}/supplements/${supplementId}/audio/${mediaId}/playback-url`,
   },
   MEDIA: {
     UPLOAD: '/media/upload',
+    AUDIO_PREVIEW: '/media/audio/preview-url',
   },
   STATIONS: {
     BASE: '/stations',

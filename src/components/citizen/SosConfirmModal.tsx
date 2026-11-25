@@ -28,19 +28,33 @@ import {
   HelpCircle,
   Search,
   Edit2,
+  Mic,
+  Square,
 } from 'lucide-react-native';
+import { AudioAttachmentCard } from './AudioAttachmentCard';
+import {
+  applyTranscriptToNote,
+  PendingAudioDraft,
+  useMobileAudioRecorder,
+} from '../../hooks/useMobileAudioRecorder';
+import { useTranslation } from 'react-i18next';
 import { mapboxService } from '../../services/mapbox.service';
+
+export type { PendingAudioDraft };
 
 interface SosConfirmModalProps {
   visible: boolean;
   onClose: () => void;
   photoUri?: string | null;
+  audioDraft?: PendingAudioDraft | null;
+  onChangeAudioDraft?: (next: PendingAudioDraft | null) => void;
   address: string;
   initialCoords?: { latitude: number; longitude: number } | null;
   onConfirm: (
     note: string,
     eventType?: 'FireExplosion' | 'TrafficAccident',
-    customLocation?: { address: string; latitude: number; longitude: number }
+    customLocation?: { address: string; latitude: number; longitude: number },
+    audioDraft?: PendingAudioDraft | null
   ) => void;
   onRetakePhoto: () => void;
   onPickLibrary: () => void;
@@ -51,6 +65,8 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
   visible,
   onClose,
   photoUri,
+  audioDraft,
+  onChangeAudioDraft,
   address,
   initialCoords,
   onConfirm,
@@ -59,9 +75,24 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
   onRemovePhoto,
 }) => {
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const [note, setNote] = useState('');
   const [reportedEventType, setReportedEventType] = useState<'FireExplosion' | 'TrafficAccident' | undefined>(undefined);
   const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
+  const lastSyncedTranscriptRef = useRef('');
+  const audioRecorder = useMobileAudioRecorder((draft) => {
+    onChangeAudioDraft?.({ ...draft, transcript: applyTranscriptToNote(note, lastSyncedTranscriptRef.current, draft.transcript || '') });
+  });
+
+  useEffect(() => {
+    const next = audioRecorder.transcript.trim();
+    const prev = lastSyncedTranscriptRef.current;
+    if (next === prev) return;
+    lastSyncedTranscriptRef.current = next;
+    if (!next) return;
+    setNote((cur) => applyTranscriptToNote(cur, prev, next));
+  }, [audioRecorder.transcript]);
 
   // Quản lý địa chỉ & gợi ý khi gõ
   const [addressText, setAddressText] = useState(address);
@@ -92,11 +123,26 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
       setIsAddressDirty(false);
       setSuggestions([]);
       setIsSearchingAddress(false);
+      if (audioDraft?.transcript && !note.trim()) {
+        setNote(audioDraft.transcript);
+      }
     } else if (!visible && wasVisibleRef.current) {
       wasVisibleRef.current = false;
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      audioRecorder.cancelRecording();
     }
   }, [visible, address, initialCoords, hasGps]);
+
+  const handleToggleManualRecord = async () => {
+    if (audioRecorder.isRecording) {
+      const draft = await audioRecorder.stopRecording();
+      if (draft) {
+        onChangeAudioDraft?.({ ...draft, transcript: note });
+      }
+      return;
+    }
+    await audioRecorder.startRecording();
+  };
 
   // Nếu GPS có sau khi đã mở modal và người dùng chưa chỉnh/chọn địa chỉ → đồng bộ vào
   useEffect(() => {
@@ -140,23 +186,38 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
     Keyboard.dismiss();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     // Nếu người dân gõ mà không chọn gợi ý thì không được gửi luôn, vì chỉ có chữ, không có toạ độ thì không điều xe được
     if (isAddressDirty) {
       Alert.alert(
-        'Chưa chọn toạ độ hiện trường',
-        'Bạn đã thay đổi địa chỉ nhưng chưa chọn địa điểm từ danh sách gợi ý. Vui lòng bấm vào một gợi ý bên dưới để hệ thống xác định chính xác toạ độ điều xe cứu hộ.'
+        isEn ? 'Scene Coordinates Required' : 'Chưa chọn toạ độ hiện trường',
+        isEn
+          ? 'You edited the address without selecting a suggestion. Please tap one below to set dispatch coordinates.'
+          : 'Bạn đã thay đổi địa chỉ nhưng chưa chọn địa điểm từ danh sách gợi ý. Vui lòng bấm vào một gợi ý bên dưới để hệ thống xác định chính xác toạ độ điều xe cứu hộ.'
       );
       return;
     }
 
     if (!confirmedCoords || confirmedCoords.latitude === 0 || confirmedCoords.longitude === 0) {
       Alert.alert(
-        'Chưa có toạ độ cứu hộ',
-        'Hệ thống chưa xác định được toạ độ hiện trường. Vui lòng nhập địa chỉ và bấm chọn gợi ý bên dưới.'
+        isEn ? 'Missing Rescue Coordinates' : 'Chưa có toạ độ cứu hộ',
+        isEn
+          ? 'Scene coordinates are not set yet. Please enter an address and select a suggestion below.'
+          : 'Hệ thống chưa xác định được toạ độ hiện trường. Vui lòng nhập địa chỉ và bấm chọn gợi ý bên dưới.'
       );
       setIsEditingAddress(true);
       return;
+    }
+
+    let finalAudio = audioDraft || null;
+    if (audioRecorder.isRecording) {
+      const stopped = await audioRecorder.stopRecording();
+      if (stopped) {
+        finalAudio = { ...stopped, transcript: note };
+        onChangeAudioDraft?.(finalAudio);
+      }
+    } else if (finalAudio) {
+      finalAudio = { ...finalAudio, transcript: note };
     }
 
     const customLoc = {
@@ -165,7 +226,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
       longitude: confirmedCoords.longitude,
     };
 
-    onConfirm(note, reportedEventType, customLoc);
+    onConfirm(note, reportedEventType, customLoc, finalAudio);
     setNote('');
     setReportedEventType(undefined);
     setIsAddressDirty(false);
@@ -174,6 +235,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
 
   const handleClose = () => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    audioRecorder.cancelRecording();
     setNote('');
     setReportedEventType(undefined);
     setIsAddressDirty(false);
@@ -206,7 +268,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
             <View style={styles.header}>
               <View style={styles.titleRow}>
                 <View style={styles.alertDot} />
-                <Text style={styles.title}>XÁC NHẬN BÁO ĐỘNG SOS</Text>
+                <Text style={styles.title}>{isEn ? 'CONFIRM SOS ALERT' : 'XÁC NHẬN BÁO ĐỘNG SOS'}</Text>
               </View>
               <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
                 <X size={20} color="#64748B" />
@@ -224,7 +286,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
               <View style={styles.addressSection}>
                 <View style={styles.addressHeaderRow}>
                   <Text style={styles.addressSectionLabel}>
-                    Vị trí hiện trường sự cố
+                    {isEn ? 'Incident scene location' : 'Vị trí hiện trường sự cố'}
                   </Text>
                   {hasGps && (
                     <TouchableOpacity
@@ -234,7 +296,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                     >
                       <Edit2 size={12} color="#0284C7" />
                       <Text style={styles.changeAddressText}>
-                        {isEditingAddress ? 'Thu gọn' : 'Đổi địa chỉ'}
+                        {isEditingAddress ? (isEn ? 'Collapse' : 'Thu gọn') : (isEn ? 'Change' : 'Đổi địa chỉ')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -248,7 +310,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                   >
                     <MapPin size={16} color="#DC2626" style={{ marginTop: 2 }} />
                     <Text style={styles.addressText} numberOfLines={2}>
-                      {addressText || address || 'Chưa xác định được địa chỉ'}
+                      {addressText || address || (isEn ? 'Address unavailable' : 'Chưa xác định được địa chỉ')}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -263,7 +325,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                         style={styles.addressTextInput}
                         value={addressText}
                         onChangeText={handleAddressChange}
-                        placeholder="Nhập địa chỉ hiện trường..."
+                        placeholder={isEn ? 'Enter incident address...' : 'Nhập địa chỉ hiện trường...'}
                         placeholderTextColor="#94A3B8"
                         returnKeyType="done"
                         autoFocus={!hasGps}
@@ -286,7 +348,9 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
 
                     {isAddressDirty && (
                       <Text style={styles.addressWarningText}>
-                        ⚠️ Vui lòng chọn một địa chỉ từ gợi ý bên dưới để xác định toạ độ.
+                        {isEn
+                          ? '⚠️ Please select an address from the suggestions below to set coordinates.'
+                          : '⚠️ Vui lòng chọn một địa chỉ từ gợi ý bên dưới để xác định toạ độ.'}
                       </Text>
                     )}
 
@@ -323,7 +387,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Camera size={14} color="#0F172A" />
-                      <Text style={styles.photoActionText}>Chụp lại</Text>
+                      <Text style={styles.photoActionText}>{isEn ? 'Retake' : 'Chụp lại'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.photoActionBtn}
@@ -331,7 +395,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Images size={14} color="#0F172A" />
-                      <Text style={styles.photoActionText}>Đổi ảnh</Text>
+                      <Text style={styles.photoActionText}>{isEn ? 'Replace' : 'Đổi ảnh'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.photoActionBtn, styles.deleteActionBtn]}
@@ -339,13 +403,13 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Trash2 size={14} color="#DC2626" />
-                      <Text style={[styles.photoActionText, { color: '#DC2626' }]}>Xoá</Text>
+                      <Text style={[styles.photoActionText, { color: '#DC2626' }]}>{isEn ? 'Delete' : 'Xoá'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
                 <View style={styles.emptyPhotoBox}>
-                  <Text style={styles.emptyPhotoTitle}>Chưa có ảnh hiện trường</Text>
+                  <Text style={styles.emptyPhotoTitle}>{isEn ? 'No scene photo yet' : 'Chưa có ảnh hiện trường'}</Text>
                   <View style={styles.addPhotoButtonsRow}>
                     <TouchableOpacity
                       style={styles.addPhotoBtn}
@@ -353,7 +417,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Camera size={16} color="#0284C7" />
-                      <Text style={styles.addPhotoText}>Chụp ảnh</Text>
+                      <Text style={styles.addPhotoText}>{isEn ? 'Take Photo' : 'Chụp ảnh'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.addPhotoBtn}
@@ -361,15 +425,89 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Images size={16} color="#059669" />
-                      <Text style={[styles.addPhotoText, { color: '#059669' }]}>Thư viện</Text>
+                      <Text style={[styles.addPhotoText, { color: '#059669' }]}>{isEn ? 'Library' : 'Thư viện'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
 
+              {/* Unified Audio + Note Section */}
+              <View style={styles.noteSection}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={[styles.noteLabel, { marginBottom: 0 }]}>
+                    {isEn ? 'Voice Audio & Scene Note (≤30s)' : 'Ghi âm & Ghi chú hiện trường (≤30s)'}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.photoActionBtn,
+                      { paddingHorizontal: 10, paddingVertical: 5, flex: 0 },
+                      audioRecorder.isRecording && { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
+                    ]}
+                    onPress={handleToggleManualRecord}
+                    activeOpacity={0.75}
+                  >
+                    {audioRecorder.isRecording ? (
+                      <>
+                        <Square size={12} color="#DC2626" />
+                        <Text style={[styles.photoActionText, { color: '#DC2626' }]}>
+                          {isEn ? 'Stop' : 'Dừng'} ({Math.min(30, Math.floor(audioRecorder.durationMs / 1000))}s)
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Mic size={12} color="#0284C7" />
+                        <Text style={[styles.photoActionText, { color: '#0284C7' }]}>
+                          {audioDraft ? (isEn ? 'Re-record' : 'Ghi lại') : (isEn ? 'Record' : 'Ghi âm')}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {audioRecorder.permissionWarning ? (
+                  <Text style={{ fontSize: 11.5, color: '#B45309', marginBottom: 6 }}>
+                    {audioRecorder.permissionWarning}
+                  </Text>
+                ) : null}
+
+                {audioDraft ? (
+                  <View style={{ marginBottom: 8 }}>
+                    <AudioAttachmentCard
+                      compact
+                      localUri={audioDraft.uri}
+                      durationSeconds={audioDraft.durationSeconds}
+                      onRemove={() => onChangeAudioDraft?.(null)}
+                    />
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 11.5, color: '#64748B', marginBottom: 6 }}>
+                    {audioRecorder.isRecording
+                      ? (isEn ? 'Recording scene audio...' : 'Đang thu âm hiện trường...')
+                      : (isEn ? 'Audio records automatically on camera capture, or tap Record to add.' : 'Tự động ghi âm khi chụp ảnh SOS, hoặc nhấn Ghi âm để thu bổ sung.')}
+                  </Text>
+                )}
+
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 250);
+                  }}
+                  placeholder={isEn ? 'Describe the situation or use voice-to-text...' : 'Mô tả tình huống hoặc bấm micro trên bàn phím để nói thành chữ...'}
+                  placeholderTextColor="#94A3B8"
+                  style={styles.noteInput}
+                  multiline={true}
+                  numberOfLines={3}
+                  maxLength={4000}
+                />
+                <Text style={styles.charCount}>{note.length}/4000</Text>
+              </View>
+
               {/* Event Type Selector */}
               <View style={styles.eventTypeSection}>
-                <Text style={styles.noteLabel}>Loại sự cố khẩn cấp</Text>
+                <Text style={styles.noteLabel}>{isEn ? 'Emergency Type' : 'Loại sự cố khẩn cấp'}</Text>
                 <View style={styles.eventTypeRow}>
                   <TouchableOpacity
                     style={[
@@ -381,14 +519,14 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                     }
                     activeOpacity={0.7}
                   >
-                    <Flame size={15} color={reportedEventType === 'FireExplosion' ? '#DC2626' : '#64748B'} />
+                    <Flame size={15} color="#DC2626" />
                     <Text
                       style={[
                         styles.eventTypeText,
                         reportedEventType === 'FireExplosion' && styles.eventTypeTextActiveFire,
                       ]}
                     >
-                      Cháy nổ
+                      {isEn ? 'Fire / Blast' : 'Cháy nổ'}
                     </Text>
                   </TouchableOpacity>
 
@@ -402,14 +540,14 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                     }
                     activeOpacity={0.7}
                   >
-                    <Car size={15} color={reportedEventType === 'TrafficAccident' ? '#2563EB' : '#64748B'} />
+                    <Car size={15} color={reportedEventType === 'TrafficAccident' ? '#2563EB' : '#D97706'} />
                     <Text
                       style={[
                         styles.eventTypeText,
                         reportedEventType === 'TrafficAccident' && styles.eventTypeTextActiveCrash,
                       ]}
                     >
-                      Tai nạn
+                      {isEn ? 'Accident' : 'Tai nạn'}
                     </Text>
                   </TouchableOpacity>
 
@@ -428,31 +566,10 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                         reportedEventType === undefined && styles.eventTypeTextActiveNeutral,
                       ]}
                     >
-                      Không rõ
+                      {isEn ? 'Unsure' : 'Không rõ'}
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-
-              {/* Note Section */}
-              <View style={styles.noteSection}>
-                <Text style={styles.noteLabel}>Ghi chú hiện trường (Mô tả tình huống khẩn cấp)</Text>
-                <TextInput
-                  value={note}
-                  onChangeText={setNote}
-                  onFocus={() => {
-                    setTimeout(() => {
-                      scrollViewRef.current?.scrollToEnd({ animated: true });
-                    }, 250);
-                  }}
-                  placeholder="Ví dụ: Có người mắc kẹt tầng 2, khói đen mù mịt, cần xe thang cứu nạn..."
-                  placeholderTextColor="#94A3B8"
-                  style={styles.noteInput}
-                  multiline={true}
-                  numberOfLines={3}
-                  maxLength={300}
-                />
-                <Text style={styles.charCount}>{note.length}/300</Text>
               </View>
 
               {/* Action Buttons */}
@@ -462,7 +579,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                 activeOpacity={0.8}
               >
                 <Send size={18} color="#FFFFFF" />
-                <Text style={styles.confirmBtnText}>CHẤP NHẬN & PHÁT TÍN HIỆU SOS</Text>
+                <Text style={styles.confirmBtnText}>{isEn ? 'CONFIRM & SEND SOS SIGNAL' : 'CHẤP NHẬN & PHÁT TÍN HIỆU SOS'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -470,7 +587,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({
                 onPress={handleClose}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cancelBtnText}>HỦY BỎ</Text>
+                <Text style={styles.cancelBtnText}>{isEn ? 'CANCEL' : 'HỦY BỎ'}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

@@ -9,3 +9,5 @@ export * from './SupplementModal';
 export * from './CitizenTrackingModal';
 export * from './CitizenRescueAlertModal';
 export * from './CitizenNotificationListener';
+export * from './AudioAttachmentCard';
+export * from './SosCameraModal';

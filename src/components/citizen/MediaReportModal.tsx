@@ -45,7 +45,8 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
   initialCoords,
   onSubmitReport,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const insets = useSafeAreaInsets();
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'video' | 'none'>('none');
   const [uploadedMediaUrls, setUploadedMediaUrls] = useState<string[]>([]);
@@ -138,7 +139,10 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
       setUploadedMediaUrls((prev) => [...prev, url]);
       setSelectedMedia('photo');
     } catch (err: any) {
-      Alert.alert('Lỗi tải ảnh', err.message || 'Không thể tải ảnh hiện trường lên máy chủ.');
+      Alert.alert(
+        isEn ? 'Photo Upload Error' : 'Lỗi tải ảnh',
+        err.message || (isEn ? 'Unable to upload scene photo to server.' : 'Không thể tải ảnh hiện trường lên máy chủ.')
+      );
     } finally {
       setIsUploadingMedia(false);
     }
@@ -153,7 +157,10 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
       setUploadedMediaUrls((prev) => [...prev, url]);
       setSelectedMedia('photo');
     } catch (err: any) {
-      Alert.alert('Lỗi chọn ảnh', err.message || 'Không thể tải ảnh hiện trường lên máy chủ.');
+      Alert.alert(
+        isEn ? 'Photo Selection Error' : 'Lỗi chọn ảnh',
+        err.message || (isEn ? 'Unable to upload scene photo to server.' : 'Không thể tải ảnh hiện trường lên máy chủ.')
+      );
     } finally {
       setIsUploadingMedia(false);
     }
@@ -171,16 +178,20 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
     // Nếu người dân gõ mà không chọn gợi ý thì không được gửi luôn, vì chỉ có chữ, không có toạ độ thì không điều xe được
     if (isAddressDirty) {
       Alert.alert(
-        'Chưa chọn toạ độ hiện trường',
-        'Bạn đã thay đổi địa chỉ nhưng chưa chọn địa điểm từ danh sách gợi ý. Vui lòng bấm vào một gợi ý bên dưới để hệ thống xác định chính xác toạ độ điều xe cứu hộ.'
+        isEn ? 'Scene Coordinates Required' : 'Chưa chọn toạ độ hiện trường',
+        isEn
+          ? 'You edited the address without picking a suggestion. Please tap one of the suggested locations below to set exact dispatch coordinates.'
+          : 'Bạn đã thay đổi địa chỉ nhưng chưa chọn địa điểm từ danh sách gợi ý. Vui lòng bấm vào một gợi ý bên dưới để hệ thống xác định chính xác toạ độ điều xe cứu hộ.'
       );
       return;
     }
 
     if (!confirmedCoords || confirmedCoords.latitude === 0 || confirmedCoords.longitude === 0) {
       Alert.alert(
-        'Chưa có toạ độ cứu hộ',
-        'Hệ thống chưa xác định được toạ độ hiện trường. Vui lòng nhập địa chỉ và bấm chọn gợi ý bên dưới.'
+        isEn ? 'Missing Rescue Coordinates' : 'Chưa có toạ độ cứu hộ',
+        isEn
+          ? 'Scene coordinates are not set yet. Please type an address and choose a suggestion below.'
+          : 'Hệ thống chưa xác định được toạ độ hiện trường. Vui lòng nhập địa chỉ và bấm chọn gợi ý bên dưới.'
       );
       setIsEditingAddress(true);
       return;
@@ -211,7 +222,10 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
     try {
       await onSubmitReport(payload);
     } catch (err: any) {
-      Alert.alert('Lỗi gửi báo cáo', err.message || 'Gửi báo cáo sự cố thất bại.');
+      Alert.alert(
+        isEn ? 'Report Submission Error' : 'Lỗi gửi báo cáo',
+        err.message || (isEn ? 'Failed to send incident report.' : 'Gửi báo cáo sự cố thất bại.')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -253,7 +267,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                     onPress={onClose}
                     style={styles.closeButton}
                     accessible={true}
-                    accessibilityLabel="Đóng modal báo cáo"
+                    accessibilityLabel={isEn ? 'Close report modal' : 'Đóng modal báo cáo'}
                   >
                     <X size={20} color="#94A3B8" />
                   </TouchableOpacity>
@@ -269,7 +283,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                   <View style={styles.addressSection}>
                     <View style={styles.addressHeaderRow}>
                       <Text style={styles.addressSectionLabel}>
-                        Vị trí hiện trường sự cố
+                        {isEn ? 'Incident scene location' : 'Vị trí hiện trường sự cố'}
                       </Text>
                       {hasGps && (
                         <TouchableOpacity
@@ -279,7 +293,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                         >
                           <Edit2 size={12} color="#38BDF8" />
                           <Text style={styles.changeAddressText}>
-                            {isEditingAddress ? 'Thu gọn' : 'Đổi địa chỉ'}
+                            {isEditingAddress ? (isEn ? 'Collapse' : 'Thu gọn') : (isEn ? 'Change' : 'Đổi địa chỉ')}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -293,7 +307,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                       >
                         <MapPin size={16} color="#EF4444" style={{ marginTop: 2 }} />
                         <Text style={styles.addressPillText} numberOfLines={2}>
-                          {addressText || currentAddress || 'Chưa xác định được địa chỉ'}
+                          {addressText || currentAddress || (isEn ? 'Address unavailable' : 'Chưa xác định được địa chỉ')}
                         </Text>
                       </TouchableOpacity>
                     ) : (
@@ -308,7 +322,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                             style={styles.addressTextInput}
                             value={addressText}
                             onChangeText={handleAddressChange}
-                            placeholder="Nhập địa chỉ hiện trường..."
+                            placeholder={isEn ? 'Enter incident address...' : 'Nhập địa chỉ hiện trường...'}
                             placeholderTextColor="#64748B"
                             returnKeyType="done"
                             autoFocus={!hasGps}
@@ -331,7 +345,9 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
 
                         {isAddressDirty && (
                           <Text style={styles.addressWarningText}>
-                            ⚠️ Vui lòng chọn một địa chỉ từ gợi ý bên dưới để xác định toạ độ.
+                            {isEn
+                              ? '⚠️ Please select an address from the suggestions below to set coordinates.'
+                              : '⚠️ Vui lòng chọn một địa chỉ từ gợi ý bên dưới để xác định toạ độ.'}
                           </Text>
                         )}
 
@@ -456,7 +472,7 @@ export const MediaReportModal: React.FC<MediaReportModalProps> = ({
                     onPress={handleSubmit}
                     style={styles.submitButton}
                     accessible={true}
-                    accessibilityLabel="Gửi báo cáo sự cố khẩn cấp ngay"
+                    accessibilityLabel={isEn ? 'Submit emergency incident report now' : 'Gửi báo cáo sự cố khẩn cấp ngay'}
                   >
                     {isSubmitting ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,13 +23,22 @@ import {
   Trash2,
   FileText,
   AlertTriangle,
+  Mic,
+  Square,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { incidentService } from '../../services/incident.service';
+import { useTranslation } from 'react-i18next';
 import { mediaService } from '../../services/media.service';
 import { useAppStore } from '../../store/useAppStore';
 import { storage } from '../../services/storage';
 import { IncidentSupplementDto } from '../../types/incident';
+import { AudioAttachmentCard } from './AudioAttachmentCard';
+import {
+  applyTranscriptToNote,
+  PendingAudioDraft,
+  useMobileAudioRecorder,
+} from '../../hooks/useMobileAudioRecorder';
 
 interface SupplementModalProps {
   visible: boolean;
@@ -49,12 +58,28 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
   onSuccess,
 }) => {
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const { isAuthenticated } = useAppStore();
 
   const [note, setNote] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [audioDraft, setAudioDraft] = useState<PendingAudioDraft | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingStatus, setSubmittingStatus] = useState('');
+  const lastSyncedTranscriptRef = useRef('');
+  const audioRecorder = useMobileAudioRecorder((draft) => setAudioDraft(draft));
+
+  useEffect(() => {
+    const next = audioRecorder.transcript.trim();
+    const prev = lastSyncedTranscriptRef.current;
+    if (next === prev) return;
+    lastSyncedTranscriptRef.current = next;
+    if (!next) return;
+    setNote((cur) => applyTranscriptToNote(cur, prev, next));
+  }, [audioRecorder.transcript]);
+
+  const maxVisualFiles = audioDraft ? 4 : 5;
 
   // Past supplements (authenticated only)
   const [pastSupplements, setPastSupplements] = useState<IncidentSupplementDto[]>([]);
@@ -78,47 +103,81 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
     if (visible && incidentId) {
       setNote('');
       setSelectedAssets([]);
+      setAudioDraft(null);
       setIsSubmitting(false);
       setSubmittingStatus('');
       loadPastSupplements();
+    } else if (!visible) {
+      audioRecorder.cancelRecording();
     }
   }, [visible, incidentId, loadPastSupplements]);
 
-  const handlePickCamera = async () => {
+  const handleToggleAudioRecord = async () => {
+    if (audioRecorder.isRecording) {
+      const draft = await audioRecorder.stopRecording();
+      if (draft) {
+        setAudioDraft(draft);
+        setSelectedAssets((prev) => prev.slice(0, 4));
+      }
+      return;
+    }
     if (selectedAssets.length >= 5) {
-      Alert.alert('Giới hạn', 'Chỉ được chọn tối đa 5 ảnh hoặc video.');
+      Alert.alert(
+        isEn ? 'Limit Reached' : 'Giới hạn',
+        isEn ? 'Maximum 5 files allowed (up to 1 audio recording and 4 photos/videos).' : 'Tổng tối đa 5 tệp (gồm tối đa 1 ghi âm và 4 ảnh/video).'
+      );
+      return;
+    }
+    await audioRecorder.startRecording();
+  };
+
+  const handlePickCamera = async () => {
+    if (selectedAssets.length >= maxVisualFiles) {
+      Alert.alert(
+        isEn ? 'Limit Reached' : 'Giới hạn',
+        isEn ? `Maximum ${maxVisualFiles} photos or videos allowed.` : `Chỉ được chọn tối đa ${maxVisualFiles} ảnh hoặc video.`
+      );
       return;
     }
     const asset = await mediaService.pickFromCamera();
     if (asset) {
-      setSelectedAssets((prev) => [...prev, asset].slice(0, 5));
+      setSelectedAssets((prev) => [...prev, asset].slice(0, maxVisualFiles));
     }
   };
 
   const handlePickLibrary = async () => {
-    if (selectedAssets.length >= 5) {
-      Alert.alert('Giới hạn', 'Chỉ được chọn tối đa 5 ảnh hoặc video.');
+    if (selectedAssets.length >= maxVisualFiles) {
+      Alert.alert(
+        isEn ? 'Limit Reached' : 'Giới hạn',
+        isEn ? `Maximum ${maxVisualFiles} photos or videos allowed.` : `Chỉ được chọn tối đa ${maxVisualFiles} ảnh hoặc video.`
+      );
       return;
     }
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Quyền thư viện', 'Vui lòng cấp quyền truy cập ảnh/video trong cài đặt thiết bị.');
+        Alert.alert(
+          isEn ? 'Library Permission' : 'Quyền thư viện',
+          isEn ? 'Please allow photo/video library access in device settings.' : 'Vui lòng cấp quyền truy cập ảnh/video trong cài đặt thiết bị.'
+        );
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         allowsMultipleSelection: true,
-        selectionLimit: 5 - selectedAssets.length,
+        selectionLimit: maxVisualFiles - selectedAssets.length,
         quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setSelectedAssets((prev) => [...prev, ...result.assets].slice(0, 5));
+        setSelectedAssets((prev) => [...prev, ...result.assets].slice(0, maxVisualFiles));
       }
     } catch (err: any) {
-      Alert.alert('Lỗi chọn tệp', err.message || 'Không thể mở thư viện.');
+      Alert.alert(
+        isEn ? 'File Picker Error' : 'Lỗi chọn tệp',
+        err.message || (isEn ? 'Unable to open media library.' : 'Không thể mở thư viện.')
+      );
     }
   };
 
@@ -127,25 +186,43 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (audioRecorder.isRecording) {
+      Alert.alert(
+        isEn ? 'Recording Active' : 'Đang ghi âm',
+        isEn ? 'Please stop recording before sending additional information.' : 'Vui lòng dừng ghi âm trước khi gửi thông tin bổ sung.'
+      );
+      return;
+    }
     const trimmedNote = note.trim();
-    if (!trimmedNote && selectedAssets.length === 0) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập ghi chú hoặc đính kèm ít nhất 1 ảnh/video.');
+    if (!trimmedNote && selectedAssets.length === 0 && !audioDraft) {
+      Alert.alert(
+        isEn ? 'Missing Details' : 'Thiếu thông tin',
+        isEn ? 'Please enter a note or attach at least 1 photo/video/audio file.' : 'Vui lòng nhập ghi chú hoặc đính kèm ít nhất 1 ảnh/video/ghi âm.'
+      );
       return;
     }
 
     try {
       setIsSubmitting(true);
-      setSubmittingStatus('Đang chuẩn bị gửi thông tin...');
+      setSubmittingStatus(isEn ? 'Preparing update...' : 'Đang chuẩn bị gửi thông tin...');
 
       // 1. Upload files first via POST /api/media/upload
       const uploadedUrls: string[] = [];
       for (let i = 0; i < selectedAssets.length; i++) {
-        setSubmittingStatus(`Đang tải lên tệp ${i + 1}/${selectedAssets.length}...`);
+        setSubmittingStatus(
+          isEn ? `Uploading file ${i + 1}/${selectedAssets.length}...` : `Đang tải lên tệp ${i + 1}/${selectedAssets.length}...`
+        );
         const url = await mediaService.uploadMedia(selectedAssets[i]);
         if (url) uploadedUrls.push(url);
       }
 
-      setSubmittingStatus('Đang lưu thông tin bổ sung...');
+      const audioAttachments = [];
+      if (audioDraft?.uri) {
+        setSubmittingStatus(isEn ? 'Uploading audio recording...' : 'Đang tải lên đoạn ghi âm...');
+        audioAttachments.push(await mediaService.uploadAudioAttachment(audioDraft));
+      }
+
+      setSubmittingStatus(isEn ? 'Saving update...' : 'Đang lưu thông tin bổ sung...');
 
       // 2. Resolve guest token if not passed in props
       let resolvedToken = guestCancellationToken;
@@ -157,17 +234,22 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
       await incidentService.addSupplement(incidentId, {
         note: trimmedNote || undefined,
         mediaUrls: uploadedUrls,
+        audioAttachments: audioAttachments.length > 0 ? audioAttachments : undefined,
         guestCancellationToken: resolvedToken || undefined,
       });
 
-      Alert.alert('Thành công', 'Thông tin bổ sung của bạn đã được chuyển tới trung tâm điều phối.');
+      Alert.alert(
+        isEn ? 'Success' : 'Thành công',
+        isEn ? 'Your additional details have been forwarded to the dispatch center.' : 'Thông tin bổ sung của bạn đã được chuyển tới trung tâm điều phối.'
+      );
       setNote('');
       setSelectedAssets([]);
+      setAudioDraft(null);
       onSuccess?.();
       onClose();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể bổ sung thông tin.';
-      Alert.alert('Thông báo', msg);
+      const msg = err.response?.data?.message || err.message || (isEn ? 'Unable to send additional details.' : 'Không thể bổ sung thông tin.');
+      Alert.alert(isEn ? 'Notice' : 'Thông báo', msg);
     } finally {
       setIsSubmitting(false);
       setSubmittingStatus('');
@@ -204,9 +286,9 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <View>
-                <Text style={styles.title}>BỔ SUNG THÔNG TIN HIỆN TRƯỜNG</Text>
+                <Text style={styles.title}>{isEn ? 'ADD SCENE DETAILS' : 'BỔ SUNG THÔNG TIN HIỆN TRƯỜNG'}</Text>
                 <Text style={styles.subtitle}>
-                  Sự cố {incidentCode || (incidentId ? `#${incidentId.slice(0, 8).toUpperCase()}` : '')}
+                  {isEn ? 'Incident' : 'Sự cố'} {incidentCode || (incidentId ? `#${incidentId.slice(0, 8).toUpperCase()}` : '')}
                 </Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -219,27 +301,77 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.scrollContent}
             >
-              {/* Note input */}
+              {/* Unified Note + Audio Recorder Section */}
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Ghi chú bổ sung (Tối đa 1000 ký tự)</Text>
+                <View style={styles.mediaLabelRow}>
+                  <Text style={styles.sectionLabel}>
+                    {isEn ? 'Additional Notes & Audio (≤30s)' : 'Ghi chú & Ghi âm bổ sung (≤30s)'}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.pickBtn,
+                      { flex: 0, paddingHorizontal: 12, paddingVertical: 6 },
+                      audioRecorder.isRecording && { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
+                    ]}
+                    onPress={handleToggleAudioRecord}
+                    activeOpacity={0.75}
+                  >
+                    {audioRecorder.isRecording ? (
+                      <>
+                        <Square size={13} color="#DC2626" />
+                        <Text style={[styles.pickBtnText, { color: '#DC2626', fontSize: 12 }]}>
+                          {isEn ? 'Stop' : 'Dừng'} ({Math.min(30, Math.floor(audioRecorder.durationMs / 1000))}s)
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Mic size={13} color="#0284C7" />
+                        <Text style={[styles.pickBtnText, { fontSize: 12 }]}>
+                          {audioDraft ? (isEn ? 'Re-record' : 'Ghi lại') : (isEn ? 'Record' : 'Ghi âm')}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {audioRecorder.permissionWarning ? (
+                  <Text style={{ fontSize: 11.5, color: '#B45309' }}>
+                    {audioRecorder.permissionWarning}
+                  </Text>
+                ) : null}
+
+                {audioDraft && (
+                  <View style={{ marginBottom: 8 }}>
+                    <AudioAttachmentCard
+                      compact
+                      localUri={audioDraft.uri}
+                      durationSeconds={audioDraft.durationSeconds}
+                      title={isEn ? 'Additional audio clip' : 'Bản ghi âm bổ sung'}
+                      onRemove={() => setAudioDraft(null)}
+                    />
+                  </View>
+                )}
+
                 <TextInput
                   value={note}
                   onChangeText={setNote}
-                  placeholder="Mô tả thêm tình hình hiện trường, số người bị nạn, diễn biến mới..."
+                  placeholder={isEn ? 'Describe the scene or tap keyboard mic to dictate...' : 'Mô tả tình hình hoặc bấm nút micro trên bàn phím để nói thành chữ...'}
                   placeholderTextColor="#94A3B8"
                   style={styles.noteInput}
                   multiline={true}
                   numberOfLines={4}
-                  maxLength={1000}
+                  maxLength={4000}
                 />
-                <Text style={styles.charCount}>{note.length}/1000</Text>
+                <Text style={styles.charCount}>{note.length}/4000</Text>
               </View>
 
               {/* Media picker */}
               <View style={styles.section}>
                 <View style={styles.mediaLabelRow}>
-                  <Text style={styles.sectionLabel}>Ảnh / Video hiện trường</Text>
-                  <Text style={styles.mediaCount}>{selectedAssets.length}/5 tệp</Text>
+                  <Text style={styles.sectionLabel}>{isEn ? 'Scene Photos / Videos' : 'Ảnh / Video hiện trường'}</Text>
+                  <Text style={styles.mediaCount}>
+                    {selectedAssets.length + (audioDraft ? 1 : 0)}/5 {isEn ? 'files' : 'tệp'}
+                  </Text>
                 </View>
 
                 {/* Media thumbnail grid */}
@@ -261,7 +393,7 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                 )}
 
                 {/* Pick buttons */}
-                {selectedAssets.length < 5 && (
+                {selectedAssets.length < maxVisualFiles && (
                   <View style={styles.pickButtonsRow}>
                     <TouchableOpacity
                       style={styles.pickBtn}
@@ -269,7 +401,7 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Camera size={16} color="#0284C7" />
-                      <Text style={styles.pickBtnText}>Chụp ảnh</Text>
+                      <Text style={styles.pickBtnText}>{isEn ? 'Take Photo' : 'Chụp ảnh'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.pickBtn}
@@ -277,7 +409,9 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                       activeOpacity={0.7}
                     >
                       <Images size={16} color="#059669" />
-                      <Text style={[styles.pickBtnText, { color: '#059669' }]}>Chọn từ thư viện</Text>
+                      <Text style={[styles.pickBtnText, { color: '#059669' }]}>
+                        {isEn ? 'Choose from Library' : 'Chọn từ thư viện'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -286,11 +420,15 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
               {/* Past supplements history (authenticated only) */}
               {isAuthenticated && (
                 <View style={styles.pastSection}>
-                  <Text style={styles.pastSectionTitle}>Lịch sử các lần bổ sung đã gửi</Text>
+                  <Text style={styles.pastSectionTitle}>
+                    {isEn ? 'Previously Sent Updates' : 'Lịch sử các lần bổ sung đã gửi'}
+                  </Text>
                   {isLoadingPast ? (
                     <ActivityIndicator size="small" color="#64748B" style={{ marginVertical: 10 }} />
                   ) : pastSupplements.length === 0 ? (
-                    <Text style={styles.emptyPastText}>Chưa có thông tin bổ sung nào trước đó.</Text>
+                    <Text style={styles.emptyPastText}>
+                      {isEn ? 'No prior updates submitted yet.' : 'Chưa có thông tin bổ sung nào trước đó.'}
+                    </Text>
                   ) : (
                     <View style={styles.pastList}>
                       {pastSupplements.map((item, idx) => (
@@ -316,6 +454,22 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                               ))}
                             </View>
                           )}
+                          {item.audioAttachments && item.audioAttachments.length > 0 && (
+                            <View style={{ marginTop: 6, gap: 6 }}>
+                              {item.audioAttachments.map((aud) => (
+                                <AudioAttachmentCard
+                                  key={aud.id}
+                                  compact
+                                  durationSeconds={aud.durationSeconds}
+                                  transcript={aud.transcript}
+                                  transcriptionStatus={aud.transcriptionStatus}
+                                  resolvePlaybackUrl={() =>
+                                    incidentService.getSupplementAudioPlaybackUrl(incidentId, item.id, aud.id)
+                                  }
+                                />
+                              ))}
+                            </View>
+                          )}
                         </View>
                       ))}
                     </View>
@@ -333,12 +487,12 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                 {isSubmitting ? (
                   <View style={styles.submittingRow}>
                     <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.submitBtnText}>{submittingStatus || 'Đang gửi...'}</Text>
+                    <Text style={styles.submitBtnText}>{submittingStatus || (isEn ? 'Sending...' : 'Đang gửi...')}</Text>
                   </View>
                 ) : (
                   <View style={styles.submittingRow}>
                     <Send size={16} color="#FFFFFF" />
-                    <Text style={styles.submitBtnText}>GỬI THÔNG TIN BỔ SUNG</Text>
+                    <Text style={styles.submitBtnText}>{isEn ? 'SUBMIT ADDITIONAL DETAILS' : 'GỬI THÔNG TIN BỔ SUNG'}</Text>
                   </View>
                 )}
               </TouchableOpacity>

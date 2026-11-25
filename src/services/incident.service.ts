@@ -1,7 +1,9 @@
 import { apiService } from '../api/client';
+import { getCurrentLanguage } from '../i18n';
 import { Endpoints } from '../api/endpoints';
 import { BackendApiResponse } from '../types/auth';
 import {
+  AudioAttachmentInputDto,
   CitizenIncidentAlertDto,
   CitizenMapIncidentDto,
   CitizenTracking,
@@ -97,6 +99,8 @@ const DEFAULT_SERVICE_AREA: ServiceAreaDto = {
   radiusKm: KCN_RADIUS_KM,
 };
 
+const isEnLang = () => getCurrentLanguage() === 'en';
+
 export const incidentService = {
   /**
    * POST /api/incidents — Gửi báo cáo sự cố khẩn cấp SOS
@@ -110,7 +114,7 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể gửi báo cáo sự cố.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to submit incident report.' : 'Không thể gửi báo cáo sự cố.'));
     }
 
     return response.data;
@@ -125,7 +129,7 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể lấy thông tin sự cố.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to load incident details.' : 'Không thể lấy thông tin sự cố.'));
     }
 
     return response.data;
@@ -147,7 +151,7 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể lấy danh sách sự cố.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to load incident list.' : 'Không thể lấy danh sách sự cố.'));
     }
 
     return response.data;
@@ -167,7 +171,7 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể lấy lịch sử báo cáo.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to load report history.' : 'Không thể lấy lịch sử báo cáo.'));
     }
 
     return response.data;
@@ -178,14 +182,14 @@ export const incidentService = {
    * Phù hợp với BE hiện hành: [HttpPut("{id}/cancel")] nhận [FromBody] string reason
    */
   async cancelIncident(id: string, reason?: string, guestCancellationToken?: string): Promise<IncidentResponseDto> {
-    const reasonText = reason || 'Người dân bấm nhầm nút SOS';
+    const reasonText = reason || (isEnLang() ? 'Citizen accidentally pressed SOS button' : 'Người dân bấm nhầm nút SOS');
     const response = await apiService.put<BackendApiResponse<IncidentResponseDto>>(
       Endpoints.INCIDENTS.CANCEL(id),
       { reason: reasonText, guestCancellationToken: guestCancellationToken || undefined }
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể hủy sự cố.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to cancel incident.' : 'Không thể hủy sự cố.'));
     }
 
     return response.data;
@@ -204,18 +208,23 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể tách báo cáo.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to unlink report.' : 'Không thể tách báo cáo.'));
     }
 
     return response.data;
   },
 
   /**
-   * POST /api/incidents/{id}/supplements — Bổ sung thông tin (ghi chú / ảnh)
+   * POST /api/incidents/{id}/supplements — Bổ sung thông tin (ghi chú / ảnh / audio)
    */
   async addSupplement(
     id: string,
-    dto: { note?: string; mediaUrls?: string[]; guestCancellationToken?: string }
+    dto: {
+      note?: string;
+      mediaUrls?: string[];
+      audioAttachments?: AudioAttachmentInputDto[];
+      guestCancellationToken?: string;
+    }
   ): Promise<IncidentSupplementDto> {
     const response = await apiService.post<BackendApiResponse<IncidentSupplementDto>>(
       Endpoints.INCIDENTS.SUPPLEMENTS(id),
@@ -223,9 +232,33 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Không thể gửi thông tin bổ sung.');
+      throw new Error(response.message || (isEnLang() ? 'Unable to submit additional details.' : 'Không thể gửi thông tin bổ sung.'));
     }
 
+    return response.data;
+  },
+
+  async getAudioPlaybackUrl(incidentId: string, mediaId: string): Promise<{ url: string; expiresAt: string }> {
+    const response = await apiService.get<BackendApiResponse<{ url: string; expiresAt: string }>>(
+      Endpoints.INCIDENTS.AUDIO_PLAYBACK(incidentId, mediaId)
+    );
+    if (!response.success || !response.data?.url) {
+      throw new Error(response.message || (isEnLang() ? 'Unable to load audio playback URL.' : 'Không thể tải liên kết nghe ghi âm.'));
+    }
+    return response.data;
+  },
+
+  async getSupplementAudioPlaybackUrl(
+    incidentId: string,
+    supplementId: string,
+    mediaId: string
+  ): Promise<{ url: string; expiresAt: string }> {
+    const response = await apiService.get<BackendApiResponse<{ url: string; expiresAt: string }>>(
+      Endpoints.INCIDENTS.SUPPLEMENT_AUDIO_PLAYBACK(incidentId, supplementId, mediaId)
+    );
+    if (!response.success || !response.data?.url) {
+      throw new Error(response.message || (isEnLang() ? 'Unable to load audio playback URL.' : 'Không thể tải liên kết nghe ghi âm.'));
+    }
     return response.data;
   },
 
@@ -254,7 +287,7 @@ export const incidentService = {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.message || 'Chưa có thông tin điều phối xe cho sự cố này.');
+      throw new Error(response.message || (isEnLang() ? 'No rescue vehicle dispatch info available for this incident yet.' : 'Chưa có thông tin điều phối xe cho sự cố này.'));
     }
 
     return response.data;

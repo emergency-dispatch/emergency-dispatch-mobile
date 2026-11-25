@@ -20,7 +20,15 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { SosPulseButton, SosSuccessModal, SosConfirmModal, OutOfServiceAreaModal } from '../../components/citizen';
+import {
+  SosPulseButton,
+  SosSuccessModal,
+  SosConfirmModal,
+  OutOfServiceAreaModal,
+  SosCameraModal,
+  SosCameraCaptureResult,
+  PendingAudioDraft,
+} from '../../components/citizen';
 import { MainTabParamList } from '../../navigation/types';
 import { useResponsive } from '../../utils/responsive';
 import { incidentService } from '../../services/incident.service';
@@ -60,9 +68,11 @@ export const HomeScreen: React.FC = () => {
       : address;
 
   // Modals & triggers state
+  const [isSosCameraVisible, setIsSosCameraVisible] = useState(false);
   const [isSosSuccessModalVisible, setIsSosSuccessModalVisible] = useState(false);
   const [isSosConfirmModalVisible, setIsSosConfirmModalVisible] = useState(false);
   const [pendingSosAsset, setPendingSosAsset] = useState<any | null>(null);
+  const [pendingSosAudio, setPendingSosAudio] = useState<PendingAudioDraft | null>(null);
   const [activeIncident, setActiveIncident] = useState<IncidentResponseDto | null>(null);
   const [isSendingSos, setIsSendingSos] = useState(false);
   const [sosSendingLoadingText, setSosSendingLoadingText] = useState('');
@@ -163,7 +173,10 @@ export const HomeScreen: React.FC = () => {
 
       // Call backend cancel API if authenticated
       try {
-        await incidentService.cancelIncident(incidentId, 'Người dân bấm nhầm nút SOS');
+        await incidentService.cancelIncident(
+          incidentId,
+          currentLang === 'en' ? 'Citizen accidentally pressed SOS button' : 'Người dân bấm nhầm nút SOS'
+        );
       } catch {
         // Ghi chú: BE yêu cầu quyền xác thực khi hủy sự cố, phía client đã dọn dẹp local state
       }
@@ -174,7 +187,10 @@ export const HomeScreen: React.FC = () => {
       await storage.removeItem(cooldownKey);
       await storage.removeItem('LAST_SOS_REPORTED_AT');
       setCooldownSeconds(0);
-      Alert.alert('Đã Hủy Báo Động', 'Tín hiệu SOS đã được hủy bỏ thành công.');
+      Alert.alert(
+        currentLang === 'en' ? 'Alert Cancelled' : 'Đã Hủy Báo Động',
+        currentLang === 'en' ? 'The SOS signal has been successfully cancelled.' : 'Tín hiệu SOS đã được hủy bỏ thành công.'
+      );
     } catch {
       setIsSosSuccessModalVisible(false);
       setActiveIncident(null);
@@ -188,8 +204,10 @@ export const HomeScreen: React.FC = () => {
       const m = Math.floor(cooldownSeconds / 60);
       const s = cooldownSeconds % 60;
       Alert.alert(
-        'Vui Lòng Chờ',
-        `Bạn vừa gửi một yêu cầu cứu hộ đang được xử lý. Vui lòng chờ ${m}:${s < 10 ? '0' : ''}${s} trước khi gửi lại.`
+        currentLang === 'en' ? 'Please Wait' : 'Vui Lòng Chờ',
+        currentLang === 'en'
+          ? `You already sent an SOS request currently in progress. Please wait ${m}:${s < 10 ? '0' : ''}${s} before sending again.`
+          : `Bạn vừa gửi một yêu cầu cứu hộ đang được xử lý. Vui lòng chờ ${m}:${s < 10 ? '0' : ''}${s} trước khi gửi lại.`
       );
       return;
     }
@@ -208,23 +226,31 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      const asset = await mediaService.pickFromCamera();
-      if (asset) {
-        setPendingSosAsset(asset);
-      }
-      setIsSosConfirmModalVisible(true);
+      setIsSosCameraVisible(true);
     } catch {
       setIsSosConfirmModalVisible(true);
     }
   };
 
-  const handleRetakePhotoInConfirm = async () => {
-    try {
-      const asset = await mediaService.pickFromCamera();
-      if (asset) setPendingSosAsset(asset);
-    } catch {
-      // ignore
+  const handleCameraCaptured = (result: SosCameraCaptureResult) => {
+    setIsSosCameraVisible(false);
+    if (result.photoAsset) {
+      setPendingSosAsset(result.photoAsset);
     }
+    if (result.audioUri) {
+      setPendingSosAudio({
+        uri: result.audioUri,
+        durationSeconds: result.audioDurationSeconds || 1,
+        mimeType: result.audioMimeType || 'audio/mp4',
+        transcript: result.transcript || pendingSosAudio?.transcript || '',
+      });
+    }
+    setIsSosConfirmModalVisible(true);
+  };
+
+  const handleRetakePhotoInConfirm = () => {
+    setIsSosConfirmModalVisible(false);
+    setIsSosCameraVisible(true);
   };
 
   const handlePickLibraryInConfirm = async () => {
@@ -243,12 +269,13 @@ export const HomeScreen: React.FC = () => {
   const handleConfirmSosDispatch = async (
     note: string,
     eventType?: 'FireExplosion' | 'TrafficAccident',
-    customLocation?: { address: string; latitude: number; longitude: number }
+    customLocation?: { address: string; latitude: number; longitude: number },
+    submittedAudio?: PendingAudioDraft | null
   ) => {
     if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     setIsSosConfirmModalVisible(false);
     setIsSendingSos(true);
-    setSosSendingLoadingText('Đang xác thực phạm vi cứu hộ...');
+    setSosSendingLoadingText(currentLang === 'en' ? 'Verifying rescue service area...' : 'Đang xác thực phạm vi cứu hộ...');
     try {
       let loc: { latitude: number; longitude: number; address: string };
       if (customLocation && customLocation.latitude !== 0 && customLocation.longitude !== 0) {
@@ -276,27 +303,39 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      let mediaUrls: string[] = [];
+      const mediaUrls: string[] = [];
       if (pendingSosAsset) {
-        setSosSendingLoadingText('Đang tải ảnh hiện trường lên...');
+        setSosSendingLoadingText(currentLang === 'en' ? 'Uploading scene photo...' : 'Đang tải ảnh hiện trường lên...');
         const url = await mediaService.uploadMedia(pendingSosAsset);
         if (url) mediaUrls.push(url);
       }
 
-      setSosSendingLoadingText('Đang kết nối trung tâm & kích hoạt điều phối cứu hộ...');
+      const activeAudio = submittedAudio ?? pendingSosAudio;
+      const audioAttachments = [];
+      if (activeAudio?.uri) {
+        setSosSendingLoadingText(currentLang === 'en' ? 'Uploading scene audio...' : 'Đang tải ghi âm hiện trường lên...');
+        audioAttachments.push(await mediaService.uploadAudioAttachment(activeAudio));
+      }
+
+      setSosSendingLoadingText(
+        currentLang === 'en'
+          ? 'Connecting to dispatch center & activating rescue...'
+          : 'Đang kết nối trung tâm & kích hoạt điều phối cứu hộ...'
+      );
 
       const rawPhone = (user?.phone || profile.phoneNumber || '').trim().replace(/[\s.-]/g, '');
       const validPhone = /^(0|\+84)[35789][0-9]{8}$/.test(rawPhone) ? rawPhone : undefined;
 
       const created = await incidentService.createIncident({
         title: t('sos.emergency_sos_title', 'Báo động SOS Khẩn cấp'),
-        description: note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.'),
+        description: (note.trim() || t('sos.default_description', 'Người dân đè nút SOS 2s kích hoạt báo động khẩn cấp.')).slice(0, 4000),
         latitude: loc.latitude,
         longitude: loc.longitude,
         locationAddress: loc.address,
-        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterName: user?.name || profile.fullName || (currentLang === 'en' ? 'SOS Citizen' : 'Công dân SOS'),
         reporterPhone: validPhone,
         mediaUrls,
+        audioAttachments: audioAttachments.length > 0 ? audioAttachments : undefined,
         reportedEventType: eventType,
       });
 
@@ -305,14 +344,18 @@ export const HomeScreen: React.FC = () => {
       }
 
       setActiveIncident(created);
-      await recordIncidentId(created.id, created);
+      await recordIncidentId(created.id, { ...created, reportedEventType: eventType } as any);
       const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
       await storage.setItem(cooldownKey, Date.now());
       setCooldownSeconds(180);
       setPendingSosAsset(null);
+      setPendingSosAudio(null);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
-      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+      Alert.alert(
+        currentLang === 'en' ? 'SOS Error' : 'Lỗi gửi SOS',
+        err.message || (currentLang === 'en' ? 'Unable to send SOS alert.' : 'Không thể gửi báo động SOS.')
+      );
     } finally {
       setIsSendingSos(false);
     }
@@ -322,7 +365,11 @@ export const HomeScreen: React.FC = () => {
     if (!requireSosAuth(isAuthenticated, navigation as any, t)) return;
     try {
       setIsSendingSos(true);
-      setSosSendingLoadingText('Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...');
+      setSosSendingLoadingText(
+        currentLang === 'en'
+          ? 'Sending GPS coordinates to emergency dispatch...'
+          : 'Đang gửi toạ độ GPS tới trung tâm cứu hộ khẩn cấp...'
+      );
       const loc = await useLocationStore.getState().refreshLocation(false);
 
       const areaCheck = await incidentService.checkOutsideServiceArea(loc.latitude, loc.longitude);
@@ -348,7 +395,7 @@ export const HomeScreen: React.FC = () => {
         latitude: loc.latitude,
         longitude: loc.longitude,
         locationAddress: loc.address,
-        reporterName: user?.name || profile.fullName || 'Công dân SOS',
+        reporterName: user?.name || profile.fullName || (currentLang === 'en' ? 'SOS Citizen' : 'Công dân SOS'),
         reporterPhone: validPhone,
         mediaUrls: [],
       });
@@ -359,7 +406,10 @@ export const HomeScreen: React.FC = () => {
       await recordIncidentId(created.id, created);
       setIsSosSuccessModalVisible(true);
     } catch (err: any) {
-      Alert.alert('Lỗi gửi SOS', err.message || 'Không thể gửi báo động SOS.');
+      Alert.alert(
+        currentLang === 'en' ? 'SOS Error' : 'Lỗi gửi SOS',
+        err.message || (currentLang === 'en' ? 'Unable to send SOS alert.' : 'Không thể gửi báo động SOS.')
+      );
     } finally {
       setIsSendingSos(false);
     }
@@ -383,7 +433,11 @@ export const HomeScreen: React.FC = () => {
             onPress={() => navigation.navigate('SafetyMapTab')}
             style={styles.gpsMainAction}
             accessible={true}
-            accessibilityLabel={`${isCustomLocation ? 'Vị trí đã ghim' : 'Vị trí GPS'}: ${displayAddress}. Chạm để mở bản đồ`}
+            accessibilityLabel={`${
+              isCustomLocation
+                ? (currentLang === 'en' ? 'Pinned location' : 'Vị trí đã ghim')
+                : (currentLang === 'en' ? 'GPS location' : 'Vị trí GPS')
+            }: ${displayAddress}. ${currentLang === 'en' ? 'Tap to open map' : 'Chạm để mở bản đồ'}`}
             accessibilityRole="button"
           >
             <View
@@ -524,20 +578,37 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.emergencyLoadingOverlay}>
           <View style={styles.emergencyLoadingCard}>
             <ActivityIndicator size="large" color="#DC2626" />
-            <Text style={styles.emergencyLoadingTitle}>ĐANG KÍCH HOẠT CỨU HỘ SOS</Text>
+            <Text style={styles.emergencyLoadingTitle}>
+              {currentLang === 'en' ? 'ACTIVATING SOS RESCUE' : 'ĐANG KÍCH HOẠT CỨU HỘ SOS'}
+            </Text>
             <Text style={styles.emergencyLoadingText}>{sosSendingLoadingText}</Text>
           </View>
         </View>
       )}
 
-      {/* SOS Confirm Modal with Note & Cropped Image */}
+      {/* SOS Camera Modal with Auto Audio Recording */}
+      <SosCameraModal
+        visible={isSosCameraVisible}
+        onClose={() => {
+          setIsSosCameraVisible(false);
+          if (pendingSosAsset || pendingSosAudio) {
+            setIsSosConfirmModalVisible(true);
+          }
+        }}
+        onCaptured={handleCameraCaptured}
+      />
+
+      {/* SOS Confirm Modal with Note & Cropped Image & Audio */}
       <SosConfirmModal
         visible={isSosConfirmModalVisible}
         onClose={() => {
           setIsSosConfirmModalVisible(false);
           setPendingSosAsset(null);
+          setPendingSosAudio(null);
         }}
         photoUri={pendingSosAsset?.uri}
+        audioDraft={pendingSosAudio}
+        onChangeAudioDraft={setPendingSosAudio}
         address={address}
         initialCoords={coords && coords.latitude !== 0 ? coords : null}
         onConfirm={handleConfirmSosDispatch}

@@ -27,7 +27,8 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
   disabled = false,
   cooldownSeconds = 0,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const { width, isSmallDevice, isShortScreen, moderateScale, fontScale } = useResponsive();
 
   // Dynamic responsive sizing
@@ -253,7 +254,11 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
             pressed && !isCooldown && styles.buttonPressed,
           ]}
           accessible={true}
-          accessibilityLabel="Nút báo động khẩn cấp SOS. Nhấn và giữ 2 giây để gửi tín hiệu cứu nạn"
+          accessibilityLabel={
+            isEn
+              ? 'SOS emergency button. Press and hold for 2 seconds to send distress signal'
+              : 'Nút báo động khẩn cấp SOS. Nhấn và giữ 2 giây để gửi tín hiệu cứu nạn'
+          }
           accessibilityRole="button"
         >
           <View
@@ -291,7 +296,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
                 },
               ]}
             >
-              {isCooldown ? 'CHỜ' : 'SOS'}
+              {isCooldown ? (isEn ? 'WAIT' : 'CHỜ') : 'SOS'}
             </Text>
 
             {/* Hold instruction or Progress */}
@@ -305,7 +310,7 @@ export const SosPulseButton: React.FC<SosPulseButtonProps> = ({
                 >
                   {cooldownSeconds > 0
                     ? `${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}`
-                    : 'Đã báo cáo'}
+                    : (isEn ? 'Reported' : 'Đã báo cáo')}
                 </Text>
               ) : isPressing ? (
                 <Text

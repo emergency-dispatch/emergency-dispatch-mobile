@@ -67,7 +67,8 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
   onSelectHazard,
   selectedHazardId,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
   const { isSmallDevice, moderateScale, fontScale } = useResponsive();
   const [selectedId, setSelectedId] = React.useState<string | null>(selectedHazardId || 'accident');
 
@@ -89,14 +90,20 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { fontSize: fontScale(10.5) }]}>
-          CHỌN LOẠI TÌNH HUỐNG KHẨN CẤP:
+          {t('hazards.title')}
         </Text>
       </View>
 
       <View style={styles.grid}>
         {HAZARD_DATA.map((item) => {
           const IconComponent = item.icon;
-          const translatedTitle = t(`hazards.${item.id}`, { defaultValue: item.title });
+          const enTitles: Record<string, string> = {
+            fire: 'Fire & Smoke',
+            accident: 'Traffic Accident',
+            medical: 'Medical Emergency',
+            traffic_jam: 'IZ Gate Congestion',
+          };
+          const translatedTitle = isEn ? (enTitles[item.id] || item.title) : item.title;
           const isSelected = selectedId === item.id;
 
           return (
@@ -115,7 +122,7 @@ export const QuickHazardGrid: React.FC<QuickHazardGridProps> = ({
                 },
               ]}
               accessible={true}
-              accessibilityLabel={`Báo cáo ${translatedTitle}`}
+              accessibilityLabel={`${isEn ? 'Report' : 'Báo cáo'} ${translatedTitle}`}
               accessibilityRole="button"
             >
               <View style={styles.iconCenterWrap}>

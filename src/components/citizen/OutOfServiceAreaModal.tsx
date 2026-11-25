@@ -29,8 +29,9 @@ export const OutOfServiceAreaModal: React.FC<OutOfServiceAreaModalProps> = ({
   distanceOutsideKm,
   onPickOnMap,
 }) => {
-  const { t } = useTranslation();
-  const displayArea = areaName || 'Khu Công nghệ cao (SHTP)';
+  const { t, i18n } = useTranslation();
+  const isEn = !i18n.language?.startsWith('vi');
+  const displayArea = areaName || (isEn ? 'Saigon Hi-Tech Park (SHTP)' : 'Khu Công nghệ cao (SHTP)');
   const displayRadius = radiusKm ?? 4.5;
   const displayOutside = distanceOutsideKm ? distanceOutsideKm.toFixed(1) : '1.0';
 

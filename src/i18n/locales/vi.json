@@ -696,6 +696,7 @@
     "lbl_rescue_crew": "Kíp cứu hộ:",
     "lbl_ambulance": "Xe cấp cứu:",
     "lbl_receiving_hospital": "Bệnh viện tiếp nhận:",
-    "btn_close_record": "Đóng Biên Bản"
+    "btn_close_record": "Đóng Biên Bản",
+    "cad_dispatch_order": "LỆNH ĐIỀU ĐỘNG CAD"
   }
 }

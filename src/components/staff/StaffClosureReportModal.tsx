@@ -59,6 +59,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
   const [summary, setSummary] = useState('');
   const [victimsCount, setVictimsCount] = useState(1);
+  const [victimsInputText, setVictimsInputText] = useState('1');
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [equipmentInputText, setEquipmentInputText] = useState('');
@@ -75,6 +76,38 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
   const isSummaryValid = summary.trim().length >= 10;
   const hasPhotos = evidenceUrls.length >= 1;
   const canSubmit = isSummaryValid && hasPhotos && !isSubmitting && !isUploading;
+
+  const handleDecrementVictims = () => {
+    const next = Math.max(0, victimsCount - 1);
+    setVictimsCount(next);
+    setVictimsInputText(String(next));
+  };
+
+  const handleIncrementVictims = () => {
+    const next = victimsCount + 1;
+    setVictimsCount(next);
+    setVictimsInputText(String(next));
+  };
+
+  const handleVictimsTextChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    setVictimsInputText(cleaned);
+    if (cleaned === '') {
+      setVictimsCount(0);
+    } else {
+      const parsed = parseInt(cleaned, 10);
+      setVictimsCount(isNaN(parsed) ? 0 : parsed);
+    }
+  };
+
+  const handleVictimsBlur = () => {
+    if (!victimsInputText || isNaN(parseInt(victimsInputText, 10))) {
+      setVictimsInputText('0');
+      setVictimsCount(0);
+    } else {
+      setVictimsInputText(String(victimsCount));
+    }
+  };
 
   const handleAddCustomEquipment = () => {
     const trimmed = equipmentInputText.trim();
@@ -354,14 +387,23 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <TouchableOpacity
                   activeOpacity={0.7}
                   style={styles.stepBtn}
-                  onPress={() => setVictimsCount((prev) => Math.max(0, prev - 1))}
+                  onPress={handleDecrementVictims}
                   disabled={isSubmitting || victimsCount <= 0}
                 >
                   <Minus size={moderateScale(16)} color="#0F172A" />
                 </TouchableOpacity>
 
                 <View style={styles.stepValueBox}>
-                  <Text style={styles.stepValueText}>{victimsCount}</Text>
+                  <TextInput
+                    style={styles.stepValueInput}
+                    keyboardType="number-pad"
+                    value={victimsInputText}
+                    onChangeText={handleVictimsTextChange}
+                    onBlur={handleVictimsBlur}
+                    maxLength={4}
+                    selectTextOnFocus
+                    editable={!isSubmitting}
+                  />
                   <Text style={styles.stepValueSub}>
                     {victimsCount > 1 ? t('staff.unit_victim_plural', 'nạn nhân') : t('staff.unit_victim', 'nạn nhân')}
                   </Text>
@@ -370,7 +412,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <TouchableOpacity
                   activeOpacity={0.7}
                   style={styles.stepBtn}
-                  onPress={() => setVictimsCount((prev) => prev + 1)}
+                  onPress={handleIncrementVictims}
                   disabled={isSubmitting}
                 >
                   <Plus size={moderateScale(16)} color="#0F172A" />
@@ -379,104 +421,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             </View>
 
             {/* 4. Equipment Used Input (Optional) */}
-            <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>
-                {t('staff.closure_equipment_label', 'TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):')}
-              </Text>
 
-              {/* Text Input Row to let users type their own equipment */}
-              <View style={styles.equipmentInputRow}>
-                <TextInput
-                  style={styles.equipmentInput}
-                  placeholder={t('staff.closure_equipment_placeholder', 'Nhập trang thiết bị, vật tư đã sử dụng...')}
-                  placeholderTextColor="#94A3B8"
-                  value={equipmentInputText}
-                  onChangeText={setEquipmentInputText}
-                  onSubmitEditing={handleAddCustomEquipment}
-                  returnKeyType="done"
-                  editable={!isSubmitting}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={[
-                    styles.addEquipmentBtn,
-                    !equipmentInputText.trim() && styles.addEquipmentBtnDisabled,
-                  ]}
-                  onPress={handleAddCustomEquipment}
-                  disabled={!equipmentInputText.trim() || isSubmitting}
-                >
-                  <Plus size={moderateScale(15)} color={equipmentInputText.trim() ? '#FFFFFF' : '#94A3B8'} />
-                  <Text
-                    style={[
-                      styles.addEquipmentBtnText,
-                      !equipmentInputText.trim() && styles.addEquipmentBtnTextDisabled,
-                    ]}
-                  >
-                    {t('staff.closure_btn_add', 'Thêm')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Tag List of Added Equipment */}
-              {selectedEquipment.length > 0 && (
-                <View style={styles.selectedEquipmentWrap}>
-                  {selectedEquipment.map((item, index) => (
-                    <View key={`${item}-${index}`} style={styles.equipmentTag}>
-                      <Text style={styles.equipmentTagText} numberOfLines={1}>
-                        {item}
-                      </Text>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => handleRemoveEquipment(index)}
-                        style={styles.removeTagBtn}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <X size={moderateScale(12)} color="#DC2626" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Quick Suggestions below */}
-              <View style={styles.suggestionSection}>
-                <Text style={styles.suggestionTitle}>
-                  {t('staff.closure_suggestions_title', 'Gợi ý nhanh (chạm để thêm vào danh sách):')}
-                </Text>
-                <View style={styles.chipsWrap}>
-                  {QUICK_SUGGESTIONS.map((sug) => {
-                    const isAdded = selectedEquipment.includes(sug.vi) || selectedEquipment.includes(sug.en);
-                    const displayText = isEn ? sug.en : sug.vi;
-                    return (
-                      <TouchableOpacity
-                        key={sug.key}
-                        activeOpacity={0.75}
-                        style={[
-                          styles.chip,
-                          isAdded && styles.chipAdded,
-                        ]}
-                        onPress={() => toggleSuggestion(sug)}
-                        disabled={isSubmitting}
-                      >
-                        {isAdded ? (
-                          <CheckCircle2 size={moderateScale(12)} color="#059669" />
-                        ) : (
-                          <Plus size={moderateScale(12)} color="#64748B" />
-                        )}
-                        <Text
-                          style={[
-                            styles.chipText,
-                            isAdded && styles.chipTextAdded,
-                          ]}
-                        >
-                          {displayText}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
 
             {/* 5. Inter-Agency Handover Info (Optional) */}
             <View style={styles.formSection}>
@@ -788,12 +733,18 @@ const styles = StyleSheet.create({
   },
   stepValueBox: {
     alignItems: 'center',
-    paddingHorizontal: scale(14),
+    justifyContent: 'center',
+    paddingHorizontal: scale(10),
+    minWidth: scale(70),
   },
-  stepValueText: {
+  stepValueInput: {
     fontSize: moderateScale(18),
     fontWeight: '900',
     color: '#0F172A',
+    textAlign: 'center',
+    paddingVertical: 0,
+    paddingHorizontal: scale(4),
+    minWidth: scale(40),
   },
   stepValueSub: {
     fontSize: moderateScale(9.5),

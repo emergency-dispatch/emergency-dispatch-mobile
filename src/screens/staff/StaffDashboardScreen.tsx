@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   Linking,
   Platform,
   TouchableOpacity,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import {
   MapPin,
@@ -48,12 +50,18 @@ import {
   mapAssignmentToIncident,
 } from '../../types/dispatch';
 import { staffDispatchService } from '../../services/staffDispatch.service';
+import { mobileIncidentHub, mobileTrackingHub, MobileHubEvents } from '../../services/signalr.service';
 import { useAppStore } from '../../store/useAppStore';
 
 export const StaffDashboardScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const { user, updateUser } = useAppStore();
+
+  // Track already handled assignments in this session to prevent duplicate popups
+  const handledAssignmentIdsRef = useRef<Set<string>>(new Set());
+  const lastAlertedAssignmentIdRef = useRef<string | null>(null);
 
   // State
   const { t, i18n } = useTranslation();
@@ -76,11 +84,11 @@ export const StaffDashboardScreen: React.FC = () => {
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
   // Load Real Data from Backend
-  const loadStaffData = useCallback(async () => {
+  const loadStaffData = useCallback(async (force = false) => {
     try {
       const [teamRes, assignRes, notifRes] = await Promise.all([
         staffDispatchService.getMyTeam(),
-        staffDispatchService.getMyAssignments(),
+        staffDispatchService.getMyAssignments(force),
         staffDispatchService.getNotifications(false, 1, 15),
       ]);
 
@@ -119,18 +127,72 @@ export const StaffDashboardScreen: React.FC = () => {
   }, [updateUser]);
 
   useEffect(() => {
-    loadStaffData();
+    let mounted = true;
+
+    // 1. Initial fetch with force refresh
+    loadStaffData(true);
+
+    // 2. Connect SignalR hubs
+    mobileIncidentHub.start().catch(() => {});
+    mobileTrackingHub.start().catch(() => {});
+
+    // 3. Listen for backend real-time dispatch & notification events
+    const unsubNotif = mobileIncidentHub.on(MobileHubEvents.ReceiveNotification, () => {
+      if (mounted) loadStaffData(true);
+    });
+    const unsubAssign = mobileIncidentHub.on(MobileHubEvents.ReceiveAssignmentStatus, () => {
+      if (mounted) loadStaffData(true);
+    });
+    const unsubIncUpdate = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentUpdate, () => {
+      if (mounted) loadStaffData(true);
+    });
+    const unsubIncStatus = mobileIncidentHub.on(MobileHubEvents.ReceiveIncidentStatus, () => {
+      if (mounted) loadStaffData(true);
+    });
+    const unsubReconnect = mobileIncidentHub.onReconnected(() => {
+      if (mounted) loadStaffData(true);
+    });
+
+    // 4. Background polling (every 4s) to ensure real-time dispatches never miss even if network flickers
+    const pollInterval = setInterval(() => {
+      if (mounted) {
+        loadStaffData(true);
+      }
+    }, 4000);
+
+    // 5. Refresh immediately when returning from background
+    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active' && mounted) {
+        loadStaffData(true);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubNotif();
+      unsubAssign();
+      unsubIncUpdate();
+      unsubIncStatus();
+      unsubReconnect();
+      clearInterval(pollInterval);
+      appStateSub.remove();
+    };
   }, [loadStaffData]);
 
   // Refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadStaffData();
+    await loadStaffData(true);
     setRefreshing(false);
   }, [loadStaffData]);
 
-  // Derived assignments
-  const dispatchedAssignment = assignments.find((a) => a.status === 'Dispatched');
+  // Derived assignments - filter out any already handled in this session
+  const dispatchedAssignment = useMemo(() => {
+    return assignments.find(
+      (a) => a.status === 'Dispatched' && !handledAssignmentIdsRef.current.has(a.id)
+    );
+  }, [assignments]);
+
   const activeMissionAssignment = assignments.find(
     (a) => a.status === 'Accepted' || a.status === 'EnRoute' || a.status === 'OnScene'
   );
@@ -160,15 +222,22 @@ export const StaffDashboardScreen: React.FC = () => {
     notes: a.completionReport?.actionsSummary || a.notes || '',
   }));
 
-  const activeIncident = dispatchedAssignment
+  const dispatchedIncident = dispatchedAssignment
     ? mapAssignmentToIncident(dispatchedAssignment)
-    : activeMissionAssignment
-    ? mapAssignmentToIncident(activeMissionAssignment)
     : undefined;
 
-  // Tự động bật màn hình báo động nhận lệnh khi có sự cố được điều động đến xe
+  const activeIncident = dispatchedIncident || (activeMissionAssignment
+    ? mapAssignmentToIncident(activeMissionAssignment)
+    : undefined);
+
+  // Tự động bật màn hình báo động khi có lệnh điều động mới chưa xử lý
   useEffect(() => {
-    if (dispatchedAssignment?.id) {
+    if (
+      dispatchedAssignment?.id &&
+      dispatchedAssignment.id !== lastAlertedAssignmentIdRef.current &&
+      !handledAssignmentIdsRef.current.has(dispatchedAssignment.id)
+    ) {
+      lastAlertedAssignmentIdRef.current = dispatchedAssignment.id;
       setIsEmergencyAlertVisible(true);
     }
   }, [dispatchedAssignment?.id]);
@@ -230,40 +299,65 @@ export const StaffDashboardScreen: React.FC = () => {
   // Accept emergency incident -> Call API & Go to IncidentOverviewScreen
   const handleAcceptEmergency = useCallback(
     async (incident: EmergencyIncident) => {
-      setIsEmergencyAlertVisible(false);
       const targetId = dispatchedAssignment?.id;
+      setIsEmergencyAlertVisible(false);
+
       if (targetId) {
+        handledAssignmentIdsRef.current.add(targetId);
+
+        // Optimistically update assignments state so dispatchedAssignment clears immediately
+        setAssignments((prev) =>
+          prev.map((a) =>
+            a.id === targetId ? { ...a, status: 'Accepted' as const } : a
+          )
+        );
+
         try {
           await staffDispatchService.updateStatus(targetId, 'Accepted');
         } catch (err: any) {
           console.warn('Accept assignment failed:', err.message);
         }
       }
+
       navigation.navigate('IncidentOverview', {
         incident,
         assignmentId: targetId,
       });
-      loadStaffData();
+
+      loadStaffData(true);
     },
-    [navigation, dispatchedAssignment, loadStaffData]
+    [navigation, dispatchedAssignment?.id, loadStaffData]
   );
 
   // Decline emergency incident -> Call API with required reason payload
   const handleDeclineEmergency = useCallback(
     async (payload?: RejectAssignmentPayload) => {
-      setIsEmergencyAlertVisible(false);
       const targetId = dispatchedAssignment?.id;
-      if (targetId && payload) {
-        try {
-          await staffDispatchService.rejectAssignment(targetId, payload);
-          Alert.alert('Đã Từ Chối', 'Lệnh điều động đã được từ chối và chuyển tiếp tới trạm dự bị.');
-          loadStaffData();
-        } catch (err: any) {
-          Alert.alert('Lỗi', err.message || 'Không thể từ chối lệnh điều động.');
+      setIsEmergencyAlertVisible(false);
+
+      if (targetId) {
+        handledAssignmentIdsRef.current.add(targetId);
+
+        // Optimistically update assignments state
+        setAssignments((prev) =>
+          prev.map((a) =>
+            a.id === targetId ? { ...a, status: 'Rejected' as const } : a
+          )
+        );
+
+        if (payload) {
+          try {
+            await staffDispatchService.rejectAssignment(targetId, payload);
+            Alert.alert('Đã Từ Chối', 'Lệnh điều động đã được từ chối và chuyển tiếp tới trạm dự bị.');
+          } catch (err: any) {
+            Alert.alert('Lỗi', err.message || 'Không thể từ chối lệnh điều động.');
+          }
         }
       }
+
+      loadStaffData(true);
     },
-    [dispatchedAssignment, loadStaffData]
+    [dispatchedAssignment?.id, loadStaffData]
   );
 
   // Navigate to ongoing active mission
@@ -567,14 +661,13 @@ export const StaffDashboardScreen: React.FC = () => {
         </View>
 
         {/* Interactive Modals */}
-        {activeIncident && (
+        {dispatchedIncident && (
           <EmergencyAlertModal
-            visible={isEmergencyAlertVisible}
-            incident={activeIncident}
+            visible={isEmergencyAlertVisible && isFocused}
+            incident={dispatchedIncident}
             assignmentId={dispatchedAssignment?.id}
             onAccept={handleAcceptEmergency}
             onDecline={handleDeclineEmergency}
-            onTimeout={() => setIsEmergencyAlertVisible(false)}
           />
         )}
 

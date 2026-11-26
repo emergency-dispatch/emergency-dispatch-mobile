@@ -704,6 +704,7 @@
     "lbl_rescue_crew": "Rescue Crew:",
     "lbl_ambulance": "Ambulance:",
     "lbl_receiving_hospital": "Receiving Hospital:",
-    "btn_close_record": "Close Record"
+    "btn_close_record": "Close Record",
+    "cad_dispatch_order": "CAD DISPATCH ORDER"
   }
 }

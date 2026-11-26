@@ -11,8 +11,10 @@ import {
   Alert,
   StatusBar,
   Platform,
+  Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   Clock,
   MapPin,
@@ -49,8 +51,6 @@ interface EmergencyAlertModalProps {
   onTimeout?: () => void;
 }
 
-const TOTAL_COUNTDOWN = 30; // 30 seconds auto-decline countdown
-
 export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
   visible,
   incident,
@@ -63,8 +63,8 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
     return null;
   }
 
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(TOTAL_COUNTDOWN);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState<boolean>(false);
   const [routeCoordinates, setRouteCoordinates] = useState<RoutePoint[]>([]);
 
@@ -99,7 +99,6 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
   // Animation values
   const pulseBorderAnim = useRef(new Animated.Value(0.4)).current;
   const beaconGlowAnim = useRef(new Animated.Value(1)).current;
-  const progressAnim = useRef(new Animated.Value(1)).current;
 
   // Compute markers for Mapbox (Ambulance + Incident location)
   const mapMarkers = useMemo<MapMarkerItem[]>(() => {
@@ -147,37 +146,14 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
     }
   }, [visible, incident]);
 
-  // Countdown Timer & Animation loops
+  // Animation loops & vibration alert
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
     if (visible) {
-      setSecondsRemaining(TOTAL_COUNTDOWN);
-      progressAnim.setValue(1);
-
-      // Countdown progress bar animation
-      Animated.timing(progressAnim, {
-        toValue: 0,
-        duration: TOTAL_COUNTDOWN * 1000,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      }).start();
-
-      // Second-by-second countdown
-      timer = setInterval(() => {
-        setSecondsRemaining((prev) => {
-          if (prev <= 1) {
-            if (timer) clearInterval(timer);
-            if (onTimeout) {
-              onTimeout();
-            } else {
-              onDecline();
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      try {
+        Vibration.vibrate([0, 500, 200, 500]);
+      } catch {
+        // ignore
+      }
 
       // Pulsing border effect (Emergency beacon)
       const pulseLoop = Animated.loop(
@@ -216,14 +192,11 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
       beaconLoop.start();
 
       return () => {
-        if (timer) clearInterval(timer);
         pulseLoop.stop();
         beaconLoop.stop();
       };
     }
-  }, [visible, onDecline, onTimeout, pulseBorderAnim, beaconGlowAnim, progressAnim]);
-
-  const isUrgentTimer = secondsRemaining <= 10;
+  }, [visible, pulseBorderAnim, beaconGlowAnim]);
 
   return (
     <Modal
@@ -248,13 +221,13 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
             styles.pulsingGlowFrame,
             {
               opacity: pulseBorderAnim,
-              borderColor: isUrgentTimer ? '#EF4444' : '#FCA5A5',
+              borderColor: '#EF4444',
             },
           ]}
           pointerEvents="none"
         />
 
-        {/* Top Emergency Siren Banner & Countdown */}
+        {/* Top Emergency Siren Banner & CAD Dispatch Badge */}
         <View style={styles.topHeader}>
           {/* Code Red Status Badge */}
           <View style={styles.severityBadge}>
@@ -266,47 +239,17 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
             />
             <ShieldAlert size={moderateScale(15)} color="#DC2626" />
             <Text style={styles.severityBadgeText} numberOfLines={1}>
-              {incident.severityLabel}
+              {incident.severityLabel || 'BÁO ĐỘNG ĐỎ'}
             </Text>
           </View>
 
-          {/* Countdown Pill */}
-          <View
-            style={[
-              styles.countdownBadge,
-              isUrgentTimer && styles.countdownBadgeUrgent,
-            ]}
-          >
-            <Clock
-              size={moderateScale(14)}
-              color={isUrgentTimer ? '#DC2626' : '#D97706'}
-            />
-            <Text
-              style={[
-                styles.countdownText,
-                isUrgentTimer && styles.countdownTextUrgent,
-              ]}
-              numberOfLines={1}
-            >
-              Còn {secondsRemaining}s
+          {/* CAD Dispatch Live Indicator Badge */}
+          <View style={styles.cadDispatchBadge}>
+            <Radio size={moderateScale(13)} color="#059669" />
+            <Text style={styles.cadDispatchBadgeText} numberOfLines={1}>
+              {t('staff.cad_dispatch_order', 'LỆNH ĐIỀU ĐỘNG CAD')}
             </Text>
           </View>
-        </View>
-
-        {/* Countdown Progress Bar */}
-        <View style={styles.progressBarTrack}>
-          <Animated.View
-            style={[
-              styles.progressBarFill,
-              {
-                width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
-                backgroundColor: isUrgentTimer ? '#EF4444' : '#F59E0B',
-              },
-            ]}
-          />
         </View>
 
         {/* Scrollable Content */}
@@ -407,12 +350,12 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
                 <Text style={styles.mapSectionTitle}>LỘ TRÌNH TIẾP CẬN DỰ KIẾN</Text>
               </View>
               <View style={styles.mapHeaderActions}>
-                <View style={styles.routePill}>
+                {/* <View style={styles.routePill}>
                   <Text style={styles.routePillText}>Lộ trình nhanh nhất</Text>
-                </View>
+                </View> */}
 
                 {/* In-place Expand / Shrink Toggle */}
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   activeOpacity={0.75}
                   style={styles.expandHeaderBtn}
                   onPress={handleToggleExpandMap}
@@ -428,7 +371,7 @@ export const EmergencyAlertModal: React.FC<EmergencyAlertModalProps> = ({
                   <Text style={styles.expandHeaderBtnText}>
                     {isMapExpanded ? 'Thu nhỏ' : 'Mở to'}
                   </Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
 
@@ -699,40 +642,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     flexShrink: 1,
   },
-  countdownBadge: {
+  cadDispatchBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1.5,
-    borderColor: '#FDE68A',
+    borderColor: '#A7F3D0',
     borderRadius: moderateScale(16),
     paddingVertical: verticalScale(5),
     paddingHorizontal: scale(10),
     gap: scale(5),
     flexShrink: 0,
   },
-  countdownBadgeUrgent: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-  },
-  countdownText: {
-    fontSize: moderateScale(12),
-    fontWeight: '900',
-    color: '#B45309',
-    fontFamily: 'monospace',
+  cadDispatchBadgeText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#059669',
     letterSpacing: 0.3,
-  },
-  countdownTextUrgent: {
-    color: '#DC2626',
-  },
-  progressBarTrack: {
-    height: verticalScale(3.5),
-    backgroundColor: '#E2E8F0',
-    width: '100%',
-    marginVertical: verticalScale(4),
-  },
-  progressBarFill: {
-    height: '100%',
   },
   scrollBody: {
     flex: 1,

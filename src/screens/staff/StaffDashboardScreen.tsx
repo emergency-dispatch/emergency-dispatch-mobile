@@ -141,10 +141,16 @@ export const StaffDashboardScreen: React.FC = () => {
     id: a.id,
     code: a.incidentCode || `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
     type: 'traffic_accident',
-    title: a.incidentTitle || 'Nhiệm vụ cứu hộ khẩn cấp',
+    title: a.incidentTitle || t('staff.emergency_active_title', 'Nhiệm vụ cứu hộ khẩn cấp'),
     severity: a.incidentSeverity === 'Level3' ? 'critical' : 'urgent',
-    address: a.incidentAddress || 'Hiện trường',
-    completedAt: a.completedAt ? new Date(a.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Hoàn thành',
+    address: a.incidentAddress || t('staff.incident_scene_fallback', 'Hiện trường'),
+    completedAt: a.completedAt
+      ? new Date(a.completedAt).toLocaleTimeString(i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+      : t('staff.badge_completed', 'Hoàn thành'),
     durationMinutes: 24,
     distanceKm: a.distanceKm ?? 2.1,
     etaMinutes: a.estimatedArrivalMinutes ?? 5,
@@ -370,10 +376,10 @@ export const StaffDashboardScreen: React.FC = () => {
               </View>
 
               <Text style={styles.emergencyBannerTitle}>
-                {dispatchedAssignment.incidentTitle || 'SỰ CỐ KHẨN CẤP CẦN XUẤT KÍCH'}
+                {dispatchedAssignment.incidentTitle || t('staff.dispatched_emergency_title', 'SỰ CỐ KHẨN CẤP CẦN XUẤT KÍCH')}
               </Text>
               <Text style={styles.emergencyBannerSub} numberOfLines={2}>
-                📍 {dispatchedAssignment.incidentAddress || 'Hiện trường sự cố'}
+                📍 {dispatchedAssignment.incidentAddress || t('staff.incident_scene_fallback', 'Hiện trường sự cố')}
               </Text>
             </TouchableOpacity>
           ) : activeMissionAssignment ? (
@@ -390,7 +396,7 @@ export const StaffDashboardScreen: React.FC = () => {
                 <View style={[styles.emergencyTag, { backgroundColor: '#059669' }]}>
                   <Navigation size={moderateScale(13)} color="#FFFFFF" />
                   <Text style={styles.emergencyTagText}>
-                    ĐANG XỬ LÝ ({activeMissionAssignment.status.toUpperCase()})
+                    {t('staff.status_in_progress', 'ĐANG XỬ LÝ')} ({activeMissionAssignment.status.toUpperCase()})
                   </Text>
                 </View>
                 <View style={[styles.liveTimerPill, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
@@ -523,7 +529,7 @@ export const StaffDashboardScreen: React.FC = () => {
           {/* 5. Station & Tactical Mini-Map Card */}
           <StationMiniMapCard
             stationName={`${currentStationName} - ${t('staff.rescue_and_ems', 'Cứu Hộ & Cấp Cứu')}`}
-            stationAddress="Lô E2a-7, Đường D1, Khu Công Nghệ Cao, TP. Thủ Đức"
+            stationAddress={t('staff.default_station_address', 'Lô E2a-7, Đường D1, Khu Công Nghệ Cao, TP. Thủ Đức')}
             vehicleModel={`${t('staff.vehicle_ambulance_icu', 'Xe Cứu Thương ICU')} #${responderPlate}`}
             vehicleStatus={
               dutyStatus === 'online'
@@ -575,11 +581,14 @@ export const StaffDashboardScreen: React.FC = () => {
         <ConfirmationModal
           visible={isSosModalVisible}
           type="danger"
-          title="Gọi Điều Hành Khẩn Cấp"
-          description="Kết nối trực tiếp tới Trung tâm Chỉ huy Điều phối Cấp cứu 115 / CAD để báo cáo hoặc yêu cầu chi viện khẩn."
-          highlightBadge="HOTLINE ĐIỀU PHỐI 24/7"
-          confirmText="Gọi Ngay"
-          cancelText="Hủy Bỏ"
+          title={t('staff.call_dispatch_modal_title', 'Gọi Điều Hành Khẩn Cấp')}
+          description={t(
+            'staff.call_dispatch_modal_desc',
+            'Kết nối trực tiếp tới Trung tâm Chỉ huy Điều phối Cấp cứu 115 / CAD để báo cáo hoặc yêu cầu chi viện khẩn.'
+          )}
+          highlightBadge={t('staff.hotline_badge', 'HOTLINE ĐIỀU PHỐI 24/7')}
+          confirmText={t('staff.call_now', 'Gọi Ngay')}
+          cancelText={t('common.cancel', 'Hủy Bỏ')}
           onConfirm={handleConfirmSosCall}
           onCancel={() => setIsSosModalVisible(false)}
         />
@@ -587,11 +596,14 @@ export const StaffDashboardScreen: React.FC = () => {
         <ConfirmationModal
           visible={isNavigateStationModalVisible}
           type="info"
-          title="Dẫn Đường Về Trạm"
-          description={`Khởi chạy lộ trình ưu tiên dẫn đường xe cấp cứu về ${currentStationName}.`}
-          highlightBadge={`XE ${responderPlate}`}
-          confirmText="Bắt Đầu Đi"
-          cancelText="Đóng"
+          title={t('staff.navigate_station_modal_title', 'Dẫn Đường Về Trạm')}
+          description={t('staff.navigate_station_modal_desc', {
+            station: currentStationName,
+            defaultValue: `Khởi chạy lộ trình ưu tiên dẫn đường xe cấp cứu về ${currentStationName}.`,
+          })}
+          highlightBadge={`${t('staff.vehicle_prefix', 'XE')} ${responderPlate}`}
+          confirmText={t('staff.start_nav', 'Bắt Đầu Đi')}
+          cancelText={t('common.close', 'Đóng')}
           onConfirm={handleConfirmNavigateStation}
           onCancel={() => setIsNavigateStationModalVisible(false)}
         />
@@ -599,12 +611,12 @@ export const StaffDashboardScreen: React.FC = () => {
         <ConfirmationModal
           visible={isSettingsModalVisible}
           type="primary"
-          title="Cấu Hình Ca Trực & Xe"
-          description="Thông tin phân công nhiệm vụ kíp trực hiện tại:"
-          highlightBadge="KÍP TRỰC CẤP CỨU ICU"
-          highlightText={`• Cán bộ trực: ${responderName}\n• Vai trò: ${responderRole}\n• Xe cấp cứu: ${responderPlate}\n• Trạm: ${currentStationName}`}
+          title={t('staff.shift_config_modal_title', 'Cấu Hình Ca Trực & Xe')}
+          description={t('staff.shift_config_modal_desc', 'Thông tin phân công nhiệm vụ kíp trực hiện tại:')}
+          highlightBadge={t('staff.icu_crew_badge', 'KÍP TRỰC CẤP CỨU ICU')}
+          highlightText={`• ${t('staff.officer_on_duty', 'Cán bộ trực')}: ${responderName}\n• ${t('staff.role_label', 'Vai trò')}: ${responderRole}\n• ${t('staff.ambulance_label', 'Xe cấp cứu')}: ${responderPlate}\n• ${t('staff.station_label', 'Trạm')}: ${currentStationName}`}
           singleButton
-          confirmText="Đã Rõ"
+          confirmText={t('common.understood', 'Đã Rõ')}
           onConfirm={() => setIsSettingsModalVisible(false)}
           onCancel={() => setIsSettingsModalVisible(false)}
         />

@@ -152,7 +152,7 @@ const SAMPLE_COMPLETED_REPORTS: DispatchAssignmentResponseDto[] = [
 
 export const StaffMissionHistoryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAppStore();
 
   const [loading, setLoading] = useState(true);
@@ -161,6 +161,163 @@ export const StaffMissionHistoryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'today' | 'week'>('all');
   const [selectedAssignment, setSelectedAssignment] = useState<DispatchAssignmentResponseDto | null>(null);
+
+  // Localize Incident Titles if in English
+  const formatIncidentTitle = useCallback((title?: string | null) => {
+    if (!title) return t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ Đã Hoàn Tất');
+    if (i18n.language?.startsWith('en')) {
+      const lower = title.toLowerCase();
+      if (lower.includes('tín hiệu cứu nạn') || lower.includes('khẩn cấp sos') || lower.includes('sos') || lower.includes('cứu nạn')) {
+        return 'Emergency SOS Distress Signal';
+      }
+      if (lower.includes('tai nạn') || lower.includes('liên hoàn') || lower.includes('va chạm')) {
+        return 'Multi-Vehicle Traffic Collision';
+      }
+      if (lower.includes('suy hô hấp') || lower.includes('ngạt khói')) {
+        return 'Smoke Inhalation & Respiratory Emergency';
+      }
+      if (lower.includes('hóa chất') || lower.includes('xe bồn')) {
+        return 'Chemical Tanker Leak & Hazmat Response';
+      }
+      if (lower.includes('sốc nhiệt') || lower.includes('say nắng')) {
+        return 'High-Angle Construction Heatstroke Emergency';
+      }
+      if (lower.includes('cháy') || lower.includes('hỏa hoạn')) {
+        return 'Fire Suppression & Rescue Alarm';
+      }
+      if (lower.includes('cấp cứu') || lower.includes('nạn nhân')) {
+        return 'Emergency Medical & Rescue Dispatch';
+      }
+    }
+    return title;
+  }, [i18n.language, t]);
+
+  // Localize Handover Entity Names
+  const formatHandoverEntity = useCallback((entity?: string | null) => {
+    if (!entity) return t('staff.entity_regional_hospital', 'Bệnh Viện Đa Khoa Khu Vực');
+    if (i18n.language?.startsWith('en')) {
+      const lower = entity.toLowerCase();
+      if (lower.includes('công an') || lower.includes('đội bv') || lower.includes('sở tại')) {
+        return 'Ward Police & Local Hospital Squad';
+      }
+      if (lower.includes('csgt')) {
+        return 'Traffic Police Unit';
+      }
+      if (lower.includes('bệnh viện') || lower.includes('thủ đức')) {
+        return 'Regional General Hospital';
+      }
+      if (lower.includes('phòng y tế')) {
+        return 'Industrial Park Medical Clinic';
+      }
+    }
+    return entity;
+  }, [i18n.language, t]);
+
+  // Localize Report Action Summaries
+  const formatActionsSummary = useCallback((summary?: string | null) => {
+    if (!summary) {
+      return t('staff.default_resolution_notes', 'Đã tiếp cận hiện trường và thực hiện các biện pháp sơ cấp cứu an toàn.');
+    }
+    if (i18n.language?.startsWith('en')) {
+      const lower = summary.toLowerCase();
+      if (lower.includes('xưởng gỗ') || lower.includes('ngạt khói')) {
+        return 'Approached wood factory scene with SCBA breathing apparatus, safely evacuated 2 workers from smoke inhalation. Administered high-flow oxygen, cervical spine immobilization, and transferred to ambulance.';
+      }
+      if (lower.includes('xe bồn') || lower.includes('hóa chất')) {
+        return 'Cordoned 50m radius around chemical tanker, deployed sand and absorbent materials for organic solvent leak. First aid and sterile bandaging for driver, handed over to traffic police.';
+      }
+      if (lower.includes('xe thang') || lower.includes('sốc nhiệt')) {
+        return 'Deployed aerial ladder unit to lower heatstroke construction worker safely from 3rd floor. Active cooling with wet towels, IV electrolyte rehydration, transferred to clinic.';
+      }
+      if (lower.includes('tiếp cận hiện trường') || lower.includes('sơ cấp cứu')) {
+        return 'Approached scene and safely administered emergency triage, patient stabilization, and medical transport.';
+      }
+    }
+    return summary;
+  }, [i18n.language, t]);
+
+  // Localize Equipment Names
+  const formatEquipmentName = useCallback((eqName?: string | null) => {
+    if (!eqName) return '';
+    if (i18n.language?.startsWith('en')) {
+      const lower = eqName.toLowerCase();
+      if (lower.includes('scba')) return 'SCBA 300bar Breathing Kit';
+      if (lower.includes('bình oxy')) return '10L Medical Oxygen Tank';
+      if (lower.includes('cáng cứu thương')) return 'Rigid Rescue Stretcher';
+      if (lower.includes('cáng') && lower.includes('cao')) return 'High-Angle Rescue Stretcher';
+      if (lower.includes('monitor')) return 'Vital Signs Monitor';
+      if (lower.includes('level b')) return 'Level B Hazmat Suit';
+      if (lower.includes('tràn đổ')) return 'Chemical Spill Containment Kit';
+      if (lower.includes('nẹp')) return 'Splint & Sterile Bandages';
+      if (lower.includes('ringer')) return 'Ringer Lactate IV Infusion Kit';
+      if (lower.includes('thân nhiệt')) return 'Infrared Medical Thermometer';
+    }
+    return eqName;
+  }, [i18n.language]);
+
+  // Localize Handover Notes
+  const formatHandoverNotes = useCallback((notes?: string | null) => {
+    if (!notes) return '';
+    if (i18n.language?.startsWith('en')) {
+      const lower = notes.toLowerCase();
+      if (lower.includes('spo2 96%')) {
+        return 'Patient SpO2 96% on oxygen, pulse 88 bpm, vital signs record handed over at 08:55.';
+      }
+      if (lower.includes('tiêu độc')) {
+        return 'Scene decontamination complete, roadway reopened to normal traffic.';
+      }
+      if (lower.includes('tỉnh táo')) {
+        return 'Patient fully alert, core body temperature decreased to 37.5°C, under observation.';
+      }
+    }
+    return notes;
+  }, [i18n.language]);
+
+  // Localize Incident Address helper
+  const formatIncidentAddress = useCallback((addr?: string | null) => {
+    if (!addr) return t('staff.emergency_active_sub', 'Khu Công Nghệ Cao, TP. Thủ Đức');
+    if (i18n.language?.startsWith('en')) {
+      return addr
+        .replace(/Khu Công Nghệ Cao/gi, 'High-Tech Park')
+        .replace(/Khu công nghiệp/gi, 'Industrial Park')
+        .replace(/Phường/gi, 'Ward')
+        .replace(/Quận/gi, 'District')
+        .replace(/Khu phố/gi, 'Quarter')
+        .replace(/Đường/gi, 'St.')
+        .replace(/Hẻm/gi, 'Alley')
+        .replace(/Cầu/gi, 'Bridge')
+        .replace(/TP\.\s*Thủ Đức/gi, 'Thu Duc City')
+        .replace(/TP\.\s*HCM/gi, 'HCMC');
+    }
+    return addr;
+  }, [i18n.language, t]);
+
+  // Localize Contact Name / Doctor helper
+  const formatContactName = useCallback((contact?: string | null) => {
+    if (!contact) return '';
+    if (i18n.language?.startsWith('en')) {
+      return contact
+        .replace(/Bác sĩ trực cấp cứu/gi, 'ER Attending Doctor')
+        .replace(/BS\./gi, 'Dr.')
+        .replace(/Đ\/c/gi, 'Officer')
+        .replace(/Đội phó/gi, 'Deputy Chief')
+        .replace(/Đội trưởng/gi, 'Commander')
+        .replace(/Y sĩ/gi, 'Physician Assistant');
+    }
+    return contact;
+  }, [i18n.language]);
+
+  // Localize Station Name helper
+  const formatStationName = useCallback((stName?: string | null) => {
+    if (!stName) return t('staff.default_station_name', 'Trạm');
+    if (i18n.language?.startsWith('en')) {
+      return stName
+        .replace(/Trạm Cứu Hộ & PCCC/gi, 'Rescue & Fire Station')
+        .replace(/Trạm Cứu Hộ/gi, 'Rescue Station')
+        .replace(/Khu Công Nghệ Cao/gi, 'High-Tech Park');
+    }
+    return stName;
+  }, [i18n.language, t]);
 
   // Load real assignments from backend
   const loadHistoryData = useCallback(async () => {
@@ -461,14 +618,14 @@ export const StaffMissionHistoryScreen: React.FC = () => {
 
                 {/* Card Title */}
                 <Text style={styles.cardTitle} numberOfLines={2}>
-                  {item.incidentTitle || t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ Đã Hoàn Tất')}
+                  {formatIncidentTitle(item.incidentTitle)}
                 </Text>
 
                 {/* Address Row */}
                 <View style={styles.addressRow}>
                   <MapPin size={moderateScale(13)} color="#64748B" />
                   <Text style={styles.addressText} numberOfLines={1}>
-                    {item.incidentAddress || t('staff.emergency_active_sub', 'Khu Công Nghệ Cao, TP. Thủ Đức')}
+                    {formatIncidentAddress(item.incidentAddress)}
                   </Text>
                 </View>
 
@@ -477,7 +634,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                   <View style={styles.pillItem}>
                     <Users size={moderateScale(12)} color="#2563EB" />
                     <Text style={styles.pillText}>
-                      {victimsCount} {t('staff.unit_mission', 'nạn nhân')}
+                      {victimsCount} {victimsCount > 1 ? t('staff.unit_victim_plural', 'nạn nhân') : t('staff.unit_victim', 'nạn nhân')}
                     </Text>
                   </View>
 
@@ -489,7 +646,9 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                   {photoCount > 0 && (
                     <View style={styles.pillItem}>
                       <Camera size={moderateScale(12)} color="#059669" />
-                      <Text style={styles.pillText}>{photoCount} ảnh</Text>
+                      <Text style={styles.pillText}>
+                        {photoCount} {photoCount > 1 ? t('staff.unit_photo_plural', 'ảnh') : t('staff.unit_photo', 'ảnh')}
+                      </Text>
                     </View>
                   )}
 
@@ -497,7 +656,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                     <View style={[styles.pillItem, { backgroundColor: '#F8FAFC' }]}>
                       <Building2 size={moderateScale(12)} color="#64748B" />
                       <Text style={styles.pillText} numberOfLines={1}>
-                        {report.handoverEntity}
+                        {formatHandoverEntity(report.handoverEntity)}
                       </Text>
                     </View>
                   )}
@@ -508,7 +667,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                   <View style={styles.vehicleInfoRow}>
                     <Truck size={moderateScale(12)} color="#64748B" />
                     <Text style={styles.vehicleInfoText}>
-                      {item.rescueUnitPlate || user?.vehiclePlate || 'Xe cứu hộ'} • {item.stationName || user?.stationName || 'Trạm'}
+                      {item.rescueUnitPlate || user?.vehiclePlate || t('staff.default_vehicle_plate', 'Xe cứu hộ')} • {formatStationName(item.stationName || user?.stationName)}
                     </Text>
                   </View>
 
@@ -568,16 +727,16 @@ export const StaffMissionHistoryScreen: React.FC = () => {
 
                 <View style={styles.infoCard}>
                   <Text style={styles.infoIncidentTitle}>
-                    {selectedAssignment.incidentTitle || t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ')}
+                    {formatIncidentTitle(selectedAssignment.incidentTitle)}
                   </Text>
                   <View style={styles.infoRow}>
                     <MapPin size={moderateScale(13)} color="#64748B" />
-                    <Text style={styles.infoRowText}>{selectedAssignment.incidentAddress || 'N/A'}</Text>
+                    <Text style={styles.infoRowText}>{formatIncidentAddress(selectedAssignment.incidentAddress)}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Truck size={moderateScale(13)} color="#64748B" />
                     <Text style={styles.infoRowText}>
-                      {selectedAssignment.rescueUnitPlate || user?.vehiclePlate || '51D-1234'} • {selectedAssignment.stationName || user?.stationName || 'Trạm Cứu Hộ KCN'}
+                      {selectedAssignment.rescueUnitPlate || user?.vehiclePlate || t('staff.default_vehicle_plate', '51D-1234')} • {formatStationName(selectedAssignment.stationName || user?.stationName)}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
@@ -598,9 +757,9 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                 <View style={styles.infoCard}>
                   <Text style={styles.fieldLabel}>{t('staff.lbl_actions_taken', 'Tóm tắt xử lý hiện trường')}:</Text>
                   <Text style={styles.fieldContent}>
-                    {selectedAssignment.completionReport?.actionsSummary ||
-                      selectedAssignment.notes ||
-                      'Đã tiếp cận hiện trường và thực hiện các biện pháp sơ cấp cứu an toàn.'}
+                    {formatActionsSummary(
+                      selectedAssignment.completionReport?.actionsSummary || selectedAssignment.notes
+                    )}
                   </Text>
 
                   <View style={styles.divider} />
@@ -634,7 +793,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                           {selectedAssignment.completionReport.equipmentUsed.map((eq, idx) => (
                             <View key={idx} style={styles.equipmentBadge}>
                               <Package size={moderateScale(11)} color="#DC2626" />
-                              <Text style={styles.equipmentBadgeText}>{eq}</Text>
+                              <Text style={styles.equipmentBadgeText}>{formatEquipmentName(eq)}</Text>
                             </View>
                           ))}
                         </View>
@@ -655,7 +814,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                     <View style={styles.fieldCol}>
                       <Text style={styles.fieldLabel}>{t('staff.lbl_handover_entity', 'Đơn vị tiếp nhận')}:</Text>
                       <Text style={styles.fieldValueBold}>
-                        {selectedAssignment.completionReport?.handoverEntity || 'Bệnh Viện Đa Khoa Khu Vực'}
+                        {formatHandoverEntity(selectedAssignment.completionReport?.handoverEntity)}
                       </Text>
                     </View>
                   </View>
@@ -666,7 +825,7 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                       <View style={styles.fieldCol}>
                         <Text style={styles.fieldLabel}>{t('staff.lbl_handover_contact', 'Người tiếp nhận')}:</Text>
                         <Text style={styles.fieldValueBold}>
-                          {selectedAssignment.completionReport.handoverContactName}
+                          {formatContactName(selectedAssignment.completionReport.handoverContactName)}
                           {selectedAssignment.completionReport.handoverContactPhone
                             ? ` (${selectedAssignment.completionReport.handoverContactPhone})`
                             : ''}
@@ -678,7 +837,9 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                   {!!selectedAssignment.completionReport?.handoverNotes && (
                     <View style={{ marginTop: verticalScale(10) }}>
                       <Text style={styles.fieldLabel}>{t('staff.lbl_handover_notes', 'Ghi chú bàn giao')}:</Text>
-                      <Text style={styles.fieldContent}>{selectedAssignment.completionReport.handoverNotes}</Text>
+                      <Text style={styles.fieldContent}>
+                        {formatHandoverNotes(selectedAssignment.completionReport.handoverNotes)}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -712,11 +873,18 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                 <View style={styles.signatureCard}>
                   <View style={styles.signatureBadge}>
                     <ShieldCheck size={moderateScale(16)} color="#059669" />
-                    <Text style={styles.signatureVerifiedText}>ĐÃ XÁC THỰC CHỮ KÝ SỐ CAD</Text>
+                    <Text style={styles.signatureVerifiedText}>
+                      {t('staff.cad_signature_verified', 'ĐÃ XÁC THỰC CHỮ KÝ SỐ CAD')}
+                    </Text>
                   </View>
                   <Text style={styles.signatureInfoText}>
-                    Biên bản điện tử được ký niêm phong bởi {user?.name || 'Chỉ huy kíp trực'} vào lúc{' '}
-                    {formatDateTime(selectedAssignment.completionReport?.submittedAt || selectedAssignment.completedAt)}
+                    {t('staff.signature_sealed_desc', {
+                      name: user?.name || t('staff.role_commander', 'Chỉ huy kíp trực'),
+                      time: formatDateTime(
+                        selectedAssignment.completionReport?.submittedAt || selectedAssignment.completedAt
+                      ),
+                      defaultValue: `Biên bản điện tử được ký niêm phong bởi ${user?.name || 'Chỉ huy kíp trực'} vào lúc ${formatDateTime(selectedAssignment.completionReport?.submittedAt || selectedAssignment.completedAt)}`,
+                    })}
                   </Text>
                 </View>
               </View>

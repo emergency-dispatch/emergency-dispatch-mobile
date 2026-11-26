@@ -28,7 +28,62 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
   onPressMission,
   onPressViewAll,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const formatIncidentTitle = (title?: string | null) => {
+    if (!title) return t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ Đã Hoàn Tất');
+    if (i18n.language?.startsWith('en')) {
+      const lower = title.toLowerCase();
+      if (
+        lower.includes('báo động') ||
+        lower.includes('tín hiệu cứu nạn') ||
+        lower.includes('khẩn cấp sos') ||
+        lower.includes('sos') ||
+        lower.includes('cứu nạn')
+      ) {
+        return 'Emergency SOS Distress Signal';
+      }
+      if (lower.includes('tai nạn') || lower.includes('liên hoàn') || lower.includes('va chạm')) {
+        return 'Multi-Vehicle Traffic Collision';
+      }
+      if (lower.includes('suy hô hấp') || lower.includes('ngạt khói')) {
+        return 'Smoke Inhalation & Respiratory Emergency';
+      }
+      if (lower.includes('hóa chất') || lower.includes('xe bồn')) {
+        return 'Chemical Tanker Leak & Hazmat Response';
+      }
+      if (lower.includes('sốc nhiệt') || lower.includes('say nắng')) {
+        return 'High-Angle Construction Heatstroke Emergency';
+      }
+      if (lower.includes('cháy') || lower.includes('hỏa hoạn')) {
+        return 'Fire Suppression & Rescue Alarm';
+      }
+      if (lower.includes('cấp cứu') || lower.includes('nạn nhân')) {
+        return 'Emergency Medical & Rescue Dispatch';
+      }
+    }
+    return title;
+  };
+
+  const formatIncidentAddress = (addr?: string | null) => {
+    if (!addr) return '';
+    if (i18n.language?.startsWith('en')) {
+      return addr
+        .replace(/Khu Công Nghệ Cao/gi, 'High-Tech Park')
+        .replace(/Khu công nghiệp/gi, 'Industrial Park')
+        .replace(/Phường/gi, 'Ward')
+        .replace(/Quận/gi, 'District')
+        .replace(/Khu phố/gi, 'Quarter')
+        .replace(/Đường/gi, 'St.')
+        .replace(/Hẻm/gi, 'Alley')
+        .replace(/Cầu/gi, 'Bridge')
+        .replace(/Thành phố/gi, 'City')
+        .replace(/TP\.\s*Thủ Đức/gi, 'Thu Duc City')
+        .replace(/TP\.\s*HCM/gi, 'HCMC');
+    }
+    return addr;
+  };
+
   const getMissionTypeIcon = (type: MissionItem['type']) => {
     switch (type) {
       case 'traffic_accident':
@@ -113,9 +168,14 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
             <View style={styles.emptyIconCircle}>
               <CheckCircle2 size={moderateScale(24)} color="#10B981" />
             </View>
-            <Text style={styles.emptyTitle}>Chưa có ca trực nào hoàn tất</Text>
+            <Text style={styles.emptyTitle}>
+              {t('staff.empty_recent_missions_title', 'Chưa có ca trực nào hoàn tất')}
+            </Text>
             <Text style={styles.emptySub}>
-              Các nhiệm vụ cứu hộ sau khi nghiệm thu sẽ được lưu vào lịch sử tại đây.
+              {t(
+                'staff.empty_recent_missions_sub',
+                'Các nhiệm vụ cứu hộ sau khi nghiệm thu sẽ được lưu vào lịch sử tại đây.'
+              )}
             </Text>
           </View>
         ) : (
@@ -162,7 +222,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
                   <View style={styles.statusBadge}>
                     <CheckCircle2 size={moderateScale(11)} color="#10B981" />
                     <Text style={styles.statusText} numberOfLines={1}>
-                      Hoàn tất
+                      {t('staff.badge_completed', 'Hoàn tất')}
                     </Text>
                   </View>
                 </View>
@@ -175,7 +235,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
                 ellipsizeMode="tail"
                 maxFontSizeMultiplier={1.2}
               >
-                {mission.title}
+                {formatIncidentTitle(mission.title)}
               </Text>
 
               {/* Address */}
@@ -187,7 +247,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
                   ellipsizeMode="tail"
                   maxFontSizeMultiplier={1.15}
                 >
-                  {mission.address}
+                  {formatIncidentAddress(mission.address)}
                 </Text>
               </View>
 
@@ -205,7 +265,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
                 <View style={styles.metricItem}>
                   <Clock size={moderateScale(11)} color="#94A3B8" />
                   <Text style={styles.metricItemText} numberOfLines={1}>
-                    Phản ứng: {mission.etaMinutes}m
+                    {t('staff.metric_response', 'Phản ứng')}: {mission.etaMinutes}m
                   </Text>
                 </View>
 
@@ -213,7 +273,7 @@ export const RecentMissionsList: React.FC<RecentMissionsListProps> = ({
 
                 <View style={styles.metricItem}>
                   <Text style={styles.metricItemText} numberOfLines={1}>
-                    Tổng: {mission.durationMinutes}m
+                    {t('staff.metric_total', 'Tổng')}: {mission.durationMinutes}m
                   </Text>
                 </View>
 

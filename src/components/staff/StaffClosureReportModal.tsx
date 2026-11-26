@@ -26,6 +26,7 @@ import {
   FileText,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 import { ResolveAssignmentPayload } from '../../types/dispatch';
 import { mediaService } from '../../services/media.service';
 import { DigitalSignaturePad } from '../common/DigitalSignaturePad';
@@ -38,13 +39,13 @@ interface StaffClosureReportModalProps {
 }
 
 const QUICK_SUGGESTIONS = [
-  'Bình Oxy 10L',
-  'Bộ nẹp cố định',
-  'Máy sốc tim AED',
-  'Băng gạc & garo',
-  'Kìm cắt thủy lực',
-  'Cáng cứu thương',
-  'Bình chữa cháy',
+  { key: 'oxygen', vi: 'Bình Oxy 10L', en: '10L Medical Oxygen Tank' },
+  { key: 'splint', vi: 'Bộ nẹp cố định', en: 'Splint & Immobilization Kit' },
+  { key: 'aed', vi: 'Máy sốc tim AED', en: 'Automated External Defibrillator (AED)' },
+  { key: 'bandage', vi: 'Băng gạc & garo', en: 'Sterile Gauze & Tourniquet' },
+  { key: 'cutter', vi: 'Kìm cắt thủy lực', en: 'Hydraulic Extrication Cutter' },
+  { key: 'stretcher', vi: 'Cáng cứu thương', en: 'Rigid Rescue Stretcher' },
+  { key: 'extinguisher', vi: 'Bình chữa cháy', en: 'Fire Extinguisher' },
 ];
 
 export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = ({
@@ -53,6 +54,9 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
   onClose,
   onSubmitResolve,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
+
   const [summary, setSummary] = useState('');
   const [victimsCount, setVictimsCount] = useState(1);
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
@@ -96,12 +100,14 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
     setSelectedEquipment((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const toggleSuggestion = (item: string) => {
+  const toggleSuggestion = (sug: { vi: string; en: string }) => {
+    const itemText = isEn ? sug.en : sug.vi;
     setSelectedEquipment((prev) => {
-      if (prev.includes(item)) {
-        return prev.filter((i) => i !== item);
+      const exists = prev.includes(sug.vi) || prev.includes(sug.en);
+      if (exists) {
+        return prev.filter((i) => i !== sug.vi && i !== sug.en);
       }
-      return [...prev, item];
+      return [...prev, itemText];
     });
   };
 
@@ -113,7 +119,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
       const url = await mediaService.uploadMedia(asset);
       setEvidenceUrls((prev) => [...prev, url]);
     } catch (err: any) {
-      Alert.alert('Lỗi Chụp Ảnh', err.message || 'Không thể tải ảnh lên máy chủ.');
+      Alert.alert(t('common.error', 'Lỗi'), err.message || 'Không thể tải ảnh lên máy chủ.');
     } finally {
       setIsUploading(false);
     }
@@ -127,7 +133,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
       const url = await mediaService.uploadMedia(asset);
       setEvidenceUrls((prev) => [...prev, url]);
     } catch (err: any) {
-      Alert.alert('Lỗi Tải Ảnh', err.message || 'Không thể tải ảnh lên máy chủ.');
+      Alert.alert(t('common.error', 'Lỗi'), err.message || 'Không thể tải ảnh lên máy chủ.');
     } finally {
       setIsUploading(false);
     }
@@ -139,11 +145,17 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
   const handleSubmit = async () => {
     if (!isSummaryValid) {
-      Alert.alert('Tóm Tắt Quá Ngắn', 'Vui lòng nhập tóm tắt kết thúc ca tối thiểu 10 ký tự.');
+      Alert.alert(
+        t('staff.closure_err_summary_short_title', 'Tóm Tắt Quá Ngắn'),
+        t('staff.closure_err_summary_short_msg', 'Vui lòng nhập tóm tắt kết thúc ca tối thiểu 10 ký tự.')
+      );
       return;
     }
     if (!hasPhotos) {
-      Alert.alert('Thiếu Ảnh Bằng Chứng', 'Vui lòng chụp hoặc tải lên tối thiểu 1 ảnh hiện trường sau cứu hộ.');
+      Alert.alert(
+        t('staff.closure_err_no_photo_title', 'Thiếu Ảnh Bằng Chứng'),
+        t('staff.closure_err_no_photo_msg', 'Vui lòng chụp hoặc tải lên tối thiểu 1 ảnh hiện trường sau cứu hộ.')
+      );
       return;
     }
 
@@ -177,7 +189,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
       });
       onClose();
     } catch (err: any) {
-      Alert.alert('Lỗi Nghiệm Thu', err.message || 'Không thể gửi báo cáo nghiệm thu.');
+      Alert.alert(t('common.error', 'Lỗi'), err.message || 'Không thể gửi báo cáo nghiệm thu.');
     } finally {
       setIsSubmitting(false);
     }
@@ -199,9 +211,11 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <ShieldCheck size={moderateScale(20)} color="#059669" />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Báo Cáo Nghiệm Thu Ca Trực</Text>
+                <Text style={styles.modalTitle}>{t('staff.closure_modal_title', 'Báo Cáo Nghiệm Thu Ca Trực')}</Text>
                 <Text style={styles.modalSubtitle}>
-                  {incidentCode ? `Nhiệm vụ: ${incidentCode}` : 'Hoàn tất & bàn giao ca cứu hộ'}
+                  {incidentCode
+                    ? t('staff.closure_modal_sub', { code: incidentCode, defaultValue: `Nhiệm vụ: ${incidentCode}` })
+                    : t('staff.closure_modal_sub_fallback', 'Hoàn tất & bàn giao ca cứu hộ')}
                 </Text>
               </View>
             </View>
@@ -226,7 +240,8 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             <View style={styles.formSection}>
               <View style={styles.labelRow}>
                 <Text style={styles.sectionLabel}>
-                  TÓM TẮT XỬ LÝ HIỆN TRƯỜNG <Text style={styles.requiredAsterisk}>*</Text>
+                  {t('staff.closure_summary_label', 'TÓM TẮT XỬ LÝ HIỆN TRƯỜNG')}{' '}
+                  <Text style={styles.requiredAsterisk}>*</Text>
                 </Text>
                 <Text
                   style={[
@@ -234,7 +249,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                     !isSummaryValid && styles.counterTextError,
                   ]}
                 >
-                  {summary.trim().length}/10 ký tự (tối thiểu)
+                  {t('staff.closure_summary_counter', {
+                    count: summary.trim().length,
+                    defaultValue: `${summary.trim().length}/10 ký tự (tối thiểu)`,
+                  })}
                 </Text>
               </View>
               <TextInput
@@ -242,7 +260,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                   styles.multilineInput,
                   !isSummaryValid && summary.length > 0 && styles.inputErrorBorder,
                 ]}
-                placeholder="Mô tả tóm tắt quá trình sơ cứu, dập tắt đám cháy hoặc giải phóng nạn nhân..."
+                placeholder={t(
+                  'staff.closure_summary_placeholder',
+                  'Mô tả tóm tắt quá trình sơ cứu, dập tắt đám cháy hoặc giải phóng nạn nhân...'
+                )}
                 placeholderTextColor="#94A3B8"
                 multiline
                 numberOfLines={3}
@@ -256,7 +277,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             <View style={styles.formSection}>
               <View style={styles.labelRow}>
                 <Text style={styles.sectionLabel}>
-                  ẢNH BẰNG CHỨNG HIỆN TRƯỜNG <Text style={styles.requiredAsterisk}>* (≥ 1 ẢNH)</Text>
+                  {t('staff.closure_photos_label', 'ẢNH BẰNG CHỨNG HIỆN TRƯỜNG')}{' '}
+                  <Text style={styles.requiredAsterisk}>
+                    * {t('staff.closure_photos_required', '(≥ 1 ẢNH)')}
+                  </Text>
                 </Text>
                 <Text
                   style={[
@@ -264,7 +288,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                     !hasPhotos && styles.counterTextError,
                   ]}
                 >
-                  Đã có {evidenceUrls.length} ảnh
+                  {t('staff.closure_photos_count', {
+                    count: evidenceUrls.length,
+                    defaultValue: `Đã có ${evidenceUrls.length} ảnh`,
+                  })}
                 </Text>
               </View>
 
@@ -291,7 +318,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                   disabled={isUploading || isSubmitting}
                 >
                   <Camera size={moderateScale(18)} color="#DC2626" />
-                  <Text style={styles.addPhotoText}>Chụp ảnh</Text>
+                  <Text style={styles.addPhotoText}>{t('staff.closure_btn_take_photo', 'Chụp ảnh')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -301,14 +328,18 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                   disabled={isUploading || isSubmitting}
                 >
                   <ImageIcon size={moderateScale(18)} color="#0284C7" />
-                  <Text style={[styles.addPhotoText, { color: '#0284C7' }]}>Chọn ảnh</Text>
+                  <Text style={[styles.addPhotoText, { color: '#0284C7' }]}>
+                    {t('staff.closure_btn_choose_photo', 'Chọn ảnh')}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
               {isUploading && (
                 <View style={styles.uploadingBox}>
                   <ActivityIndicator size="small" color="#DC2626" />
-                  <Text style={styles.uploadingText}>Đang tải ảnh hiện trường lên Cloudinary...</Text>
+                  <Text style={styles.uploadingText}>
+                    {t('staff.closure_uploading_photo', 'Đang tải ảnh hiện trường lên Cloudinary...')}
+                  </Text>
                 </View>
               )}
             </View>
@@ -316,7 +347,8 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             {/* 3. Victims Count Stepper (Required >= 0) */}
             <View style={styles.formSection}>
               <Text style={styles.sectionLabel}>
-                SỐ LƯỢNG NẠN NHÂN ĐÃ CẤP CỨU / HỖ TRỢ <Text style={styles.requiredAsterisk}>*</Text>
+                {t('staff.closure_victims_label', 'SỐ LƯỢNG NẠN NHÂN ĐÃ CẤP CỨU / HỖ TRỢ')}{' '}
+                <Text style={styles.requiredAsterisk}>*</Text>
               </Text>
               <View style={styles.stepperContainer}>
                 <TouchableOpacity
@@ -330,7 +362,9 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
                 <View style={styles.stepValueBox}>
                   <Text style={styles.stepValueText}>{victimsCount}</Text>
-                  <Text style={styles.stepValueSub}>nạn nhân</Text>
+                  <Text style={styles.stepValueSub}>
+                    {victimsCount > 1 ? t('staff.unit_victim_plural', 'nạn nhân') : t('staff.unit_victim', 'nạn nhân')}
+                  </Text>
                 </View>
 
                 <TouchableOpacity
@@ -346,13 +380,15 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
             {/* 4. Equipment Used Input (Optional) */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):</Text>
+              <Text style={styles.sectionLabel}>
+                {t('staff.closure_equipment_label', 'TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):')}
+              </Text>
 
               {/* Text Input Row to let users type their own equipment */}
               <View style={styles.equipmentInputRow}>
                 <TextInput
                   style={styles.equipmentInput}
-                  placeholder="Nhập trang thiết bị, vật tư đã sử dụng..."
+                  placeholder={t('staff.closure_equipment_placeholder', 'Nhập trang thiết bị, vật tư đã sử dụng...')}
                   placeholderTextColor="#94A3B8"
                   value={equipmentInputText}
                   onChangeText={setEquipmentInputText}
@@ -376,7 +412,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                       !equipmentInputText.trim() && styles.addEquipmentBtnTextDisabled,
                     ]}
                   >
-                    Thêm
+                    {t('staff.closure_btn_add', 'Thêm')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -404,19 +440,22 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
               {/* Quick Suggestions below */}
               <View style={styles.suggestionSection}>
-                <Text style={styles.suggestionTitle}>Gợi ý nhanh (chạm để thêm vào danh sách):</Text>
+                <Text style={styles.suggestionTitle}>
+                  {t('staff.closure_suggestions_title', 'Gợi ý nhanh (chạm để thêm vào danh sách):')}
+                </Text>
                 <View style={styles.chipsWrap}>
-                  {QUICK_SUGGESTIONS.map((item) => {
-                    const isAdded = selectedEquipment.includes(item);
+                  {QUICK_SUGGESTIONS.map((sug) => {
+                    const isAdded = selectedEquipment.includes(sug.vi) || selectedEquipment.includes(sug.en);
+                    const displayText = isEn ? sug.en : sug.vi;
                     return (
                       <TouchableOpacity
-                        key={item}
+                        key={sug.key}
                         activeOpacity={0.75}
                         style={[
                           styles.chip,
                           isAdded && styles.chipAdded,
                         ]}
-                        onPress={() => toggleSuggestion(item)}
+                        onPress={() => toggleSuggestion(sug)}
                         disabled={isSubmitting}
                       >
                         {isAdded ? (
@@ -430,7 +469,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                             isAdded && styles.chipTextAdded,
                           ]}
                         >
-                          {item}
+                          {displayText}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -441,13 +480,18 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
             {/* 5. Inter-Agency Handover Info (Optional) */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>THÔNG TIN BÀN GIAO LIÊN NGÀNH (BỆNH VIỆN / CÔNG AN):</Text>
+              <Text style={styles.sectionLabel}>
+                {t('staff.closure_handover_label', 'THÔNG TIN BÀN GIAO LIÊN NGÀNH (BỆNH VIỆN / CÔNG AN):')}
+              </Text>
 
               <View style={styles.inputField}>
                 <Building2 size={moderateScale(14)} color="#64748B" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.singleInput}
-                  placeholder="Đơn vị tiếp nhận (Bệnh viện / Cơ quan công an bàn giao)"
+                  placeholder={t(
+                    'staff.closure_handover_entity_placeholder',
+                    'Đơn vị tiếp nhận (Bệnh viện / Cơ quan công an bàn giao)'
+                  )}
                   placeholderTextColor="#94A3B8"
                   value={handoverEntity}
                   onChangeText={setHandoverEntity}
@@ -459,7 +503,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <User size={moderateScale(14)} color="#64748B" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.singleInput}
-                  placeholder="Họ tên người tiếp nhận (BS / Điều dưỡng / Trực ban)"
+                  placeholder={t(
+                    'staff.closure_handover_contact_placeholder',
+                    'Họ tên người tiếp nhận (BS / Điều dưỡng / Trực ban)'
+                  )}
                   placeholderTextColor="#94A3B8"
                   value={handoverContactName}
                   onChangeText={setHandoverContactName}
@@ -471,7 +518,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <Phone size={moderateScale(14)} color="#64748B" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.singleInput}
-                  placeholder="Số điện thoại người tiếp nhận (tùy chọn)"
+                  placeholder={t(
+                    'staff.closure_handover_phone_placeholder',
+                    'Số điện thoại người tiếp nhận (tùy chọn)'
+                  )}
                   placeholderTextColor="#94A3B8"
                   keyboardType="phone-pad"
                   value={handoverContactPhone}
@@ -484,7 +534,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <FileText size={moderateScale(14)} color="#64748B" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.singleInput}
-                  placeholder="Ghi chú bàn giao thêm..."
+                  placeholder={t('staff.closure_handover_notes_placeholder', 'Ghi chú bàn giao thêm...')}
                   placeholderTextColor="#94A3B8"
                   value={handoverNotes}
                   onChangeText={setHandoverNotes}
@@ -496,8 +546,8 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             {/* 6. Digital Signature of On-Scene Commander / Handover Person */}
             <View style={styles.formSection}>
               <DigitalSignaturePad
-                title="CHỮ KÝ SỐ CỦA CHỈ HUY HIỆN TRƯỜNG / NGƯỜI BÀN GIAO"
-                placeholder="Ký trực tiếp bằng ngón tay vào đây"
+                title={t('staff.closure_signature_title', 'CHỮ KÝ SỐ CỦA CHỈ HUY HIỆN TRƯỜNG / NGƯỜI BÀN GIAO')}
+                placeholder={t('staff.closure_signature_placeholder', 'Ký trực tiếp bằng ngón tay vào đây')}
                 onDrawingChange={setIsDrawingSignature}
                 onSignatureChange={(_hasSig, svgStr) => setSignatureData(svgStr)}
               />
@@ -512,7 +562,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
               onPress={onClose}
               disabled={isSubmitting || isUploading}
             >
-              <Text style={styles.cancelBtnText}>Quay Lại</Text>
+              <Text style={styles.cancelBtnText}>{t('staff.closure_btn_back', 'Quay Lại')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -529,7 +579,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
               ) : (
                 <View style={styles.submitBtnContent}>
                   <CheckCircle2 size={moderateScale(16)} color="#FFFFFF" />
-                  <Text style={styles.submitBtnText}>Nghiệm Thu Hoàn Thành</Text>
+                  <Text style={styles.submitBtnText}>{t('staff.closure_btn_submit', 'Nghiệm Thu Hoàn Thành')}</Text>
                 </View>
               )}
             </TouchableOpacity>

@@ -23,6 +23,7 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 import { MissionItem } from '../../types/staff';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -38,7 +39,80 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
   onClose,
 }) => {
   const user = useAppStore((s) => s.user);
+  const { t, i18n } = useTranslation();
+
   if (!mission) return null;
+
+  const formatIncidentTitle = (title?: string | null) => {
+    if (!title) return t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ Đã Hoàn Tất');
+    if (i18n.language?.startsWith('en')) {
+      const lower = title.toLowerCase();
+      if (
+        lower.includes('báo động') ||
+        lower.includes('tín hiệu cứu nạn') ||
+        lower.includes('khẩn cấp sos') ||
+        lower.includes('sos') ||
+        lower.includes('cứu nạn')
+      ) {
+        return 'Emergency SOS Distress Signal';
+      }
+      if (lower.includes('tai nạn') || lower.includes('liên hoàn') || lower.includes('va chạm')) {
+        return 'Multi-Vehicle Traffic Collision';
+      }
+      if (lower.includes('suy hô hấp') || lower.includes('ngạt khói')) {
+        return 'Smoke Inhalation & Respiratory Emergency';
+      }
+      if (lower.includes('hóa chất') || lower.includes('xe bồn')) {
+        return 'Chemical Tanker Leak & Hazmat Response';
+      }
+      if (lower.includes('sốc nhiệt') || lower.includes('say nắng')) {
+        return 'High-Angle Construction Heatstroke Emergency';
+      }
+      if (lower.includes('cháy') || lower.includes('hỏa hoạn')) {
+        return 'Fire Suppression & Rescue Alarm';
+      }
+      if (lower.includes('cấp cứu') || lower.includes('nạn nhân')) {
+        return 'Emergency Medical & Rescue Dispatch';
+      }
+    }
+    return title;
+  };
+
+  const formatIncidentAddress = (addr?: string | null) => {
+    if (!addr) return '';
+    if (i18n.language?.startsWith('en')) {
+      return addr
+        .replace(/Khu Công Nghệ Cao/gi, 'High-Tech Park')
+        .replace(/Khu công nghiệp/gi, 'Industrial Park')
+        .replace(/Phường/gi, 'Ward')
+        .replace(/Quận/gi, 'District')
+        .replace(/Khu phố/gi, 'Quarter')
+        .replace(/Đường/gi, 'St.')
+        .replace(/Hẻm/gi, 'Alley')
+        .replace(/Cầu/gi, 'Bridge')
+        .replace(/Thành phố/gi, 'City')
+        .replace(/TP\.\s*Thủ Đức/gi, 'Thu Duc City')
+        .replace(/TP\.\s*HCM/gi, 'HCMC');
+    }
+    return addr;
+  };
+
+  const formatHospitalName = (hosp?: string | null) => {
+    if (!hosp) return '';
+    if (i18n.language?.startsWith('en')) {
+      const lower = hosp.toLowerCase();
+      if (lower.includes('công an') || lower.includes('đội bv') || lower.includes('sở tại')) {
+        return 'Ward Police & Local Hospital Squad';
+      }
+      if (lower.includes('bệnh viện') || lower.includes('thủ đức')) {
+        return 'Regional General Hospital';
+      }
+      if (lower.includes('phòng y tế')) {
+        return 'Industrial Park Medical Clinic';
+      }
+    }
+    return hosp;
+  };
 
   return (
     <Modal
@@ -56,8 +130,10 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                 <FileText size={moderateScale(20)} color="#38BDF8" />
               </View>
               <View>
-                <Text style={styles.modalTitle}>Chi Tiết Biên Bản Ca Trực</Text>
-                <Text style={styles.modalSubtitle}>Mã Ca: {mission.code}</Text>
+                <Text style={styles.modalTitle}>{t('staff.modal_mission_detail_title', 'Chi Tiết Biên Bản Ca Trực')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {t('staff.modal_mission_code', { code: mission.code, defaultValue: `Mã Ca: ${mission.code}` })}
+                </Text>
               </View>
             </View>
 
@@ -82,79 +158,97 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                 <View style={styles.severityTag}>
                   <Text style={styles.severityTagText}>
                     {mission.severity === 'critical'
-                      ? 'CẤP CỨU MỨC 1 - NGUY KỊCH'
+                      ? t('staff.sev_critical_label', 'CẤP CỨU MỨC 1 - NGUY KỊCH')
                       : mission.severity === 'urgent'
-                      ? 'CẤP CỨU MỨC 2 - KHẨN CẤP'
-                      : 'TIÊU CHUẨN'}
+                      ? t('staff.sev_urgent_label', 'CẤP CỨU MỨC 2 - KHẨN CẤP')
+                      : t('staff.sev_standard_label', 'TIÊU CHUẨN')}
                   </Text>
                 </View>
                 <View style={styles.statusPill}>
                   <CheckCircle2 size={moderateScale(12)} color="#10B981" />
-                  <Text style={styles.statusPillText}>ĐÃ HOÀN TẤT</Text>
+                  <Text style={styles.statusPillText}>{t('staff.badge_completed', 'ĐÃ HOÀN TẤT')}</Text>
                 </View>
               </View>
-              <Text style={styles.incidentTitle}>{mission.title}</Text>
+              <Text style={styles.incidentTitle}>{formatIncidentTitle(mission.title)}</Text>
               <View style={styles.heroAddressRow}>
                 <MapPin size={moderateScale(13)} color="#94A3B8" />
-                <Text style={styles.heroAddressText}>{mission.address}</Text>
+                <Text style={styles.heroAddressText}>{formatIncidentAddress(mission.address)}</Text>
               </View>
             </View>
 
             {/* Quick Metrics Bar */}
             <View style={styles.metricsBar}>
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Khoảng cách</Text>
+                <Text style={styles.metricLabel}>{t('staff.metric_distance', 'Khoảng cách')}</Text>
                 <Text style={styles.metricVal}>{mission.distanceKm} km</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Thời gian phản ứng</Text>
-                <Text style={styles.metricVal}>{mission.etaMinutes} phút</Text>
+                <Text style={styles.metricLabel}>{t('staff.metric_response_time', 'Thời gian phản ứng')}</Text>
+                <Text style={styles.metricVal}>
+                  {mission.etaMinutes} {t('staff.unit_minute_full', 'phút')}
+                </Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Tổng thời lượng</Text>
-                <Text style={styles.metricVal}>{mission.durationMinutes} phút</Text>
+                <Text style={styles.metricLabel}>{t('staff.metric_total_duration', 'Tổng thời lượng')}</Text>
+                <Text style={styles.metricVal}>
+                  {mission.durationMinutes} {t('staff.unit_minute_full', 'phút')}
+                </Text>
               </View>
             </View>
 
             {/* Response Timeline */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeader}>DÒNG THỜI GIAN ĐIỀU PHỐI (TIMELINE)</Text>
+              <Text style={styles.sectionHeader}>{t('staff.sec_dispatch_timeline', 'DÒNG THỜI GIAN ĐIỀU PHỐI (TIMELINE)')}</Text>
               <View style={styles.timeline}>
                 <View style={styles.timelineStep}>
                   <View style={[styles.timelineDot, styles.dotCompleted]} />
                   <View style={styles.timelineInfo}>
-                    <Text style={styles.timelineStepTitle}>Tiếp nhận lệnh điều phối</Text>
-                    <Text style={styles.timelineTime}>Trung tâm điều phối phát lệnh báo động</Text>
-                  </View>
-                </View>
-                <View style={styles.timelineLine} />
-
-                <View style={styles.timelineStep}>
-                  <View style={[styles.timelineDot, styles.dotCompleted]} />
-                  <View style={styles.timelineInfo}>
-                    <Text style={styles.timelineStepTitle}>Xuất phát khỏi trạm đỗ</Text>
-                    <Text style={styles.timelineTime}>Bật còi ưu tiên, kích hoạt GPS lộ trình</Text>
-                  </View>
-                </View>
-                <View style={styles.timelineLine} />
-
-                <View style={styles.timelineStep}>
-                  <View style={[styles.timelineDot, styles.dotCompleted]} />
-                  <View style={styles.timelineInfo}>
-                    <Text style={styles.timelineStepTitle}>Tiếp cận hiện trường</Text>
-                    <Text style={styles.timelineTime}>Sơ cấp cứu, cố định nẹp & kiểm soát sinh hiệu</Text>
-                  </View>
-                </View>
-                <View style={styles.timelineLine} />
-
-                <View style={styles.timelineStep}>
-                  <View style={[styles.timelineDot, styles.dotCompleted]} />
-                  <View style={styles.timelineInfo}>
-                    <Text style={styles.timelineStepTitle}>Bàn giao bệnh viện</Text>
+                    <Text style={styles.timelineStepTitle}>
+                      {t('staff.tl_order_received', 'Tiếp nhận lệnh điều phối')}
+                    </Text>
                     <Text style={styles.timelineTime}>
-                      {mission.destinationHospital || 'Chưa ghi nhận'}
+                      {t('staff.tl_order_received_desc', 'Trung tâm điều phối phát lệnh báo động')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.timelineLine} />
+
+                <View style={styles.timelineStep}>
+                  <View style={[styles.timelineDot, styles.dotCompleted]} />
+                  <View style={styles.timelineInfo}>
+                    <Text style={styles.timelineStepTitle}>
+                      {t('staff.tl_station_departure', 'Xuất phát khỏi trạm đỗ')}
+                    </Text>
+                    <Text style={styles.timelineTime}>
+                      {t('staff.tl_station_departure_desc', 'Bật còi ưu tiên, kích hoạt GPS lộ trình')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.timelineLine} />
+
+                <View style={styles.timelineStep}>
+                  <View style={[styles.timelineDot, styles.dotCompleted]} />
+                  <View style={styles.timelineInfo}>
+                    <Text style={styles.timelineStepTitle}>
+                      {t('staff.tl_scene_arrival', 'Tiếp cận hiện trường')}
+                    </Text>
+                    <Text style={styles.timelineTime}>
+                      {t('staff.tl_scene_arrival_desc', 'Sơ cấp cứu, cố định nẹp & kiểm soát sinh hiệu')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.timelineLine} />
+
+                <View style={styles.timelineStep}>
+                  <View style={[styles.timelineDot, styles.dotCompleted]} />
+                  <View style={styles.timelineInfo}>
+                    <Text style={styles.timelineStepTitle}>
+                      {t('staff.tl_hospital_handover', 'Bàn giao bệnh viện')}
+                    </Text>
+                    <Text style={styles.timelineTime}>
+                      {formatHospitalName(mission.destinationHospital) || t('staff.tl_not_recorded', 'Chưa ghi nhận')}
                     </Text>
                   </View>
                 </View>
@@ -163,19 +257,23 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
 
             {/* Personnel & Vehicle Information */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeader}>KÍP TRỰC & PHƯƠNG TIỆN</Text>
+              <Text style={styles.sectionHeader}>{t('staff.sec_crew_vehicle', 'KÍP TRỰC & PHƯƠNG TIỆN')}</Text>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Kíp cứu hộ:</Text>
-                <Text style={styles.infoValue}>{user?.teamName || user?.name || 'Kíp trực cứu hộ'}</Text>
+                <Text style={styles.infoLabel}>{t('staff.lbl_rescue_crew', 'Kíp cứu hộ:')}</Text>
+                <Text style={styles.infoValue}>
+                  {user?.teamName || user?.name || t('staff.crew_prefix', 'Kíp trực cứu hộ')}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Xe cấp cứu:</Text>
-                <Text style={styles.infoValue}>{user?.vehiclePlate || 'Xe cứu hộ CAD'}</Text>
+                <Text style={styles.infoLabel}>{t('staff.lbl_ambulance', 'Xe cấp cứu:')}</Text>
+                <Text style={styles.infoValue}>
+                  {user?.vehiclePlate || t('staff.default_vehicle_plate', 'Xe cứu hộ CAD')}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Bệnh viện tiếp nhận:</Text>
+                <Text style={styles.infoLabel}>{t('staff.lbl_receiving_hospital', 'Bệnh viện tiếp nhận:')}</Text>
                 <Text style={[styles.infoValue, { color: '#38BDF8' }]}>
-                  {mission.destinationHospital || 'Chưa ghi nhận'}
+                  {formatHospitalName(mission.destinationHospital) || t('staff.tl_not_recorded', 'Chưa ghi nhận')}
                 </Text>
               </View>
             </View>
@@ -188,7 +286,7 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
               style={styles.doneButton}
               onPress={onClose}
             >
-              <Text style={styles.doneButtonText}>Đóng Biên Bản</Text>
+              <Text style={styles.doneButtonText}>{t('staff.btn_close_record', 'Đóng Biên Bản')}</Text>
             </TouchableOpacity>
           </View>
         </View>

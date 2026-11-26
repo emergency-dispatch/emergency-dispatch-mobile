@@ -642,7 +642,7 @@ export const StaffDashboardScreen: React.FC = () => {
             latitude={10.8415}
             longitude={106.8098}
             onPressNavigateStation={() => setIsNavigateStationModalVisible(true)}
-            onPressOpenFullMap={() => setIsNavigateStationModalVisible(true)}
+            onPressOpenFullMap={() => navigation.navigate('TacticalMapTab')}
           />
 
           {/* 6. Recent Missions List */}

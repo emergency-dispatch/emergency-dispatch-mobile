@@ -185,8 +185,8 @@ const ReportCard = React.memo<ReportCardProps>(
                 {isParentCompleted
                   ? t('reports.duplicate_confirmed_completed', { code: codeTag })
                   : isParentCancelled
-                  ? t('reports.duplicate_confirmed_cancelled', { code: codeTag })
-                  : t('reports.duplicate_confirmed_active', { code: codeTag })}
+                    ? t('reports.duplicate_confirmed_cancelled', { code: codeTag })
+                    : t('reports.duplicate_confirmed_active', { code: codeTag })}
               </Text>
               {!isParentClosed && (
                 <TouchableOpacity
@@ -204,17 +204,17 @@ const ReportCard = React.memo<ReportCardProps>(
         <View style={styles.actionsContainer}>
           {(item.status === IncidentStatus.Dispatched ||
             item.status === IncidentStatus.InProgress) && (
-            <TouchableOpacity
-              style={styles.trackingBtn}
-              activeOpacity={0.8}
-              onPress={() => onTrack(item)}
-            >
-              <Navigation size={13} color="#FFFFFF" />
-              <Text style={styles.trackingBtnText}>
-                {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
-              </Text>
-            </TouchableOpacity>
-          )}
+              <TouchableOpacity
+                style={styles.trackingBtn}
+                activeOpacity={0.8}
+                onPress={() => onTrack(item)}
+              >
+                <Navigation size={13} color="#FFFFFF" />
+                <Text style={styles.trackingBtnText}>
+                  {t('reports.track_unit_btn', 'Theo dõi xe cứu hộ')}
+                </Text>
+              </TouchableOpacity>
+            )}
 
           {item.status !== IncidentStatus.Completed &&
             item.status !== IncidentStatus.Cancelled && (
@@ -280,24 +280,34 @@ export const MyReportsScreen: React.FC = () => {
               linkedToIncidentId: item.linkedToIncidentId,
               linkedTo: item.linkedToIncidentId
                 ? {
-                    incidentId: item.linkedToIncidentId,
-                    code: item.linkedToIncidentCode ?? undefined,
-                    title: item.linkedToIncidentTitle || '',
-                    locationAddress: item.linkedToIncidentAddress || '',
-                    status: item.linkedToIncidentStatus ?? undefined,
-                    distanceMeters: 0,
-                    assignedUnitPlates: [],
-                  }
+                  incidentId: item.linkedToIncidentId,
+                  code: item.linkedToIncidentCode ?? undefined,
+                  title: item.linkedToIncidentTitle || '',
+                  locationAddress: item.linkedToIncidentAddress || '',
+                  status: item.linkedToIncidentStatus ?? undefined,
+                  distanceMeters: 0,
+                  assignedUnitPlates: [],
+                }
                 : undefined,
               reportedEventType: item.reportedEventType,
               createdAt: item.reportedAt,
               updatedAt: item.reportedAt,
               verifiedAt: item.verifiedAt,
-              mediaItems: (item.mediaUrls || []).map((url, idx) => ({
-                id: `${item.id}-media-${idx}`,
-                mediaUrl: url,
-                mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
-              })),
+              mediaItems: (item.mediaUrls || [])
+                .filter((url) => {
+                  const lower = (url || '').toLowerCase().split('?')[0];
+                  return (
+                    Boolean(lower) &&
+                    !lower.includes('/emergency_dispatch/audio/') &&
+                    !lower.includes('/video/authenticated/') &&
+                    !/\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
+                  );
+                })
+                .map((url, idx) => ({
+                  id: `${item.id}-media-${idx}`,
+                  mediaUrl: url,
+                  mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
+                })),
             } as IncidentResponseDto));
 
             // Chỉ gọi chi tiết bù nếu backend chưa trả linkedToIncidentId cho ca Linked / Cancelled (Duplicate)
@@ -374,7 +384,7 @@ export const MyReportsScreen: React.FC = () => {
         try {
           await mobileIncidentHub.start();
           for (const id of watchIds) {
-            await mobileIncidentHub.invoke('SubscribeIncident', id).catch(() => {});
+            await mobileIncidentHub.invoke('SubscribeIncident', id).catch(() => { });
           }
           subscribed = true;
         } catch {
@@ -402,7 +412,7 @@ export const MyReportsScreen: React.FC = () => {
       return () => {
         if (subscribed) {
           watchIds.forEach((id) => {
-            mobileIncidentHub.invoke('UnsubscribeIncident', id).catch(() => {});
+            mobileIncidentHub.invoke('UnsubscribeIncident', id).catch(() => { });
           });
         }
         u1();

@@ -40,115 +40,7 @@ import { staffDispatchService } from '../../services/staffDispatch.service';
 import { DispatchAssignmentResponseDto, CompletionReportDto } from '../../types/dispatch';
 import { useAppStore } from '../../store/useAppStore';
 
-// Mock sample completed assignments with realistic completion reports if backend has none yet
-const SAMPLE_COMPLETED_REPORTS: DispatchAssignmentResponseDto[] = [
-  {
-    id: 'asg-completed-01',
-    incidentId: 'inc-sample-01',
-    incidentCode: '#EM-241120',
-    incidentTitle: 'Cấp Cứu Nạn Nhân Suy Hô Hấp Do Ngạt Khói Xưởng Gỗ',
-    incidentAddress: 'Lô C3, Đường D2, Khu Công Nghệ Cao, TP. Thủ Đức',
-    incidentSeverity: 'code_red',
-    rescueUnitId: 'unit-icu-01',
-    rescueUnitPlate: '51D-1234',
-    stationName: 'Trạm Cứu Hộ & PCCC Khu Công Nghệ Cao',
-    status: 'Completed',
-    dispatchedAt: '2026-11-25T08:15:00.000Z',
-    acceptedAt: '2026-11-25T08:16:30.000Z',
-    enRouteAt: '2026-11-25T08:18:00.000Z',
-    arrivedAt: '2026-11-25T08:26:00.000Z',
-    completedAt: '2026-11-25T08:58:00.000Z',
-    distanceKm: 3.8,
-    completionReport: {
-      actionsSummary:
-        'Tiếp cận hiện trường xưởng gỗ, mang bình dưỡng khí SCBA giải cứu 2 công nhân ngạt khói tại tầng lửng. Tiến hành thở oxy lưu lượng cao 15L/phút, đặt nẹp cổ cố định và chuyển bệnh nhân lên xe cấp cứu an toàn.',
-      victimsAssistedCount: 2,
-      equipmentUsed: [
-        'Bình dưỡng khí SCBA 300bar',
-        'Bình Oxy y tế 10L',
-        'Cáng cứu thương cứng',
-        'Monitor theo dõi dấu hiệu sinh tồn',
-      ],
-      evidenceMediaUrls: [
-        'https://images.unsplash.com/photo-1587745416684-475553dd5995?auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?auto=format&fit=crop&w=600&q=80',
-      ],
-      handoverEntity: 'Bệnh Viện Đa Khoa Khu Vực Thủ Đức',
-      handoverContactName: 'Bác sĩ trực cấp cứu - BS. Nguyễn Văn Hùng',
-      handoverContactPhone: '0908123456',
-      handoverNotes:
-        'Bệnh nhân SpO2 96% sau thở oxy, mạch 88 lần/phút, đã bàn giao hồ sơ sinh hiệu lúc 08:55.',
-      submittedAt: '2026-11-25T08:58:00.000Z',
-    },
-  },
-  {
-    id: 'asg-completed-02',
-    incidentId: 'inc-sample-02',
-    incidentCode: '#EM-241118',
-    incidentTitle: 'Va Chạm Xe Bồn Hóa Chất & Xe Tải Chở Hàng',
-    incidentAddress: 'Ngã tư D1 & Võ Chí Công, TP. Thủ Đức',
-    incidentSeverity: 'code_orange',
-    rescueUnitId: 'unit-hazmat-02',
-    rescueUnitPlate: '51D-5678',
-    stationName: 'Trạm Cứu Hộ & PCCC Khu Công Nghệ Cao',
-    status: 'Completed',
-    dispatchedAt: '2026-11-23T14:10:00.000Z',
-    acceptedAt: '2026-11-23T14:11:00.000Z',
-    enRouteAt: '2026-11-23T14:13:00.000Z',
-    arrivedAt: '2026-11-23T14:21:00.000Z',
-    completedAt: '2026-11-23T14:52:00.000Z',
-    distanceKm: 2.5,
-    completionReport: {
-      actionsSummary:
-        'Phong tỏa bán kính 50m quanh xe bồn, sử dụng cát và chất hấp thụ xử lý rò rỉ dung môi hữu cơ. Sơ cứu vết rách cẳng tay cho tài xế xe tải, băng ép vô khuẩn và chuyển giao cho CSGT điều phối giao thông.',
-      victimsAssistedCount: 1,
-      equipmentUsed: [
-        'Bộ đồ bảo hộ hóa chất Level B',
-        'Bộ dụng cụ xử lý tràn đổ hóa chất',
-        'Băng gạc & nẹp chi cố định',
-      ],
-      evidenceMediaUrls: [
-        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
-      ],
-      handoverEntity: 'Đội CSGT Cát Lái - Công An TP. Thủ Đức',
-      handoverContactName: 'Đ/c Lê Thanh Tùng - Đội phó',
-      handoverContactPhone: '0913987654',
-      handoverNotes:
-        'Hiện trường đã tiêu độc khử trùng hoàn tất, lòng đường lưu thông bình thường trở lại.',
-      submittedAt: '2026-11-23T14:52:00.000Z',
-    },
-  },
-  {
-    id: 'asg-completed-03',
-    incidentId: 'inc-sample-03',
-    incidentCode: '#EM-241112',
-    incidentTitle: 'Cấp Cứu Sốc Nhiệt Công Nhân Thi Công Điện Trên Cao',
-    incidentAddress: 'Khu công nghiệp Cát Lái, Cụm 2, P. Thạnh Mỹ Lợi',
-    incidentSeverity: 'code_yellow',
-    rescueUnitId: 'unit-icu-01',
-    rescueUnitPlate: '51D-1234',
-    stationName: 'Trạm Cứu Hộ & PCCC Khu Công Nghệ Cao',
-    status: 'Completed',
-    dispatchedAt: '2026-11-20T11:05:00.000Z',
-    acceptedAt: '2026-11-20T11:06:00.000Z',
-    enRouteAt: '2026-11-20T11:08:00.000Z',
-    arrivedAt: '2026-11-20T11:17:00.000Z',
-    completedAt: '2026-11-20T11:45:00.000Z',
-    distanceKm: 4.2,
-    completionReport: {
-      actionsSummary:
-        'Sử dụng xe thang phối hợp hạ nạn nhân say nắng sốc nhiệt từ tầng 3 công trình xuống mặt đất an toàn. Làm mát chủ động bằng khăn ướt, bù dịch điện giải tĩnh mạch và chuyển đến phòng y tế cơ sở.',
-      victimsAssistedCount: 1,
-      equipmentUsed: ['Cáng cứu thương trên cao', 'Bộ dịch truyền Ringer Lactate', 'Máy đo thân nhiệt'],
-      evidenceMediaUrls: [],
-      handoverEntity: 'Phòng Y Tế KCN Cát Lái',
-      handoverContactName: 'Y sĩ Nguyễn Thị Lan',
-      handoverContactPhone: '0938555777',
-      handoverNotes: 'Bệnh nhân tỉnh táo hoàn toàn, thân nhiệt giảm về 37.5°C, tiếp tục theo dõi.',
-      submittedAt: '2026-11-20T11:45:00.000Z',
-    },
-  },
-];
+// Mock sample completed assignments removed; real assignments fetched directly from backend CAD server
 
 export const StaffMissionHistoryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -331,16 +223,10 @@ export const StaffMissionHistoryScreen: React.FC = () => {
       const filtered = data.filter(
         (a) => a.status === 'Completed' || a.completedAt !== null || !!a.completionReport
       );
-
-      if (filtered.length > 0) {
-        setCompletedList(filtered);
-      } else {
-        // Fallback to sample items for visual testing if no completed assignments exist yet
-        setCompletedList(SAMPLE_COMPLETED_REPORTS);
-      }
+      setCompletedList(filtered);
     } catch (err) {
       console.warn('Failed to load completed assignments:', err);
-      setCompletedList(SAMPLE_COMPLETED_REPORTS);
+      setCompletedList([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -678,13 +564,19 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                 <View style={styles.cardFooter}>
                   <View style={styles.vehicleInfoRow}>
                     <Truck size={moderateScale(12)} color="#64748B" />
-                    <Text style={styles.vehicleInfoText}>
+                    <Text
+                      style={styles.vehicleInfoText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {item.rescueUnitPlate || user?.vehiclePlate || t('staff.default_vehicle_plate', 'Xe cứu hộ')} • {formatStationName(item.stationName || user?.stationName)}
                     </Text>
                   </View>
 
                   <View style={styles.viewReportAction}>
-                    <Text style={styles.viewReportText}>{t('staff.view_report_btn', 'Xem Biên Bản')}</Text>
+                    <Text style={styles.viewReportText} numberOfLines={1}>
+                      {t('staff.view_report_btn', 'Xem Biên Bản')}
+                    </Text>
                     <ChevronRight size={moderateScale(14)} color="#DC2626" />
                   </View>
                 </View>
@@ -1180,21 +1072,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: verticalScale(10),
+    marginTop: verticalScale(6),
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: scale(8),
   },
   vehicleInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(4),
     flex: 1,
+    minWidth: 0,
   },
   vehicleInfoText: {
     fontSize: moderateScale(10.5),
     color: '#64748B',
+    flex: 1,
   },
   viewReportAction: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(2),
+    flexShrink: 0,
   },
   viewReportText: {
     fontSize: moderateScale(11.5),

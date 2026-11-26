@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 interface ShiftMetricsGridProps {
   completedMissions?: number;
   totalDistanceKm?: number;
-  avgEtaMinutes?: number;
+  avgEtaMinutes?: number | null;
   shiftHoursElapsed?: number;
   totalShiftHours?: number;
   onTimeRate?: number;
@@ -17,18 +17,38 @@ interface ShiftMetricsGridProps {
 export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
   completedMissions = 0,
   totalDistanceKm = 0,
-  avgEtaMinutes = 6.5,
-  shiftHoursElapsed = 4.5,
+  avgEtaMinutes = null,
+  shiftHoursElapsed = 0,
   totalShiftHours = 12,
   onTimeRate = 100,
-  fuelStatus = 'Nhiên liệu 85%',
-  etaComparison = 'Nhanh hơn 1.2m',
+  fuelStatus,
+  etaComparison,
 }) => {
   const { t } = useTranslation();
   const shiftProgressPercent = Math.min(
-    Math.round((shiftHoursElapsed / totalShiftHours) * 100),
+    Math.round(((shiftHoursElapsed || 0) / totalShiftHours) * 100),
     100
   );
+
+  const displayEta =
+    avgEtaMinutes && avgEtaMinutes > 0
+      ? `${avgEtaMinutes} ${t('staff.unit_minute_short', 'ph')}`
+      : '--';
+
+  const displayEtaSub =
+    etaComparison ||
+    (completedMissions > 0
+      ? t('staff.avg_eta_standard', 'Đạt chuẩn')
+      : t('staff.no_data', 'Chưa có dữ liệu'));
+
+  const displayFuelSub =
+    fuelStatus ||
+    (completedMissions > 0
+      ? t('staff.fuel_normal', 'Ổn định')
+      : t('staff.station_standby', 'Tại trạm trực'));
+
+  const displayDistance =
+    totalDistanceKm > 0 ? `${totalDistanceKm} km` : '0 km';
 
   return (
     <View style={styles.container}>
@@ -63,7 +83,9 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             {completedMissions}
           </Text>
           <Text style={[styles.metricSub, { color: '#059669' }]} numberOfLines={1}>
-            {onTimeRate}% {t('staff.on_time') || 'đúng hạn'}
+            {completedMissions > 0
+              ? `${onTimeRate}% ${t('staff.on_time') || 'đúng hạn'}`
+              : t('staff.ready_dispatch', 'Sẵn sàng')}
           </Text>
         </View>
 
@@ -75,10 +97,10 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             {t('staff.metric_distance') || 'Quãng đường'}
           </Text>
           <Text style={styles.metricValue} numberOfLines={1}>
-            {totalDistanceKm} km
+            {displayDistance}
           </Text>
           <Text style={[styles.metricSub, { color: '#0284C7' }]} numberOfLines={1}>
-            {fuelStatus}
+            {displayFuelSub}
           </Text>
         </View>
 
@@ -90,10 +112,10 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             {t('staff.metric_eta') || 'ETA TB'}
           </Text>
           <Text style={styles.metricValue} numberOfLines={1}>
-            {avgEtaMinutes} {t('staff.unit_minute_short', 'ph')}
+            {displayEta}
           </Text>
           <Text style={[styles.metricSub, { color: '#D97706' }]} numberOfLines={1}>
-            {etaComparison}
+            {displayEtaSub}
           </Text>
         </View>
       </View>

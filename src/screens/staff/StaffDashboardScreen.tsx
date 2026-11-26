@@ -205,6 +205,29 @@ export const StaffDashboardScreen: React.FC = () => {
   );
   const completedAssignments = assignments.filter((a) => a.status === 'Completed');
 
+  // Dynamic Shift Metrics computed from real assignments
+  const totalCompletedDistance = useMemo(() => {
+    const sum = completedAssignments.reduce((acc, a) => acc + (a.distanceKm || 0), 0);
+    return Math.round(sum * 10) / 10;
+  }, [completedAssignments]);
+
+  const avgEta = useMemo(() => {
+    const valid = completedAssignments
+      .map((a) => a.estimatedArrivalMinutes)
+      .filter((e): e is number => typeof e === 'number' && e > 0);
+    return valid.length > 0 ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : null;
+  }, [completedAssignments]);
+
+  // Shift timer: 0h if offline, or elapsed hours of today's duty window
+  const shiftHours = useMemo(() => {
+    if (dutyStatus === 'offline') return 0;
+    const start = new Date();
+    start.setHours(7, 0, 0, 0);
+    const now = Date.now();
+    const elapsed = Math.max(0.5, (now - start.getTime()) / (1000 * 60 * 60));
+    return Math.min(12, Math.round(elapsed * 10) / 10);
+  }, [dutyStatus]);
+
   // Convert completed assignments to RecentMissions
   const missionsList: MissionItem[] = completedAssignments.map((a) => ({
     id: a.id,
@@ -575,13 +598,21 @@ export const StaffDashboardScreen: React.FC = () => {
           {/* 3. Daily Shift Metrics: Clean Flat Layout */}
           <ShiftMetricsGrid
             completedMissions={completedAssignments.length}
-            totalDistanceKm={completedAssignments.length * 14}
-            avgEtaMinutes={6.5}
-            shiftHoursElapsed={4.5}
+            totalDistanceKm={totalCompletedDistance}
+            avgEtaMinutes={avgEta}
+            shiftHoursElapsed={shiftHours}
             totalShiftHours={12}
             onTimeRate={100}
-            fuelStatus={t('staff.fuel_status', 'Nhiên liệu 85%')}
-            etaComparison={t('staff.faster_by', 'Nhanh hơn 1.2m')}
+            fuelStatus={
+              completedAssignments.length > 0
+                ? t('staff.vehicle_operational', 'Phương tiện sẵn sàng')
+                : t('staff.station_standby', 'Tại trạm trực')
+            }
+            etaComparison={
+              avgEta && avgEta > 0
+                ? t('staff.avg_eta_standard', 'Đạt chuẩn phản ứng')
+                : t('staff.no_data', 'Chưa có dữ liệu')
+            }
           />
 
           {/* 4. Quick Actions: 2-Column Clean Utility Grid */}

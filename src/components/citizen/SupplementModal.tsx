@@ -206,21 +206,18 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
       setIsSubmitting(true);
       setSubmittingStatus(isEn ? 'Preparing update...' : 'Đang chuẩn bị gửi thông tin...');
 
-      // 1. Upload files first via POST /api/media/upload
-      const uploadedUrls: string[] = [];
-      for (let i = 0; i < selectedAssets.length; i++) {
+      // 1. Upload visual files & audio in parallel via POST /api/media/upload
+      if (selectedAssets.length > 0 || audioDraft?.uri) {
         setSubmittingStatus(
-          isEn ? `Uploading file ${i + 1}/${selectedAssets.length}...` : `Đang tải lên tệp ${i + 1}/${selectedAssets.length}...`
+          isEn ? 'Uploading attachments...' : 'Đang tải tệp đính kèm lên...'
         );
-        const url = await mediaService.uploadMedia(selectedAssets[i]);
-        if (url) uploadedUrls.push(url);
       }
-
-      const audioAttachments = [];
-      if (audioDraft?.uri) {
-        setSubmittingStatus(isEn ? 'Uploading audio recording...' : 'Đang tải lên đoạn ghi âm...');
-        audioAttachments.push(await mediaService.uploadAudioAttachment(audioDraft));
-      }
+      const [uploadedPhotoResults, uploadedAudio] = await Promise.all([
+        Promise.all(selectedAssets.map((asset) => mediaService.uploadMedia(asset))),
+        audioDraft?.uri ? mediaService.uploadAudioAttachment(audioDraft) : Promise.resolve(null),
+      ]);
+      const uploadedUrls = uploadedPhotoResults.filter((url): url is string => Boolean(url));
+      const audioAttachments = uploadedAudio ? [uploadedAudio] : [];
 
       setSubmittingStatus(isEn ? 'Saving update...' : 'Đang lưu thông tin bổ sung...');
 

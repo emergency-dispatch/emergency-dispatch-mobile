@@ -108,7 +108,7 @@ export const SosCameraModal: React.FC<SosCameraModalProps> = ({
     try {
       let photoAsset: SosCameraCaptureResult['photoAsset'] = null;
       if (takePhoto && cameraRef.current && isCameraReady) {
-        const pic = await cameraRef.current.takePictureAsync({ quality: 0.85 });
+        const pic = await cameraRef.current.takePictureAsync({ quality: 0.55 });
         if (pic?.uri) {
           photoAsset = {
             uri: pic.uri,

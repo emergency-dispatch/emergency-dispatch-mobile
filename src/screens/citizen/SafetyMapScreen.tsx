@@ -579,9 +579,20 @@ export const SafetyMapScreen: React.FC = () => {
           isKnownEv((inc.aiClassification as any)?.incidentType) ||
           isKnownEv(inc.eventType) ||
           isKnownEv(inc.reportedEventType);
+        const isNonAudioMedia = (m: { mediaUrl?: string | null; mediaType?: any }) => {
+          const lower = (m?.mediaUrl || '').toLowerCase().split('?')[0];
+          return (
+            Boolean(lower) &&
+            String(m?.mediaType) !== 'Audio' &&
+            m?.mediaType !== 2 &&
+            !lower.includes('/emergency_dispatch/audio/') &&
+            !lower.includes('/video/authenticated/') &&
+            !/\.(mp3|wav|m4a|webm|ogg|aac|opus)$/i.test(lower)
+          );
+        };
         const hasPhoto = Boolean(
-          inc.mediaItems?.some((m) => m.mediaType !== 'Audio' && m.mediaUrl) ||
-          inc.mediaUrls?.some((u) => !/\.(mp3|wav|m4a|webm|ogg)$/i.test(u))
+          inc.mediaItems?.some(isNonAudioMedia) ||
+          inc.mediaUrls?.some((u) => isNonAudioMedia({ mediaUrl: u }))
         );
         if (!inc.latitude || !inc.longitude || !hasEventType || !inc.code || !hasPhoto) {
           try {
@@ -755,9 +766,22 @@ export const SafetyMapScreen: React.FC = () => {
                   : title && !/tín hiệu|sos/i.test(title)
                     ? title
                     : (isEnMap ? 'SOS Signal' : 'Tín hiệu SOS');
+          const isVisualImage = (url?: string | null, mediaType?: any) => {
+            const lower = (url || '').toLowerCase().split('?')[0];
+            return (
+              Boolean(lower) &&
+              String(mediaType) !== 'Audio' &&
+              mediaType !== 2 &&
+              String(mediaType) !== 'Video' &&
+              mediaType !== 1 &&
+              !lower.includes('/emergency_dispatch/audio/') &&
+              !lower.includes('/video/authenticated/') &&
+              !/\.(mp3|wav|m4a|webm|ogg|aac|opus|mp4|mov)$/i.test(lower)
+            );
+          };
           const firstImageUrl =
-            inc.mediaItems?.find((m) => m.mediaType !== 'Audio')?.mediaUrl ||
-            inc.mediaUrls?.find((u) => !/\.(mp3|wav|m4a|webm|ogg)$/i.test(u));
+            inc.mediaItems?.find((m) => isVisualImage(m.mediaUrl, m.mediaType))?.mediaUrl ||
+            inc.mediaUrls?.find((u) => isVisualImage(u));
           return {
             id: inc.id,
             title: displayTitle,

@@ -90,7 +90,7 @@ export const ShiftMetricsGrid: React.FC<ShiftMetricsGridProps> = ({
             {t('staff.metric_eta') || 'ETA TB'}
           </Text>
           <Text style={styles.metricValue} numberOfLines={1}>
-            {avgEtaMinutes} ph
+            {avgEtaMinutes} {t('staff.unit_minute_short', 'ph')}
           </Text>
           <Text style={[styles.metricSub, { color: '#D97706' }]} numberOfLines={1}>
             {etaComparison}

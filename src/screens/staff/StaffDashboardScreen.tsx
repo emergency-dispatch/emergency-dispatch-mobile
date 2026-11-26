@@ -56,7 +56,7 @@ export const StaffDashboardScreen: React.FC = () => {
   const { user, updateUser } = useAppStore();
 
   // State
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [dutyStatus, setDutyStatus] = useState<DutyStatus>('online');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -188,33 +188,33 @@ export const StaffDashboardScreen: React.FC = () => {
     switch (dutyStatus) {
       case 'online':
         return {
-          label: '🟢 Đang Sẵn Sàng',
+          label: t('staff.status_ready_pill', '🟢 Đang Sẵn Sàng'),
           sub: 'Ready to Dispatch',
           bg: '#ECFDF5',
           border: '#A7F3D0',
           textColor: '#065F46',
           dotColor: '#10B981',
-          operationalText: 'Sẵn sàng nhận lệnh điều động 24/7',
+          operationalText: t('staff.operational_ready', 'Sẵn sàng nhận lệnh điều động 24/7'),
         };
       case 'busy':
         return {
-          label: '🟡 Đang Bận',
+          label: t('staff.status_busy_pill', '🟡 Đang Bận'),
           sub: 'On Mission',
           bg: '#FFFBEB',
           border: '#FDE68A',
           textColor: '#92400E',
           dotColor: '#F59E0B',
-          operationalText: 'Đang thực hiện nhiệm vụ khẩn cấp',
+          operationalText: t('staff.operational_busy', 'Đang thực hiện nhiệm vụ khẩn cấp'),
         };
       case 'offline':
         return {
-          label: '🔴 Nghỉ Ca',
+          label: t('staff.status_offline_pill', '🔴 Nghỉ Ca'),
           sub: 'Off Duty',
           bg: '#FEF2F2',
           border: '#FECACA',
           textColor: '#991B1B',
           dotColor: '#EF4444',
-          operationalText: 'Đã hoàn tất ca trực & bàn giao xe',
+          operationalText: t('staff.operational_offline', 'Đã hoàn tất ca trực & bàn giao xe'),
         };
     }
   };
@@ -298,11 +298,7 @@ export const StaffDashboardScreen: React.FC = () => {
 
   // Full Mission History
   const handleViewAllHistory = () => {
-    Alert.alert(
-      'Nhật Ký Ca Trực',
-      `Đã ghi nhận ${completedAssignments.length} sự cố cứu hộ được tiếp nhận và xử lý trong ca trực hôm nay.`,
-      [{ text: 'Đóng' }]
-    );
+    (navigation as any).navigate('StaffHistoryTab');
   };
 
   // Mark all notifications read
@@ -345,6 +341,8 @@ export const StaffDashboardScreen: React.FC = () => {
             unreadNotificationsCount={unreadNotificationsCount}
             onPressNotifications={() => setIsNotificationModalVisible(true)}
             onPressSettings={handleOpenSettings}
+            onPressLanguage={() => setIsLanguageModalVisible(true)}
+            currentLang={i18n.language}
             onPressAvatar={() =>
               Alert.alert(
                 'Kíp Trực Cấp Cứu',
@@ -364,10 +362,10 @@ export const StaffDashboardScreen: React.FC = () => {
               <View style={styles.heroAlertHeader}>
                 <View style={styles.emergencyTag}>
                   <Flame size={moderateScale(13)} color="#FFFFFF" />
-                  <Text style={styles.emergencyTagText}>LỆNH ĐIỀU ĐỘNG KHẨN CẤP</Text>
+                  <Text style={styles.emergencyTagText}>{t('staff.active_incident_banner', 'LỆNH ĐIỀU ĐỘNG KHẨN CẤP')}</Text>
                 </View>
                 <View style={styles.liveTimerPill}>
-                  <Text style={styles.liveTimerText}>CHẠM TIẾP NHẬN ⚡</Text>
+                  <Text style={styles.liveTimerText}>{t('staff.tap_accept_banner', 'CHẠM TIẾP NHẬN ⚡')}</Text>
                 </View>
               </View>
 
@@ -396,15 +394,15 @@ export const StaffDashboardScreen: React.FC = () => {
                   </Text>
                 </View>
                 <View style={[styles.liveTimerPill, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-                  <Text style={[styles.liveTimerText, { color: '#059669' }]}>TIẾP TỤC CA TRỰC →</Text>
+                  <Text style={[styles.liveTimerText, { color: '#059669' }]}>{t('staff.resume_shift_btn', 'TIẾP TỤC CA TRỰC →')}</Text>
                 </View>
               </View>
 
               <Text style={[styles.emergencyBannerTitle, { color: '#065F46' }]}>
-                {activeMissionAssignment.incidentTitle || 'Nhiệm Vụ Cứu Hộ Đang Diễn Ra'}
+                {activeMissionAssignment.incidentTitle || t('staff.emergency_active_title', 'Nhiệm Vụ Cứu Hộ Đang Diễn Ra')}
               </Text>
               <Text style={styles.emergencyBannerSub} numberOfLines={2}>
-                📍 {activeMissionAssignment.incidentAddress || 'Hiện trường sự cố'}
+                📍 {activeMissionAssignment.incidentAddress || t('staff.emergency_active_sub', 'Hiện trường sự cố')}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -417,7 +415,7 @@ export const StaffDashboardScreen: React.FC = () => {
                     <MapPin size={moderateScale(18)} color="#DC2626" />
                   </View>
                   <View style={styles.stationTextCol}>
-                    <Text style={styles.stationSubLabel}>Trạm trực hiện tại</Text>
+                    <Text style={styles.stationSubLabel}>{t('staff.current_duty_station', 'Trạm trực hiện tại')}</Text>
                     <Text style={styles.stationNameText} numberOfLines={1}>
                       {currentStationName}
                     </Text>
@@ -475,8 +473,8 @@ export const StaffDashboardScreen: React.FC = () => {
             shiftHoursElapsed={4.5}
             totalShiftHours={12}
             onTimeRate={100}
-            fuelStatus="Nhiên liệu 85%"
-            etaComparison="Nhanh hơn 1.2m"
+            fuelStatus={t('staff.fuel_status', 'Nhiên liệu 85%')}
+            etaComparison={t('staff.faster_by', 'Nhanh hơn 1.2m')}
           />
 
           {/* 4. Quick Actions: 2-Column Clean Utility Grid */}
@@ -515,8 +513,8 @@ export const StaffDashboardScreen: React.FC = () => {
                 </Text>
                 <Text style={styles.utilitySub} numberOfLines={1}>
                   {completedAssignments.length > 0
-                    ? `${completedAssignments.length} ca hoàn tất`
-                    : 'Lịch sử tiếp nhận'}
+                    ? t('staff.completed_cases', { count: completedAssignments.length, defaultValue: `${completedAssignments.length} ca hoàn tất` })
+                    : t('staff.mission_history_empty', 'Lịch sử tiếp nhận')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -524,15 +522,15 @@ export const StaffDashboardScreen: React.FC = () => {
 
           {/* 5. Station & Tactical Mini-Map Card */}
           <StationMiniMapCard
-            stationName={`${currentStationName} - Cứu Hộ & Cấp Cứu`}
+            stationName={`${currentStationName} - ${t('staff.rescue_and_ems', 'Cứu Hộ & Cấp Cứu')}`}
             stationAddress="Lô E2a-7, Đường D1, Khu Công Nghệ Cao, TP. Thủ Đức"
-            vehicleModel={`Xe Cứu Thương ICU #${responderPlate}`}
+            vehicleModel={`${t('staff.vehicle_ambulance_icu', 'Xe Cứu Thương ICU')} #${responderPlate}`}
             vehicleStatus={
               dutyStatus === 'online'
-                ? 'Đang trực tại trạm • Sẵn sàng xuất kích'
+                ? t('staff.vehicle_status_ready', 'Đang trực tại trạm • Sẵn sàng xuất kích')
                 : dutyStatus === 'busy'
-                ? 'Kiểm tra thiết bị & nạp khí SCBA'
-                : 'Đã nghỉ ca • Bàn giao xe'
+                ? t('staff.vehicle_status_busy', 'Kiểm tra thiết bị & nạp khí SCBA')
+                : t('staff.vehicle_status_off', 'Đã nghỉ ca • Bàn giao xe')
             }
             latitude={10.8415}
             longitude={106.8098}
@@ -557,7 +555,7 @@ export const StaffDashboardScreen: React.FC = () => {
           >
             <PhoneCall size={moderateScale(18)} color="#FFFFFF" strokeWidth={2.4} />
             <Text style={styles.emergencySosButtonText}>
-              GỌI ĐIỀU HÀNH KHẨN CẤP (24/7)
+              {t('staff.call_dispatch', 'GỌI ĐIỀU HÀNH KHẨN CẤP (24/7)')}
             </Text>
           </TouchableOpacity>
         </View>

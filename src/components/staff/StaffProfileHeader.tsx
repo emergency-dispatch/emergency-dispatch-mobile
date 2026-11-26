@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Bell, Settings } from 'lucide-react-native';
+import { Bell, Settings, Languages } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 
 interface StaffProfileHeaderProps {
   name?: string;
@@ -26,7 +27,10 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
   onPressNotifications,
   onPressSettings,
   onPressAvatar,
+  onPressLanguage,
+  currentLang = 'vi',
 }) => {
+  const { t } = useTranslation();
   const getStatusColor = () => {
     switch (dutyStatus) {
       case 'online':
@@ -73,12 +77,28 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
           {name}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {role} • Xe {vehiclePlate}
+          {role} • {t('staff.vehicle_prefix', 'Xe')} {vehiclePlate}
         </Text>
       </View>
 
-      {/* Right: Notification bell with badge dot + Settings gear */}
+      {/* Right: Language toggle + Notification bell with badge dot + Settings gear */}
       <View style={styles.actionsWrapper}>
+        {onPressLanguage && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.langBtn}
+            onPress={onPressLanguage}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessible={true}
+            accessibilityLabel="Đổi ngôn ngữ"
+          >
+            <Languages size={moderateScale(13)} color="#DC2626" />
+            <Text style={styles.langText}>
+              {currentLang?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           activeOpacity={0.7}
           style={styles.iconBtn}
@@ -163,6 +183,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(6),
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(16),
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  langText: {
+    fontSize: moderateScale(11),
+    fontWeight: '800',
+    color: '#DC2626',
   },
   iconBtn: {
     width: moderateScale(36),

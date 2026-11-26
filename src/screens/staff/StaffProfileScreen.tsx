@@ -111,14 +111,14 @@ export const StaffProfileScreen: React.FC = () => {
             .then((eq) => {
               if (isMounted && eq) setEquipments(eq);
             })
-            .catch(() => {});
+            .catch(() => { });
         } else {
           equipmentService
             .listEquipment()
             .then((eq) => {
               if (isMounted && eq) setEquipments(eq);
             })
-            .catch(() => {});
+            .catch(() => { });
         }
 
         if (effectiveRescueUnitId) {
@@ -140,13 +140,13 @@ export const StaffProfileScreen: React.FC = () => {
 
   // Helper for crew role display
   const formatCrewRole = (role?: string | null) => {
-    if (!role) return 'Chiến Sĩ Cứu Hộ';
+    if (!role) return t('staff.role_generic', 'Chiến Sĩ Cứu Hộ');
     const lower = role.toLowerCase();
-    if (lower.includes('commander') || lower.includes('chỉ huy')) return 'Chỉ Huy Kíp Trực';
-    if (lower.includes('driver') || lower.includes('lái')) return 'Lái Xe Cứu Hộ & Vận Hành';
-    if (lower.includes('medic') || lower.includes('y tế') || lower.includes('nurse')) return 'Y Tế Cấp Cứu';
-    if (lower.includes('fire') || lower.includes('cháy')) return 'Chiến Sĩ Chữa Cháy';
-    if (lower.includes('rescuer') || lower.includes('cứu')) return 'Chiến Sĩ Cứu Nạn Cứu Hộ';
+    if (lower.includes('commander') || lower.includes('chỉ huy')) return t('staff.role_commander', 'Chỉ Huy Kíp Trực');
+    if (lower.includes('driver') || lower.includes('lái')) return t('staff.role_driver', 'Lái Xe Cứu Hộ & Vận Hành');
+    if (lower.includes('medic') || lower.includes('y tế') || lower.includes('nurse')) return t('staff.role_medic', 'Y Tế Cấp Cứu');
+    if (lower.includes('fire') || lower.includes('cháy')) return t('staff.role_firefighter', 'Chiến Sĩ Chữa Cháy');
+    if (lower.includes('rescuer') || lower.includes('cứu')) return t('staff.role_rescuer', 'Chiến Sĩ Cứu Nạn Cứu Hộ');
     return role;
   };
 
@@ -220,19 +220,19 @@ export const StaffProfileScreen: React.FC = () => {
     const status = rescueUnitDetail?.status;
     switch (status) {
       case 'Available':
-        return { label: 'Sẵn Sàng Làm Nhiệm Vụ', color: '#059669', bg: '#ECFDF5' };
+        return { label: t('staff.status_ready_duty', 'Sẵn Sàng Làm Nhiệm Vụ'), color: '#059669', bg: '#ECFDF5' };
       case 'Dispatched':
-        return { label: 'Đang Di Chuyển', color: '#D97706', bg: '#FFFBEB' };
+        return { label: t('staff.status_en_route_duty', 'Đang Di Chuyển'), color: '#D97706', bg: '#FFFBEB' };
       case 'OnScene':
-        return { label: 'Tác Chiến Tại Hiện Trường', color: '#DC2626', bg: '#FEF2F2' };
+        return { label: t('staff.status_on_scene_duty', 'Tác Chiến Tại Hiện Trường'), color: '#DC2626', bg: '#FEF2F2' };
       case 'Maintenance':
-        return { label: 'Đang Bảo Trì Kỹ Thuật', color: '#64748B', bg: '#F1F5F9' };
+        return { label: t('staff.status_maintenance_duty', 'Đang Bảo Trì Kỹ Thuật'), color: '#64748B', bg: '#F1F5F9' };
       case 'CoolDown':
-        return { label: 'Đang Hồi Sức / Vệ Sinh', color: '#0284C7', bg: '#F0F9FF' };
+        return { label: t('staff.status_decon_duty', 'Đang Hồi Sức / Vệ Sinh'), color: '#0284C7', bg: '#F0F9FF' };
       default:
-        return { label: 'Sẵn Sàng Làm Nhiệm Vụ', color: '#059669', bg: '#ECFDF5' };
+        return { label: t('staff.status_ready_duty', 'Sẵn Sàng Làm Nhiệm Vụ'), color: '#059669', bg: '#ECFDF5' };
     }
-  }, [rescueUnitDetail?.status]);
+  }, [rescueUnitDetail?.status, t]);
 
   // Crew member call
   const handleCallCrew = (name: string, phone: string) => {
@@ -319,11 +319,11 @@ export const StaffProfileScreen: React.FC = () => {
 
             <View style={styles.heroTextInfo}>
               <View style={styles.staffIdPill}>
-                <Text style={styles.staffIdText}>MÃ NV: {user?.staffId || 'ST-RESCUE'}</Text>
+                <Text style={styles.staffIdText}>{t('staff.staff_id_badge', 'MÃ NV')}: {user?.staffId || 'ST-RESCUE'}</Text>
               </View>
-              <Text style={styles.heroName}>{user?.name || 'Chiến Sĩ Cứu Hộ'}</Text>
+              <Text style={styles.heroName}>{user?.name || t('staff.default_staff_name', 'Chiến Sĩ Cứu Hộ')}</Text>
               <Text style={styles.heroRole}>
-                {user?.crewRole ? `Kíp Cứu Hộ • ${formatCrewRole(user.crewRole)}` : 'Chiến Sĩ Kíp Trực Cứu Hộ'}
+                {user?.crewRole ? `${t('staff.crew_prefix', 'Kíp Cứu Hộ')} • ${formatCrewRole(user.crewRole)}` : t('staff.default_staff_name', 'Chiến Sĩ Kíp Trực Cứu Hộ')}
               </Text>
             </View>
           </View>
@@ -334,14 +334,14 @@ export const StaffProfileScreen: React.FC = () => {
           <View style={styles.stationRow}>
             <Building2 size={moderateScale(14)} color="#DC2626" />
             <Text style={styles.stationText} numberOfLines={1}>
-              {stationDetail ? `${stationDetail.name} • ${stationDetail.address}` : (myTeam?.stationName || user?.stationName || 'Trạm Cứu Hộ & PCCC')}
+              {stationDetail ? `${stationDetail.name} • ${stationDetail.address}` : (myTeam?.stationName || user?.stationName || t('staff.rescue_and_ems', 'Trạm Cứu Hộ & PCCC'))}
             </Text>
           </View>
           {!!(stationDetail?.headOperatorName || myTeam?.stationOperator?.fullName) && (
             <View style={[styles.stationRow, { marginTop: verticalScale(4) }]}>
               <Users size={moderateScale(13)} color="#0284C7" />
               <Text style={[styles.stationText, { color: '#0369A1' }]} numberOfLines={1}>
-                Operator phụ trách: {stationDetail?.headOperatorName || myTeam?.stationOperator?.fullName} ({stationDetail?.headOperatorPhone || myTeam?.stationOperator?.phoneNumber || 'N/A'})
+                {t('staff.operator_in_charge', 'Operator phụ trách')}: {stationDetail?.headOperatorName || myTeam?.stationOperator?.fullName} ({stationDetail?.headOperatorPhone || myTeam?.stationOperator?.phoneNumber || 'N/A'})
               </Text>
             </View>
           )}
@@ -354,15 +354,15 @@ export const StaffProfileScreen: React.FC = () => {
               <Truck size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Phương Tiện & Trang Thiết Bị Cứu Hộ</Text>
-              <Text style={styles.sectionSub}>Phương tiện & danh mục trang bị do trạm quản lý</Text>
+              <Text style={styles.sectionTitle}>{t('staff.vehicle_equipment_title', 'Phương Tiện & Trang Thiết Bị Cứu Hộ')}</Text>
+              <Text style={styles.sectionSub}>{t('staff.vehicle_equipment_sub', 'Phương tiện & danh mục trang bị do trạm quản lý')}</Text>
             </View>
           </View>
 
           <View style={styles.vehicleDetailsBox}>
             <View style={styles.vehiclePlateRow}>
               <Text style={styles.vehicleName}>
-                {rescueUnitDetail?.unitType ? `Xe ${rescueUnitDetail.unitType}` : 'Xe Cứu Hộ Chuyên Dụng'}
+                {rescueUnitDetail?.unitType ? `${t('staff.vehicle_prefix', 'Xe')} ${rescueUnitDetail.unitType}` : t('staff.vehicle_ambulance_icu', 'Xe Cứu Hộ Chuyên Dụng')}
               </Text>
               <View style={styles.plateBadge}>
                 <Text style={styles.plateText}>
@@ -388,14 +388,14 @@ export const StaffProfileScreen: React.FC = () => {
             <View style={styles.equipmentSection}>
               <View style={styles.equipmentHeaderRow}>
                 <Package size={moderateScale(14)} color="#DC2626" />
-                <Text style={styles.equipmentSectionTitle}>Trang thiết bị chuyên dụng:</Text>
-                <Text style={styles.equipmentCountBadge}>{equipments.length} danh mục</Text>
+                <Text style={styles.equipmentSectionTitle}>{t('staff.specialized_equipment', 'Trang thiết bị chuyên dụng:')}</Text>
+                <Text style={styles.equipmentCountBadge}>{t('staff.equipment_categories_count', { count: equipments.length, defaultValue: `${equipments.length} danh mục` })}</Text>
               </View>
 
               {equipments.length > 0 ? (
                 <View style={styles.equipmentGrid}>
-                  {equipments.slice(0, 8).map((eq) => (
-                    <View key={eq.id} style={styles.equipmentChip}>
+                  {equipments.slice(0, 8).map((eq, idx) => (
+                    <View key={eq.id ? `eq-${eq.id}-${idx}` : `eq-${idx}-${eq.name}`} style={styles.equipmentChip}>
                       <View
                         style={[
                           styles.eqStatusDot,
@@ -411,7 +411,7 @@ export const StaffProfileScreen: React.FC = () => {
                 </View>
               ) : (
                 <Text style={styles.equipmentEmptyText}>
-                  Đang tải danh mục trang thiết bị từ máy chủ điều phối...
+                  {t('staff.loading_equipment', 'Đang tải danh mục trang thiết bị từ máy chủ điều phối...')}
                 </Text>
               )}
             </View>
@@ -425,16 +425,16 @@ export const StaffProfileScreen: React.FC = () => {
               <Users size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Thành Viên Kíp Trực Phân Xưởng</Text>
+              <Text style={styles.sectionTitle}>{t('staff.squad_members_title', 'Thành Viên Kíp Trực Phân Xưởng')}</Text>
               <Text style={styles.sectionSub}>
                 {myTeam?.myTeamName || stationDetail?.name || myTeam?.stationName || user?.stationName || 'Kíp Trực Cứu Hộ'}
               </Text>
             </View>
           </View>
 
-          {crewList.map((member) => (
+          {crewList.map((member, idx) => (
             <View
-              key={member.id}
+              key={member.id ? `crew-${member.id}-${idx}` : `crew-${idx}-${member.fullName}`}
               style={[styles.crewMemberRow, member.isSelf && styles.crewMemberRowSelf]}
             >
               <View style={[styles.crewAvatarWrap, member.isSelf && { backgroundColor: '#FEF2F2' }]}>
@@ -444,7 +444,7 @@ export const StaffProfileScreen: React.FC = () => {
               </View>
               <View style={styles.crewInfoGroup}>
                 <Text style={styles.crewName}>
-                  {member.fullName} {member.isSelf ? '(Chính bạn)' : ''}
+                  {member.fullName} {member.isSelf ? '' : ''}
                 </Text>
                 <Text style={styles.crewRole}>{member.crewRole}</Text>
                 {!!member.phoneNumber && !member.isSelf && (
@@ -453,7 +453,7 @@ export const StaffProfileScreen: React.FC = () => {
               </View>
               {member.isSelf ? (
                 <View style={styles.selfBadge}>
-                  <Text style={styles.selfBadgeText}>BẠN</Text>
+                  <Text style={styles.selfBadgeText}>{t('staff.badge_you', 'BẠN')}</Text>
                 </View>
               ) : member.phoneNumber ? (
                 <TouchableOpacity
@@ -476,27 +476,31 @@ export const StaffProfileScreen: React.FC = () => {
               <Activity size={moderateScale(18)} color="#DC2626" />
             </View>
             <View style={styles.sectionTitleGroup}>
-              <Text style={styles.sectionTitle}>Hiệu Suất Phản Ứng Cứu Hộ</Text>
-              <Text style={styles.sectionSub}>Dữ liệu nhiệm vụ điều phối thực tế</Text>
+              <Text style={styles.sectionTitle}>{t('staff.response_performance_title', 'Hiệu Suất Phản Ứng Cứu Hộ')}</Text>
+              <Text style={styles.sectionSub}>{t('staff.response_performance_sub', 'Dữ liệu nhiệm vụ điều phối thực tế')}</Text>
             </View>
           </View>
 
           <View style={styles.statsGrid}>
-            <View style={styles.statBox}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.statBox}
+              onPress={() => (navigation as any).navigate('StaffHistoryTab')}
+            >
               <Text style={styles.statNumber}>{missionStats.resolved}</Text>
-              <Text style={styles.statLabel}>Ca Hoàn Thành</Text>
-            </View>
+              <Text style={styles.statLabel}>{t('staff.stat_completed', 'Ca Hoàn Thành')}</Text>
+            </TouchableOpacity>
             <View style={styles.statBox}>
               <Text style={[styles.statNumber, { color: '#DC2626' }]}>{missionStats.active}</Text>
-              <Text style={styles.statLabel}>Đang Xử Lý</Text>
+              <Text style={styles.statLabel}>{t('staff.stat_in_progress', 'Đang Xử Lý')}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={[styles.statNumber, { color: '#0284C7' }]}>{missionStats.total}</Text>
-              <Text style={styles.statLabel}>Tổng Phân Công</Text>
+              <Text style={styles.statLabel}>{t('staff.stat_total_assigned', 'Tổng Phân Công')}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={[styles.statNumber, { color: '#059669' }]}>{missionStats.rate}%</Text>
-              <Text style={styles.statLabel}>Tỷ Lệ Đạt</Text>
+              <Text style={styles.statLabel}>{t('staff.stat_success_rate', 'Tỷ Lệ Đạt')}</Text>
             </View>
           </View>
         </View>
@@ -509,7 +513,7 @@ export const StaffProfileScreen: React.FC = () => {
             </View>
             <View style={styles.sectionTitleGroup}>
               <Text style={styles.sectionTitle}>{t('staff.settings_title')}</Text>
-              <Text style={styles.sectionSub}>Tùy chỉnh thông báo và ngôn ngữ hiển thị</Text>
+              <Text style={styles.sectionSub}>{t('staff.settings_sub', 'Tùy chỉnh thông báo và ngôn ngữ hiển thị')}</Text>
             </View>
           </View>
 
@@ -594,12 +598,12 @@ export const StaffProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isHandoverModalVisible}
         type="warning"
-        title="Bàn Giao Ca Trực KCN"
-        description="Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu hộ KCN cùng trang thiết bị cho kíp trực tiếp theo."
-        highlightBadge="BÀN GIAO XE CỨU HỘ"
-        highlightText="Vui lòng kiểm tra vệ sinh khử khuẩn và hiện trạng trang thiết bị trước khi bàn giao."
-        confirmText="Xác Nhận Bàn Giao"
-        cancelText="Hủy Bỏ"
+        title={t('staff.handover_modal_title', 'Bàn Giao Ca Trực KCN')}
+        description={t('staff.handover_modal_desc', 'Bạn đang yêu cầu hoàn tất ca trực và bàn giao xe cứu hộ KCN cùng trang thiết bị cho kíp trực tiếp theo.')}
+        highlightBadge={t('staff.handover_modal_badge', 'BÀN GIAO XE CỨU HỘ')}
+        highlightText={t('staff.handover_modal_highlight', 'Vui lòng kiểm tra vệ sinh khử khuẩn và hiện trạng trang thiết bị trước khi bàn giao.')}
+        confirmText={t('staff.handover_confirm', 'Xác Nhận Bàn Giao')}
+        cancelText={t('staff.handover_cancel', 'Hủy Bỏ')}
         onConfirm={handleConfirmHandover}
         onCancel={() => setIsHandoverModalVisible(false)}
       />
@@ -608,10 +612,10 @@ export const StaffProfileScreen: React.FC = () => {
       <ConfirmationModal
         visible={isLogoutModalVisible}
         type="danger"
-        title="Đăng Xuất Khỏi Ca Trực"
-        description="Bạn có chắc chắn muốn đăng xuất? Vị trí GPS của xe cứu thương sẽ tạm thời ngắt kết nối với Trung tâm Điều phối Cứu hộ."
-        confirmText="Đăng Xuất"
-        cancelText="Ở Lại Trực"
+        title={t('staff.logout_modal_title', 'Đăng Xuất Khỏi Ca Trực')}
+        description={t('staff.logout_modal_desc', 'Bạn có chắc chắn muốn đăng xuất? Vị trí GPS của xe cứu thương sẽ tạm thời ngắt kết nối với Trung tâm Điều phối Cứu hộ.')}
+        confirmText={t('staff.logout_confirm', 'Đăng Xuất')}
+        cancelText={t('staff.logout_stay', 'Ở Lại Trực')}
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutModalVisible(false)}
       />

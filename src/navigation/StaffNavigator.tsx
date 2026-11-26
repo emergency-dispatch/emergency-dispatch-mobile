@@ -2,9 +2,10 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Truck, Navigation, Flame, ShieldCheck } from 'lucide-react-native';
+import { Truck, Navigation, Flame, ShieldCheck, FileCheck2 } from 'lucide-react-native';
 import { StaffTabParamList } from './types';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
+import { StaffMissionHistoryScreen } from '../screens/staff/StaffMissionHistoryScreen';
 import { SafetyMapScreen } from '../screens/citizen/SafetyMapScreen';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
 import { StaffProfileScreen } from '../screens/staff/StaffProfileScreen';
@@ -60,6 +61,16 @@ export const StaffNavigator: React.FC = () => {
           tabBarLabel: t('staff.tab_dashboard'),
           tabBarIcon: ({ color }) => (
             <Truck color={color} size={iconSize} strokeWidth={2.4} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="StaffHistoryTab"
+        component={StaffMissionHistoryScreen}
+        options={{
+          tabBarLabel: t('staff.tab_history', 'Báo cáo'),
+          tabBarIcon: ({ color }) => (
+            <FileCheck2 color={color} size={iconSize} strokeWidth={2.2} />
           ),
         }}
       />

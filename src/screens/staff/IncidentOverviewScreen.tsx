@@ -121,7 +121,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         const stage = mapBackendStatusToStage(activeAssign.status);
         setCurrentStage(stage);
         if (mapped.id) {
-          AsyncStorage.setItem(`@mission_stage_${mapped.id}`, stage).catch(() => {});
+          AsyncStorage.setItem(`@mission_stage_${mapped.id}`, stage).catch(() => { });
         }
       } else {
         setActiveIncidentData(null);
@@ -159,7 +159,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           setCurrentStage(savedStage as MissionStage);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [activeIncidentData?.id]);
 
   // Sync state if navigation route params change
@@ -223,7 +223,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         if (tracking.dispatchStatus) {
           const mappedStage = mapBackendStatusToStage(tracking.dispatchStatus);
           setCurrentStage(mappedStage);
-          AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, mappedStage).catch(() => {});
+          AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, mappedStage).catch(() => { });
         }
 
         const isRouteValid =
@@ -256,7 +256,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           if (myAssignment.status) {
             const stageFromAssignment = mapBackendStatusToStage(myAssignment.status);
             setCurrentStage(stageFromAssignment);
-            AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, stageFromAssignment).catch(() => {});
+            AsyncStorage.setItem(`@mission_stage_${targetIncidentId}`, stageFromAssignment).catch(() => { });
           }
         }
         cooperating = assignments.filter((u) => u.id !== (myAssignment?.id || activeAssignmentId));
@@ -267,24 +267,24 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         try {
           const safeOrigin =
             activeIncidentData &&
-            isCoordinatesInVietnam(
-              activeIncidentData.originCoords.latitude,
-              activeIncidentData.originCoords.longitude
-            )
+              isCoordinatesInVietnam(
+                activeIncidentData.originCoords.latitude,
+                activeIncidentData.originCoords.longitude
+              )
               ? activeIncidentData.originCoords
               : { latitude: 10.8415, longitude: 106.8098, label: 'FPT Station' };
           const safeTarget =
             activeIncidentData &&
-            isCoordinatesInVietnam(
-              activeIncidentData.targetCoords.latitude,
-              activeIncidentData.targetCoords.longitude
-            )
+              isCoordinatesInVietnam(
+                activeIncidentData.targetCoords.latitude,
+                activeIncidentData.targetCoords.longitude
+              )
               ? activeIncidentData.targetCoords
               : {
-                  latitude: 10.845,
-                  longitude: 106.814,
-                  label: activeIncidentData?.address || 'Hiện trường',
-                };
+                latitude: 10.845,
+                longitude: 106.814,
+                label: activeIncidentData?.address || 'Hiện trường',
+              };
           const localRoute = await mapboxService.getRouteWithDetails(safeOrigin, safeTarget);
           if (isMounted && localRoute.points.length > 2) {
             newTrajectory = localRoute.points;
@@ -314,10 +314,10 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           operatorNotes: details?.operatorNotes || prev.operatorNotes || '',
           targetCoords: details?.latitude && details?.longitude
             ? {
-                latitude: details.latitude,
-                longitude: details.longitude,
-                label: details.locationAddress || prev.targetCoords.label,
-              }
+              latitude: details.latitude,
+              longitude: details.longitude,
+              label: details.locationAddress || prev.targetCoords.label,
+            }
             : prev.targetCoords,
           distanceKm: newDistanceKm ?? prev.distanceKm,
           etaMinutes: newEtaMinutes ?? prev.etaMinutes,
@@ -417,7 +417,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   const handleSwipeEnRoute = useCallback(async () => {
     setCurrentStage('en_route');
     if (activeIncidentData?.id) {
-      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'en_route').catch(() => {});
+      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'en_route').catch(() => { });
     }
     const targetId = activeAssignmentId || assignmentId;
     if (targetId) {
@@ -434,7 +434,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     async (nextStage: MissionStage) => {
       setCurrentStage(nextStage);
       if (activeIncidentData?.id) {
-        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, nextStage).catch(() => {});
+        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, nextStage).catch(() => { });
       }
       const targetId = activeAssignmentId || assignmentId;
 
@@ -478,7 +478,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
     }
     setCurrentStage('completed');
     if (activeIncidentData?.id) {
-      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => {});
+      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => { });
     }
     setIsCompleteModalVisible(true);
   };
@@ -501,7 +501,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0284C7" />
-          <Text style={styles.loadingText}>Đang kiểm tra lệnh điều phối tác chiến...</Text>
+          <Text style={styles.loadingText}>{t('staff.loading_cad', 'Đang kiểm tra lệnh điều phối tác chiến...')}</Text>
         </View>
       </ScreenContainer>
     );
@@ -529,7 +529,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
             <View style={styles.standbyBadge}>
               <View style={styles.standbyDot} />
-              <Text style={styles.standbyBadgeText} numberOfLines={1}>TRỰC SẴN SÀNG</Text>
+              <Text style={styles.standbyBadgeText} numberOfLines={1}>{t('staff.standby_badge', 'TRỰC SẴN SÀNG')}</Text>
             </View>
 
             <TouchableOpacity
@@ -539,7 +539,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             >
               <PhoneCall size={moderateScale(13)} color="#FFFFFF" />
               <Text style={styles.callDispatcherText} numberOfLines={1}>
-                Gọi Điều Hành
+                {t('staff.call_operator_btn', 'Gọi Điều Hành')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -556,42 +556,42 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               </View>
             </View>
 
-            <Text style={styles.emptyTitle}>Không Có Sự Cố Cần Xử Lý</Text>
+            <Text style={styles.emptyTitle}>{t('staff.no_incident_title', 'Không Có Sự Cố Cần Xử Lý')}</Text>
             <Text style={styles.emptySubtitle}>
-              Hiện tại không có ca cấp cứu hoặc lệnh điều động nào được giao cho bạn hoặc kíp trực. Hệ thống CAD sẽ tự động phát tín hiệu chuông khẩn cấp và hiển thị bản đồ lộ trình ngay khi có lệnh mới.
+              {t('staff.no_incident_desc', 'Hiện tại không có ca cấp cứu hoặc lệnh điều động nào được giao cho bạn hoặc kíp trực. Hệ thống CAD sẽ tự động phát tín hiệu chuông khẩn cấp và hiển thị bản đồ lộ trình ngay khi có lệnh mới.')}
             </Text>
 
             {/* CAD Standby Status Card */}
             <View style={styles.cadStatusBox}>
               <View style={styles.cadStatusHeader}>
                 <View style={styles.standbyDot} />
-                <Text style={styles.cadStatusHeaderText}>KÍP TRỰC SẴN SÀNG NHẬN LỆNH</Text>
+                <Text style={styles.cadStatusHeaderText}>{t('staff.cad_ready_badge', 'KÍP TRỰC SẴN SÀNG NHẬN LỆNH')}</Text>
               </View>
 
               <View style={styles.cadDivider} />
 
               <View style={styles.cadStatusRow}>
-                <Text style={styles.cadStatusLabel}>Đơn vị tác chiến:</Text>
+                <Text style={styles.cadStatusLabel}>{t('staff.cad_unit_label', 'Đơn vị tác chiến:')}</Text>
                 <Text style={styles.cadStatusValue} numberOfLines={1}>
                   {user?.teamName || user?.name || user?.vehiclePlate || 'Đội cứu hộ cơ động'}
                 </Text>
               </View>
 
               <View style={styles.cadStatusRow}>
-                <Text style={styles.cadStatusLabel}>Trạm điều phối:</Text>
+                <Text style={styles.cadStatusLabel}>{t('staff.cad_station_label', 'Trạm điều phối:')}</Text>
                 <Text style={styles.cadStatusValue} numberOfLines={1}>
                   {user?.stationName || 'Trung tâm Điều phối Cứu hộ 115'}
                 </Text>
               </View>
 
-              <View style={styles.cadStatusRow}>
-                <Text style={styles.cadStatusLabel}>Kênh trực ban:</Text>
+              {/* <View style={styles.cadStatusRow}>
+                <Text style={styles.cadStatusLabel}>{t('staff.cad_channel_label', 'Kênh trực ban:')}</Text>
                 <Text style={styles.cadStatusValue} numberOfLines={1}>
                   {user?.stationOperatorPhone
                     ? `${user.stationOperatorName || 'Tổng đài'} (${user.stationOperatorPhone})`
                     : 'Tổng đài 112 / 115'}
                 </Text>
-              </View>
+              </View> */}
             </View>
 
             {/* Action Buttons */}
@@ -602,7 +602,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 onPress={() => checkActiveMission(true)}
               >
                 <RefreshCw size={moderateScale(18)} color="#FFFFFF" />
-                <Text style={styles.emptyRefreshBtnText}>Quét & Làm Mới Lệnh Điều Động</Text>
+                <Text style={styles.emptyRefreshBtnText}>{t('staff.cad_refresh_btn', 'Quét & Làm Mới Lệnh Điều Động')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -617,7 +617,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 }}
               >
                 <Radio size={moderateScale(18)} color="#0284C7" />
-                <Text style={styles.emptyNavBtnText}>Về Bảng Điều Khiển Ca Trực</Text>
+                <Text style={styles.emptyNavBtnText}>{t('staff.cad_back_dashboard', 'Về Bảng Điều Khiển Ca Trực')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -627,9 +627,8 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
             visible={isCallDispatcherModalVisible}
             type="danger"
             title={t('staff.call_dispatcher')}
-            description={`Kết nối trực tiếp đến kênh đàm thoại điều phối viên ${
-              user?.stationOperatorName || 'Tổng Đài'
-            }?`}
+            description={`Kết nối trực tiếp đến kênh đàm thoại điều phối viên ${user?.stationOperatorName || 'Tổng Đài'
+              }?`}
             highlightBadge="KÊNH KHẨN CẤP ĐIỀU PHỐI"
             confirmText={t('staff.call_dispatcher')}
             cancelText={t('common.cancel')}
@@ -682,7 +681,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                   style={styles.callDispatcherText}
                   numberOfLines={1}
                 >
-                  Gọi Điều Hành
+                  {t('staff.call_operator_btn', 'Gọi Điều Hành')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -710,7 +709,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
               assignedUnit={incident.assignedUnit}
               incidentTitle={incident.title}
               backendRouteTrajectory={routeTrajectory}
-              onRecenter={() => {}}
+              onRecenter={() => { }}
               isMapExpanded={true}
               onToggleMapExpand={handleToggleMapExpand}
             />
@@ -825,7 +824,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
                 assignedUnit={incident.assignedUnit}
                 incidentTitle={incident.title}
                 backendRouteTrajectory={routeTrajectory}
-                onRecenter={() => {}}
+                onRecenter={() => { }}
                 isMapExpanded={false}
                 onToggleMapExpand={handleToggleMapExpand}
               />
@@ -859,7 +858,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
           type="danger"
           title={t('staff.call_dispatcher')}
           description={`Kết nối thoại trực tiếp đến Tổng đài Điều phối Cứu hộ cho Ca trực ${incident.code}?`}
-          highlightBadge="KÊNH KHẨN CẤP ĐIỀU PHỐI"
+          highlightBadge={t('staff.emergency_dispatch_channel', 'KÊNH KHẨN CẤP ĐIỀU PHỐI')}
           confirmText={t('staff.call_dispatcher')}
           cancelText={t('common.cancel')}
           onConfirm={handleConfirmCallDispatcher}
@@ -878,11 +877,11 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         <ConfirmationModal
           visible={isCompleteModalVisible}
           type="success"
-          title="Nghiệm Thu Thành Công"
-          description="Báo cáo nghiệm thu ca trực đã được đồng bộ về máy chủ CAD thành công."
-          highlightBadge="ĐÃ HOÀN TẤT"
+          title={t('staff.incident_contained_title', 'Nghiệm Thu Thành Công')}
+          description={t('staff.incident_contained_desc', 'Báo cáo nghiệm thu ca trực đã được đồng bộ về máy chủ CAD thành công.')}
+          highlightBadge={t('staff.badge_completed', 'ĐÃ HOÀN TẤT')}
           singleButton
-          confirmText="Về Bảng Điều Khiển"
+          confirmText={t('staff.back_to_dashboard', 'Về Bảng Điều Khiển')}
           onConfirm={() => {
             setIsCompleteModalVisible(false);
             if (navigation?.canGoBack()) {

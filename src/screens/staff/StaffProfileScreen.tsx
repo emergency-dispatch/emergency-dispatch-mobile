@@ -25,7 +25,6 @@ import {
   Flame,
   Sliders,
   Languages,
-  CalendarDays,
   Package,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
@@ -469,32 +468,6 @@ export const StaffProfileScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* 4.5. Work Shift Registration Banner Card */}
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.schedulePromoCard}
-          onPress={() => (navigation as any).navigate('StaffScheduleTab')}
-        >
-          <View style={styles.schedulePromoLeft}>
-            <View style={styles.schedulePromoIconWrap}>
-              <CalendarDays size={moderateScale(22)} color="#DC2626" />
-            </View>
-            <View style={styles.schedulePromoTextGroup}>
-              <View style={styles.scheduleBadgeRow}>
-                <Text style={styles.schedulePromoTitle}>
-                  {t('staff.schedule_menu_item')}
-                </Text>
-                <View style={styles.scheduleOpenPill}>
-                  <Text style={styles.scheduleOpenPillText}>ĐANG MỞ</Text>
-                </View>
-              </View>
-              <Text style={styles.schedulePromoSub}>
-                {t('staff.schedule_menu_sub')}
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={moderateScale(18)} color="#DC2626" />
-        </TouchableOpacity>
 
         {/* 5. Performance & Shift Stats (Calculated from Real Assignments) */}
         <View style={styles.sectionCard}>
@@ -1137,67 +1110,5 @@ const styles = StyleSheet.create({
   footerSpace: {
     height: verticalScale(20),
   },
-  schedulePromoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: moderateScale(16),
-    padding: scale(14),
-    marginBottom: verticalScale(14),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: '#FCA5A5',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  schedulePromoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    paddingRight: scale(8),
-  },
-  schedulePromoIconWrap: {
-    width: moderateScale(42),
-    height: moderateScale(42),
-    borderRadius: moderateScale(21),
-    backgroundColor: '#FEF2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: scale(12),
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  schedulePromoTextGroup: {
-    flex: 1,
-  },
-  scheduleBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-  },
-  schedulePromoTitle: {
-    fontSize: moderateScale(12.5),
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  scheduleOpenPill: {
-    backgroundColor: '#DC2626',
-    borderRadius: moderateScale(4),
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(1),
-  },
-  scheduleOpenPillText: {
-    fontSize: moderateScale(8.5),
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  schedulePromoSub: {
-    fontSize: moderateScale(10.5),
-    color: '#64748B',
-    marginTop: verticalScale(2),
-  },
+
 });

@@ -5,7 +5,6 @@ import { RootStackParamList } from './types';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
-import { StaffScheduleScreen } from '../screens/staff/StaffScheduleScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -22,13 +21,6 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="IncidentOverview"
           component={IncidentOverviewScreen}
-          options={{
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="StaffSchedule"
-          component={StaffScheduleScreen}
           options={{
             animation: 'slide_from_right',
           }}

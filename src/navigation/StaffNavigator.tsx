@@ -2,10 +2,9 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Truck, Navigation, Flame, ShieldCheck, CalendarDays } from 'lucide-react-native';
+import { Truck, Navigation, Flame, ShieldCheck } from 'lucide-react-native';
 import { StaffTabParamList } from './types';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
-import { StaffScheduleScreen } from '../screens/staff/StaffScheduleScreen';
 import { SafetyMapScreen } from '../screens/citizen/SafetyMapScreen';
 import { IncidentOverviewScreen } from '../screens/staff/IncidentOverviewScreen';
 import { StaffProfileScreen } from '../screens/staff/StaffProfileScreen';
@@ -61,16 +60,6 @@ export const StaffNavigator: React.FC = () => {
           tabBarLabel: t('staff.tab_dashboard'),
           tabBarIcon: ({ color }) => (
             <Truck color={color} size={iconSize} strokeWidth={2.4} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="StaffScheduleTab"
-        component={StaffScheduleScreen}
-        options={{
-          tabBarLabel: t('staff.tab_schedule'),
-          tabBarIcon: ({ color }) => (
-            <CalendarDays color={color} size={iconSize} strokeWidth={2.2} />
           ),
         }}
       />

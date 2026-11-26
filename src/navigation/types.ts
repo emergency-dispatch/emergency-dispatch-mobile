@@ -31,7 +31,6 @@ export type CitizenTabParamList = {
 // Staff (Đội cứu hộ khẩn cấp) Bottom Tabs
 export type StaffTabParamList = {
   StaffDashboardTab: undefined;
-  StaffScheduleTab: undefined;
   TacticalMapTab: undefined;
   ActiveMissionTab: { incident?: EmergencyIncident } | undefined;
   StaffProfileTab: undefined;
@@ -48,6 +47,5 @@ export type RootStackParamList = {
   CitizenMain?: NavigatorScreenParams<CitizenTabParamList>;
   StaffMain?: NavigatorScreenParams<StaffTabParamList>;
   IncidentOverview?: { incident?: EmergencyIncident };
-  StaffSchedule?: undefined;
   NotFound?: undefined;
 };

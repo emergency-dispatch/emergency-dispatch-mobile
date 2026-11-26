@@ -48,7 +48,7 @@ export const mediaService = {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.85,
+        quality: 0.6,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -85,7 +85,7 @@ export const mediaService = {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.85,
+        quality: 0.6,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {

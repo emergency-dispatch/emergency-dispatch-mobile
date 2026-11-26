@@ -303,19 +303,23 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      const mediaUrls: string[] = [];
-      if (pendingSosAsset) {
-        setSosSendingLoadingText(currentLang === 'en' ? 'Uploading scene photo...' : 'Đang tải ảnh hiện trường lên...');
-        const url = await mediaService.uploadMedia(pendingSosAsset);
-        if (url) mediaUrls.push(url);
+      const activeAudio = submittedAudio ?? pendingSosAudio;
+      if (pendingSosAsset || activeAudio?.uri) {
+        setSosSendingLoadingText(
+          pendingSosAsset && activeAudio?.uri
+            ? (currentLang === 'en' ? 'Uploading scene photo & audio...' : 'Đang tải ảnh & ghi âm hiện trường lên...')
+            : pendingSosAsset
+              ? (currentLang === 'en' ? 'Uploading scene photo...' : 'Đang tải ảnh hiện trường lên...')
+              : (currentLang === 'en' ? 'Uploading scene audio...' : 'Đang tải ghi âm hiện trường lên...')
+        );
       }
 
-      const activeAudio = submittedAudio ?? pendingSosAudio;
-      const audioAttachments = [];
-      if (activeAudio?.uri) {
-        setSosSendingLoadingText(currentLang === 'en' ? 'Uploading scene audio...' : 'Đang tải ghi âm hiện trường lên...');
-        audioAttachments.push(await mediaService.uploadAudioAttachment(activeAudio));
-      }
+      const [uploadedPhotoUrl, uploadedAudio] = await Promise.all([
+        pendingSosAsset ? mediaService.uploadMedia(pendingSosAsset) : Promise.resolve(null),
+        activeAudio?.uri ? mediaService.uploadAudioAttachment(activeAudio) : Promise.resolve(null),
+      ]);
+      const mediaUrls: string[] = uploadedPhotoUrl ? [uploadedPhotoUrl] : [];
+      const audioAttachments = uploadedAudio ? [uploadedAudio] : [];
 
       setSosSendingLoadingText(
         currentLang === 'en'

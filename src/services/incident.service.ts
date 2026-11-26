@@ -101,6 +101,12 @@ const DEFAULT_SERVICE_AREA: ServiceAreaDto = {
 
 const isEnLang = () => getCurrentLanguage() === 'en';
 
+// Cache service area 60s để tránh gọi lặp khi vừa mở SOS vừa bấm gửi SOS
+const SERVICE_AREA_CACHE_TTL_MS = 60_000;
+let cachedServiceArea: ServiceAreaDto | null | undefined;
+let cachedServiceAreaAt = 0;
+let inFlightServiceArea: Promise<ServiceAreaDto | null> | null = null;
+
 export const incidentService = {
   /**
    * POST /api/incidents — Gửi báo cáo sự cố khẩn cấp SOS
@@ -324,19 +330,35 @@ export const incidentService = {
   },
 
   /**
-   * GET /api/settings/service-area — Lấy cấu hình bán kính hoạt động nền tảng
+   * GET /api/settings/service-area — Lấy cấu hình bán kính hoạt động nền tảng (cache 60s + gộp request trùng)
    */
-  async getServiceArea(): Promise<ServiceAreaDto | null> {
-    try {
-      const response = await apiService.get<BackendApiResponse<ServiceAreaDto | { values: ServiceAreaDto }>>(
-        Endpoints.SETTINGS.SERVICE_AREA
-      );
-      if (!response.data) return null;
-      const data = response.data as any;
-      return (data && data.values) ? data.values : data;
-    } catch {
-      return null;
+  async getServiceArea(forceRefresh = false): Promise<ServiceAreaDto | null> {
+    if (!forceRefresh && cachedServiceArea !== undefined && Date.now() - cachedServiceAreaAt < SERVICE_AREA_CACHE_TTL_MS) {
+      return cachedServiceArea;
     }
+    if (!forceRefresh && inFlightServiceArea) {
+      return inFlightServiceArea;
+    }
+
+    inFlightServiceArea = (async () => {
+      try {
+        const response = await apiService.get<BackendApiResponse<ServiceAreaDto | { values: ServiceAreaDto }>>(
+          Endpoints.SETTINGS.SERVICE_AREA
+        );
+        if (!response.data) return cachedServiceArea ?? null;
+        const data = response.data as any;
+        const resolved = (data && data.values) ? data.values : data;
+        cachedServiceArea = resolved;
+        cachedServiceAreaAt = Date.now();
+        return resolved;
+      } catch {
+        return cachedServiceArea ?? null;
+      } finally {
+        inFlightServiceArea = null;
+      }
+    })();
+
+    return inFlightServiceArea;
   },
 
   /**

@@ -1046,7 +1046,7 @@ export const SafetyMapScreen: React.FC = () => {
     });
     const unsubSettingsChanged = mobileIncidentHub.on(MobileHubEvents.ReceiveSettingsChanged, (evt: any) => {
       if (String(evt?.key ?? '').toLowerCase() !== 'servicearea') return;
-      incidentService.getServiceArea().then((area) => {
+      incidentService.getServiceArea(true).then((area) => {
         if (active && area) setServiceArea(area);
       }).catch(() => { });
     });
@@ -1403,17 +1403,13 @@ export const SafetyMapScreen: React.FC = () => {
         return;
       }
 
-      const mediaUrls: string[] = [];
-      if (pendingSosAsset) {
-        const url = await mediaService.uploadMedia(pendingSosAsset);
-        if (url) mediaUrls.push(url);
-      }
-
       const activeAudio = submittedAudio ?? pendingSosAudio;
-      const audioAttachments = [];
-      if (activeAudio?.uri) {
-        audioAttachments.push(await mediaService.uploadAudioAttachment(activeAudio));
-      }
+      const [uploadedPhotoUrl, uploadedAudio] = await Promise.all([
+        pendingSosAsset ? mediaService.uploadMedia(pendingSosAsset) : Promise.resolve(null),
+        activeAudio?.uri ? mediaService.uploadAudioAttachment(activeAudio) : Promise.resolve(null),
+      ]);
+      const mediaUrls: string[] = uploadedPhotoUrl ? [uploadedPhotoUrl] : [];
+      const audioAttachments = uploadedAudio ? [uploadedAudio] : [];
 
       const rawPhone = (user?.phone || profile.phoneNumber || '').trim().replace(/[\s.-]/g, '');
       const validPhone = /^(0|\+84)[35789][0-9]{8}$/.test(rawPhone) ? rawPhone : undefined;

@@ -33,7 +33,7 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { staffDispatchService } from '../../services/staffDispatch.service';
@@ -161,6 +161,11 @@ export const StaffMissionHistoryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'today' | 'week'>('all');
   const [selectedAssignment, setSelectedAssignment] = useState<DispatchAssignmentResponseDto | null>(null);
+  const [sigImageError, setSigImageError] = useState(false);
+
+  useEffect(() => {
+    setSigImageError(false);
+  }, [selectedAssignment]);
 
   // Localize Incident Titles if in English
   const formatIncidentTitle = useCallback((title?: string | null) => {
@@ -345,6 +350,13 @@ export const StaffMissionHistoryScreen: React.FC = () => {
   useEffect(() => {
     loadHistoryData();
   }, [loadHistoryData]);
+
+  // Reload data immediately whenever staff navigates to History tab
+  useFocusEffect(
+    useCallback(() => {
+      loadHistoryData();
+    }, [loadHistoryData])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -877,6 +889,31 @@ export const StaffMissionHistoryScreen: React.FC = () => {
                       {t('staff.cad_signature_verified', 'ĐÃ XÁC THỰC CHỮ KÝ SỐ CAD')}
                     </Text>
                   </View>
+
+                  {/* Hiển thị hình ảnh chữ ký số thực tế đã tải lên Cloudinary */}
+                  {selectedAssignment.completionReport?.signatureUrl && !sigImageError ? (
+                    <View style={styles.signatureImageContainer}>
+                      <Image
+                        source={{ uri: selectedAssignment.completionReport.signatureUrl }}
+                        style={styles.signatureImage}
+                        resizeMode="contain"
+                        onError={() => setSigImageError(true)}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.signatureFallbackContainer}>
+                      <ShieldCheck size={moderateScale(26)} color="#059669" />
+                      <View style={styles.signatureFallbackTextBox}>
+                        <Text style={styles.signatureFallbackTitle}>
+                          {t('staff.cad_seal_certified', 'CHỨNG THƯ KỸ THUẬT SỐ CAD')}
+                        </Text>
+                        <Text style={styles.signatureFallbackSub}>
+                          {t('staff.cad_seal_sub', 'Biên bản đã được ký niêm phong điện tử')}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
                   <Text style={styles.signatureInfoText}>
                     {t('staff.signature_sealed_desc', {
                       name: user?.name || t('staff.role_commander', 'Chỉ huy kíp trực'),
@@ -1390,6 +1427,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     gap: verticalScale(6),
+  },
+  signatureImageContainer: {
+    height: verticalScale(90),
+    backgroundColor: '#F8FAFC',
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: verticalScale(4),
+    overflow: 'hidden',
+  },
+  signatureImage: {
+    width: '90%',
+    height: '85%',
+  },
+  signatureFallbackContainer: {
+    height: verticalScale(70),
+    backgroundColor: '#F0FDF4',
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#86EFAC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: scale(14),
+    gap: scale(10),
+    marginVertical: verticalScale(4),
+  },
+  signatureFallbackTextBox: {
+    flex: 1,
+  },
+  signatureFallbackTitle: {
+    fontSize: moderateScale(11.5),
+    fontWeight: '800',
+    color: '#166534',
+  },
+  signatureFallbackSub: {
+    fontSize: moderateScale(10.5),
+    color: '#15803D',
+    marginTop: verticalScale(2),
   },
   signatureBadge: {
     flexDirection: 'row',

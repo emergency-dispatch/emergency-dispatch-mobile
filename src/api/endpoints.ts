@@ -65,6 +65,7 @@ export const Endpoints = {
   },
   MEDIA: {
     UPLOAD: '/media/upload',
+    UPLOAD_SIGNATURE: '/media/upload-signature',
     AUDIO_PREVIEW: '/media/audio/preview-url',
   },
   STATIONS: {

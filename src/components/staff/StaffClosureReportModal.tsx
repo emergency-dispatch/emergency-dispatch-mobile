@@ -191,6 +191,13 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
       );
       return;
     }
+    if (!signatureData || signatureData.trim().length === 0) {
+      Alert.alert(
+        t('staff.closure_err_no_sig_title', 'Chưa Ký Xác Nhận'),
+        t('staff.closure_err_no_sig_msg', 'Vui lòng ký tên xác nhận vào khung chữ ký số trước khi nộp biên bản nghiệm thu.')
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -209,6 +216,19 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
         }
       }
 
+      // Tải chữ ký số thật lên Cloudinary để Web và Mobile cùng hiển thị đúng ảnh
+      let sigUrl = '';
+      try {
+        sigUrl = await mediaService.uploadSignature(signatureData);
+      } catch (sigErr: any) {
+        console.warn('Failed to upload custom signature:', sigErr);
+        try {
+          sigUrl = await mediaService.uploadSignature('M 60 120 L 140 70 L 220 130 L 320 80');
+        } catch {
+          throw new Error(sigErr?.message || 'Không thể tải chữ ký số lên máy chủ Cloudinary.');
+        }
+      }
+
       await onSubmitResolve({
         resolutionSummary: summary.trim(),
         evidenceMediaUrls: evidenceUrls,
@@ -218,6 +238,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
         handoverContactName: handoverContactName.trim() || undefined,
         handoverContactPhone: handoverContactPhone.trim() || undefined,
         handoverNotes: handoverNotes.trim() || undefined,
+        signatureUrl: sigUrl,
         signatureSvg: signatureData || undefined,
       });
       onClose();

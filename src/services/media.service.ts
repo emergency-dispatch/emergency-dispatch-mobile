@@ -184,6 +184,20 @@ export const mediaService = {
   },
 
   /**
+   * POST /api/media/upload-signature — Tải nét vẽ chữ ký SVG/base64 lên Cloudinary dưới dạng PNG thật
+   */
+  async uploadSignature(svgData: string): Promise<string> {
+    const response = await apiService.post<BackendApiResponse<MediaUploadResult>>(
+      Endpoints.MEDIA.UPLOAD_SIGNATURE,
+      { svgData }
+    );
+    if (!response.success || !response.data?.url) {
+      throw new Error(response.message || 'Không thể tải chữ ký số lên máy chủ.');
+    }
+    return response.data.url;
+  },
+
+  /**
    * POST /api/media/audio/preview-url — Xin link nghe lại audio (hết hạn sau 5 phút) bằng uploadToken
    */
   async getAudioPreviewUrl(uploadToken: string): Promise<AudioPlaybackUrlDto> {

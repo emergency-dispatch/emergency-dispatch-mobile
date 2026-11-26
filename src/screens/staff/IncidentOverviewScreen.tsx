@@ -469,18 +469,27 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
   // Handle Submit Closure Report
   const handleSubmitClosureReport = async (payload: ResolveAssignmentPayload) => {
     const targetId = activeAssignmentId || assignmentId;
-    if (targetId) {
-      try {
-        await staffDispatchService.resolveAssignment(targetId, payload);
-      } catch (err: any) {
-        console.warn('Resolve assignment failed:', err.message);
+    if (!targetId) {
+      Alert.alert(t('common.error', 'Lỗi'), 'Không tìm thấy mã phân công nhiệm vụ.');
+      return;
+    }
+
+    try {
+      await staffDispatchService.resolveAssignment(targetId, payload);
+      staffDispatchService.invalidateCache();
+      setCurrentStage('completed');
+      if (activeIncidentData?.id) {
+        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => {});
       }
+      setIsCompleteModalVisible(true);
+    } catch (err: any) {
+      console.error('Resolve assignment failed:', err);
+      Alert.alert(
+        t('common.error', 'Lỗi Nghiệm Thu'),
+        err.message || 'Không thể nghiệm thu đóng nhiệm vụ. Vui lòng thử lại.'
+      );
+      throw err;
     }
-    setCurrentStage('completed');
-    if (activeIncidentData?.id) {
-      AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => { });
-    }
-    setIsCompleteModalVisible(true);
   };
 
   // Handle Back

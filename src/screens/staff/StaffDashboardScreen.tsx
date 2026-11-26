@@ -13,7 +13,7 @@ import {
   AppStateStatus,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useNavigation, useIsFocused, useFocusEffect } from '@react-navigation/native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import {
   MapPin,
@@ -185,6 +185,13 @@ export const StaffDashboardScreen: React.FC = () => {
     await loadStaffData(true);
     setRefreshing(false);
   }, [loadStaffData]);
+
+  // Reload immediately when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadStaffData(true);
+    }, [loadStaffData])
+  );
 
   // Derived assignments - filter out any already handled in this session
   const dispatchedAssignment = useMemo(() => {

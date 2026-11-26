@@ -160,8 +160,8 @@ export const MissionDetailModal: React.FC<MissionDetailModalProps> = ({
                     {mission.severity === 'critical'
                       ? t('staff.sev_critical_label', 'CẤP CỨU MỨC 1 - NGUY KỊCH')
                       : mission.severity === 'urgent'
-                      ? t('staff.sev_urgent_label', 'CẤP CỨU MỨC 2 - KHẨN CẤP')
-                      : t('staff.sev_standard_label', 'TIÊU CHUẨN')}
+                        ? t('staff.sev_urgent_label', 'CẤP CỨU MỨC 2 - KHẨN CẤP')
+                        : t('staff.sev_standard_label', 'TIÊU CHUẨN')}
                   </Text>
                 </View>
                 <View style={styles.statusPill}>

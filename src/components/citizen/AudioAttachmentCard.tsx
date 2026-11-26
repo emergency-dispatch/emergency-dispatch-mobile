@@ -60,7 +60,7 @@ export const AudioAttachmentCard: React.FC<AudioAttachmentCardProps> = ({
         return;
       }
 
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => { });
 
       if (localUri) {
         if (status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.1)) {
@@ -77,8 +77,8 @@ export const AudioAttachmentCard: React.FC<AudioAttachmentCardProps> = ({
         const res = resolvePlaybackUrl
           ? await resolvePlaybackUrl()
           : uploadToken
-          ? await mediaService.getAudioPreviewUrl(uploadToken)
-          : null;
+            ? await mediaService.getAudioPreviewUrl(uploadToken)
+            : null;
         if (!res?.url) {
           throw new Error(isEn ? 'No audio playback source available.' : 'Không có nguồn phát âm thanh.');
         }
@@ -105,14 +105,20 @@ export const AudioAttachmentCard: React.FC<AudioAttachmentCardProps> = ({
   const displayDuration = status.duration > 0 ? status.duration : durationSeconds || 0;
   const trimmedTranscript = transcript?.trim();
 
+  const timeText =
+    status.playing || status.currentTime > 0
+      ? `${formatDuration(status.currentTime)} / ${formatDuration(displayDuration)}`
+      : formatDuration(displayDuration);
+
   return (
-    <View style={[styles.card, compact && styles.cardCompact]}>
-      <View style={styles.row}>
+    <View style={[styles.card, compact && styles.cardCompact, compact && !trimmedTranscript && !errorMsg && styles.cardPill]}>
+      <View style={[styles.row, compact && styles.rowCompact]}>
         <TouchableOpacity
-          style={styles.playBtn}
+          style={[styles.playBtn, compact && styles.playBtnCompact]}
           onPress={handleTogglePlay}
           disabled={isLoadingUrl}
           activeOpacity={0.8}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           accessibilityLabel={
             status.playing
               ? (isEn ? 'Pause recording' : 'Tạm dừng ghi âm')
@@ -122,29 +128,34 @@ export const AudioAttachmentCard: React.FC<AudioAttachmentCardProps> = ({
           {isLoadingUrl ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : status.playing ? (
-            <Pause size={16} color="#FFFFFF" />
+            <Pause size={compact ? 11 : 13} color="#FFFFFF" />
           ) : (
-            <Play size={16} color="#FFFFFF" />
+            <Play size={compact ? 11 : 13} color="#FFFFFF" />
           )}
         </TouchableOpacity>
 
-        <View style={styles.metaCol}>
-          <View style={styles.titleRow}>
-            <Mic size={13} color="#0284C7" />
-            <Text style={styles.titleText} numberOfLines={1}>
-              {displayTitle}
+        {compact ? (
+          <View style={styles.compactMeta}>
+            <Mic size={11} color="#0284C7" />
+            <Text style={styles.compactLabel} numberOfLines={1}>
+              {isEn ? 'Audio' : 'Ghi âm'} · {timeText}
             </Text>
           </View>
-          <Text style={styles.durationText}>
-            {status.playing || status.currentTime > 0
-              ? `${formatDuration(status.currentTime)} / ${formatDuration(displayDuration)}`
-              : `${isEn ? 'Duration' : 'Thời lượng'} ${formatDuration(displayDuration)}`}
-          </Text>
-        </View>
+        ) : (
+          <View style={styles.metaCol}>
+            <View style={styles.titleRow}>
+              <Mic size={12} color="#0284C7" />
+              <Text style={styles.titleText} numberOfLines={1}>
+                {displayTitle}
+              </Text>
+            </View>
+            <Text style={styles.durationText}>{timeText}</Text>
+          </View>
+        )}
 
         {onRemove && (
           <TouchableOpacity
-            style={styles.removeBtn}
+            style={[styles.removeBtn, compact && styles.removeBtnCompact]}
             onPress={() => {
               try {
                 player.pause();
@@ -153,9 +164,10 @@ export const AudioAttachmentCard: React.FC<AudioAttachmentCardProps> = ({
               }
               onRemove();
             }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             accessibilityLabel={isEn ? 'Delete recording' : 'Xóa ghi âm'}
           >
-            <Trash2 size={15} color="#DC2626" />
+            <Trash2 size={compact ? 12 : 14} color="#DC2626" />
           </TouchableOpacity>
         )}
       </View>
@@ -180,25 +192,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#BAE6FD',
     borderRadius: 12,
-    padding: 10,
-    gap: 8,
+    padding: 8,
+    gap: 6,
   },
   cardCompact: {
-    padding: 8,
-    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+  },
+  cardPill: {
+    alignSelf: 'flex-start',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+  },
+  rowCompact: {
+    gap: 7,
   },
   playBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playBtnCompact: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+  },
+  compactMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingRight: 2,
+  },
+  compactLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   metaCol: {
     flex: 1,
@@ -221,12 +256,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   removeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  removeBtnCompact: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   errorText: {
     fontSize: 11.5,

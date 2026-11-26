@@ -451,22 +451,6 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
                               ))}
                             </View>
                           )}
-                          {item.audioAttachments && item.audioAttachments.length > 0 && (
-                            <View style={{ marginTop: 6, gap: 6 }}>
-                              {item.audioAttachments.map((aud) => (
-                                <AudioAttachmentCard
-                                  key={aud.id}
-                                  compact
-                                  durationSeconds={aud.durationSeconds}
-                                  transcript={aud.transcript}
-                                  transcriptionStatus={aud.transcriptionStatus}
-                                  resolvePlaybackUrl={() =>
-                                    incidentService.getSupplementAudioPlaybackUrl(incidentId, item.id, aud.id)
-                                  }
-                                />
-                              ))}
-                            </View>
-                          )}
                         </View>
                       ))}
                     </View>

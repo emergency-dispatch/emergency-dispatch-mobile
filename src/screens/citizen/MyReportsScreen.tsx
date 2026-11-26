@@ -36,7 +36,7 @@ import { storage } from '../../services/storage';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
-import { SupplementModal, CitizenTrackingModal, AudioAttachmentCard } from '../../components/citizen';
+import { SupplementModal, CitizenTrackingModal } from '../../components/citizen';
 
 const isDuplicateCancellation = (reason?: string | number | null) => {
   const r = String(reason ?? '').toLowerCase();
@@ -124,55 +124,36 @@ const ReportCard = React.memo<ReportCardProps>(
           </Text>
         </View>
 
-        <View style={styles.footerMeta}>
-          <View style={styles.metaItem}>
-            <Calendar size={12} color="#94A3B8" />
-            <Text style={styles.metaText}>{formatReportDate(item.createdAt)}</Text>
-          </View>
-          {(() => {
-            const mediaList = item.mediaItems || [];
-            const isAudioMedia = (m: any) => {
-              const lower = String(m?.mediaUrl || '').toLowerCase().split('?')[0];
-              return (
-                String(m?.mediaType) === 'Audio' ||
-                m?.mediaType === 2 ||
-                lower.includes('/emergency_dispatch/audio/') ||
-                lower.includes('/video/authenticated/') ||
-                /\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
-              );
-            };
-            const visualMedia = mediaList.filter((m) => Boolean(m.mediaUrl) && !isAudioMedia(m));
-            const audioMedia = mediaList.filter(
-              (m) => String(m.mediaType) === 'Audio' || (m.mediaType as any) === 2
-            );
+        {(() => {
+          const mediaList = item.mediaItems || [];
+          const isAudioMedia = (m: any) => {
+            const lower = String(m?.mediaUrl || '').toLowerCase().split('?')[0];
             return (
-              <>
-                {visualMedia.length > 0 && (
-                  <View style={styles.metaItem}>
-                    <ImageIcon size={12} color="#0284C7" />
-                    <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
-                      {t('reports.images_count', { count: visualMedia.length })}
-                    </Text>
-                  </View>
-                )}
-                {audioMedia.length > 0 && (
-                  <View style={{ width: '100%', marginTop: 8, gap: 6 }}>
-                    {audioMedia.map((aud) => (
-                      <AudioAttachmentCard
-                        key={aud.id}
-                        compact
-                        durationSeconds={aud.durationSeconds}
-                        transcript={aud.transcript}
-                        transcriptionStatus={aud.transcriptionStatus}
-                        resolvePlaybackUrl={() => incidentService.getAudioPlaybackUrl(item.id, aud.id)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </>
+              String(m?.mediaType) === 'Audio' ||
+              m?.mediaType === 2 ||
+              lower.includes('/emergency_dispatch/audio/') ||
+              lower.includes('/video/authenticated/') ||
+              /\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
             );
-          })()}
-        </View>
+          };
+          const visualMedia = mediaList.filter((m) => Boolean(m.mediaUrl) && !isAudioMedia(m));
+          return (
+            <View style={styles.footerMeta}>
+              <View style={styles.metaItem}>
+                <Calendar size={12} color="#94A3B8" />
+                <Text style={styles.metaText}>{formatReportDate(item.createdAt)}</Text>
+              </View>
+              {visualMedia.length > 0 && (
+                <View style={styles.metaItem}>
+                  <ImageIcon size={12} color="#0284C7" />
+                  <Text style={[styles.metaText, { color: '#0284C7', fontWeight: '700' }]}>
+                    {t('reports.images_count', { count: visualMedia.length })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Confirmed duplicate notice (only after Operator confirms) */}
         {isConfirmedDuplicateReport(item) ? (() => {
@@ -842,6 +823,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   metaItem: {
     flexDirection: 'row',

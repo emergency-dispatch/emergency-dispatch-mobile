@@ -1,24 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  Easing,
+  Image,
 } from 'react-native';
 import {
   Building2,
   Navigation,
-  Compass,
   MapPin,
-  Truck,
   ExternalLink,
   Crosshair,
-  ShieldAlert,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
+import { MapboxView } from '../map/MapboxView';
+import { mapboxService, MapMarkerItem } from '../../services/mapbox.service';
 
 interface StationMiniMapCardProps {
   stationName?: string;
@@ -36,48 +34,54 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
   stationAddress = '201 Lý Thường Kiệt, Phường 7, Quận 10, TP.HCM',
   vehicleModel = 'Xe Cứu Thương ICU Chuyên Dụng #AMB-04',
   vehicleStatus,
-  latitude = 10.7712,
-  longitude = 106.6578,
+  latitude = 10.8415,
+  longitude = 106.8098,
   onPressNavigateStation,
   onPressOpenFullMap,
 }) => {
   const { t } = useTranslation();
   const displayStatus = vehicleStatus || t('staff.default_vehicle_status');
-  // Radar wave animations
-  const radarWave1 = useRef(new Animated.Value(0)).current;
-  const radarWave2 = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const createWaveAnimation = (animValue: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(animValue, {
-            toValue: 1,
-            duration: 2400,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(animValue, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    };
+  const validLat = latitude && latitude > 8.0 && latitude < 24.0 ? latitude : 10.8415;
+  const validLng = longitude && longitude > 102.0 && longitude < 110.0 ? longitude : 106.8098;
 
-    const anim1 = createWaveAnimation(radarWave1, 0);
-    const anim2 = createWaveAnimation(radarWave2, 1200);
+  const markers = useMemo<MapMarkerItem[]>(
+    () => [
+      {
+        id: 'station-main-pin',
+        title: stationName,
+        description: stationAddress,
+        latitude: validLat,
+        longitude: validLng,
+        type: 'station',
+        isMine: true,
+        status: 'active',
+        plateNumber: vehicleModel,
+      },
+      {
+        id: 'ambulance-main-pin',
+        title: vehicleModel,
+        description: displayStatus,
+        latitude: validLat,
+        longitude: validLng,
+        type: 'ambulance',
+        status: 'active',
+        plateNumber: vehicleModel,
+      },
+    ],
+    [stationName, stationAddress, validLat, validLng, vehicleModel, displayStatus]
+  );
 
-    anim1.start();
-    anim2.start();
-
-    return () => {
-      anim1.stop();
-      anim2.stop();
-    };
-  }, []);
+  const staticMapUrl = useMemo(() => {
+    return mapboxService.getStaticMapUrl({
+      latitude: validLat,
+      longitude: validLng,
+      zoom: 15,
+      width: 600,
+      height: 350,
+      pinColor: 'dc2626',
+    });
+  }, [validLat, validLng]);
 
   return (
     <View style={styles.container}>
@@ -109,78 +113,36 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
         </View>
       </View>
 
-      {/* Stylized Tactical Mini-Map Box */}
+      {/* Real Live Mapbox Map Box */}
       <View style={styles.mapContainer}>
-        {/* Coordinate Grid Overlay */}
-        <View style={styles.gridOverlay}>
-          <View style={styles.gridLineHorizontal1} />
-          <View style={styles.gridLineHorizontal2} />
-          <View style={styles.gridLineVertical1} />
-          <View style={styles.gridLineVertical2} />
-        </View>
-
-        {/* Tactical Radar Wave Circles */}
-        <Animated.View
-          style={[
-            styles.radarWave,
-            {
-              transform: [
-                {
-                  scale: radarWave1.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.3, 2.6],
-                  }),
-                },
-              ],
-              opacity: radarWave1.interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: [0.8, 0.4, 0],
-              }),
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.radarWave,
-            {
-              transform: [
-                {
-                  scale: radarWave2.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.3, 2.6],
-                  }),
-                },
-              ],
-              opacity: radarWave2.interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: [0.8, 0.4, 0],
-              }),
-            },
-          ]}
+        {/* 1. Fast loading Static Map fallback */}
+        <Image
+          source={{ uri: staticMapUrl }}
+          style={styles.staticMapImage}
+          resizeMode="cover"
         />
 
-        {/* Concentric Reference Rings */}
-        <View style={styles.staticRingInner} />
-        <View style={styles.staticRingOuter} />
-
-        {/* Center Ambulance Marker */}
-        <View style={styles.centerMarker}>
-          <View style={styles.pulseBeaconRing}>
-            <View style={styles.vehicleMarkerBadge}>
-              <Truck size={moderateScale(16)} color="#FFFFFF" />
-            </View>
-          </View>
+        {/* 2. Interactive Mapbox Vector Map overlay */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <MapboxView
+            userLatitude={validLat}
+            userLongitude={validLng}
+            markers={markers}
+            interactive={false}
+            mapStyle="streets"
+            style={StyleSheet.absoluteFill}
+          />
         </View>
 
-        {/* Map Top Badge: Live Coordinates */}
+        {/* 3. Floating Map Top Badge: Live Coordinates */}
         <View style={styles.coordsBadge}>
           <Crosshair size={moderateScale(11)} color="#DC2626" />
           <Text style={styles.coordsText} numberOfLines={1}>
-            {latitude.toFixed(4)}° N, {longitude.toFixed(4)}° E
+            {validLat.toFixed(4)}° N, {validLng.toFixed(4)}° E
           </Text>
         </View>
 
-        {/* Map Bottom Badge: Live Status & Open Map Action */}
+        {/* 4. Floating Map Bottom Badge: Live Status & Open Map Action */}
         <View style={styles.mapBottomBar}>
           <View style={styles.statusPill}>
             <View style={styles.liveGreenDot} />
@@ -190,7 +152,7 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.15}
             >
-              {t('staff.live_tracking')}
+              {t('staff.live_tracking', 'Đang định vị trực tiếp')}
             </Text>
           </View>
 
@@ -198,13 +160,14 @@ export const StationMiniMapCard: React.FC<StationMiniMapCardProps> = ({
             activeOpacity={0.8}
             style={styles.expandMapButton}
             onPress={onPressOpenFullMap}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text
               style={styles.expandMapText}
               numberOfLines={1}
               maxFontSizeMultiplier={1.15}
             >
-              {t('staff.open_map')}
+              {t('staff.open_map', 'Mở Bản Đồ')}
             </Text>
             <ExternalLink size={moderateScale(12)} color="#DC2626" />
           </TouchableOpacity>
@@ -300,105 +263,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapContainer: {
-    height: verticalScale(140),
-    backgroundColor: '#F8FAFC',
+    height: verticalScale(145),
+    backgroundColor: '#E2E8F0',
     borderRadius: moderateScale(12),
     overflow: 'hidden',
     position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  gridOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  gridLineHorizontal1: {
-    position: 'absolute',
-    top: '33%',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  gridLineHorizontal2: {
-    position: 'absolute',
-    top: '66%',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  gridLineVertical1: {
-    position: 'absolute',
-    left: '33%',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  gridLineVertical2: {
-    position: 'absolute',
-    left: '66%',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  radarWave: {
-    position: 'absolute',
-    width: moderateScale(90),
-    height: moderateScale(90),
-    borderRadius: moderateScale(45),
-    borderWidth: 1.5,
-    borderColor: 'rgba(220, 38, 38, 0.35)',
-    backgroundColor: 'rgba(220, 38, 38, 0.04)',
-  },
-  staticRingInner: {
-    position: 'absolute',
-    width: moderateScale(70),
-    height: moderateScale(70),
-    borderRadius: moderateScale(35),
-    borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.2)',
-    borderStyle: 'dashed',
-  },
-  staticRingOuter: {
-    position: 'absolute',
-    width: moderateScale(125),
-    height: moderateScale(125),
-    borderRadius: moderateScale(62.5),
-    borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.1)',
-  },
-  centerMarker: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  pulseBeaconRing: {
-    padding: moderateScale(4),
-    borderRadius: moderateScale(22),
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  vehicleMarkerBadge: {
-    width: moderateScale(32),
-    height: moderateScale(32),
-    borderRadius: moderateScale(16),
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+  staticMapImage: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
   },
   coordsBadge: {
     position: 'absolute',
@@ -406,13 +282,15 @@ const styles = StyleSheet.create({
     left: scale(8),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     gap: scale(4),
+    zIndex: 20,
+    elevation: 4,
   },
   coordsText: {
     fontSize: moderateScale(10),
@@ -428,11 +306,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 20,
+    elevation: 4,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),
@@ -447,14 +327,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   statusPillText: {
-    fontSize: moderateScale(9.5),
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    color: '#0F172A',
   },
   expandMapButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingVertical: verticalScale(3),
     paddingHorizontal: scale(8),
     borderRadius: moderateScale(6),

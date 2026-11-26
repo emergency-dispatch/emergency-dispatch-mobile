@@ -468,7 +468,30 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
 
   // Handle Submit Closure Report
   const handleSubmitClosureReport = async (payload: ResolveAssignmentPayload) => {
-    const targetId = activeAssignmentId || assignmentId;
+    let targetId = activeAssignmentId || assignmentId;
+
+    const isGuid = (id?: string) =>
+      !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    if (!targetId || !isGuid(targetId)) {
+      try {
+        const myAssignments = await staffDispatchService.getMyAssignments(true);
+        const match = myAssignments.find(
+          (a) =>
+            a.incidentId === activeIncidentData?.id ||
+            a.status === 'OnScene' ||
+            a.status === 'EnRoute' ||
+            a.status === 'Accepted'
+        );
+        if (match) {
+          targetId = match.id;
+          setActiveAssignmentId(match.id);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     if (!targetId) {
       Alert.alert(t('common.error', 'Lỗi'), 'Không tìm thấy mã phân công nhiệm vụ.');
       return;

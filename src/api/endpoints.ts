@@ -88,6 +88,7 @@ export const Endpoints = {
   },
   SETTINGS: {
     SERVICE_AREA: '/settings/service-area',
+    CITIZEN_INCIDENT_ALERTS: '/settings/citizen-incident-alerts',
   },
   CITIZEN_MAP: {
     INCIDENTS: '/citizen-map/incidents',

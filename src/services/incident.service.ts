@@ -103,9 +103,13 @@ const isEnLang = () => getCurrentLanguage() === 'en';
 
 // Cache service area 60s để tránh gọi lặp khi vừa mở SOS vừa bấm gửi SOS
 const SERVICE_AREA_CACHE_TTL_MS = 60_000;
+const DEFAULT_REPORT_COOLDOWN_MS = 3 * 60_000;
 let cachedServiceArea: ServiceAreaDto | null | undefined;
 let cachedServiceAreaAt = 0;
 let inFlightServiceArea: Promise<ServiceAreaDto | null> | null = null;
+let cachedReportCooldownMs = DEFAULT_REPORT_COOLDOWN_MS;
+let cachedReportCooldownAt = 0;
+let inFlightReportCooldown: Promise<number> | null = null;
 
 export const incidentService = {
   /**
@@ -359,6 +363,41 @@ export const incidentService = {
     })();
 
     return inFlightServiceArea;
+  },
+
+  getCachedReportCooldownMs(): number {
+    return cachedReportCooldownMs;
+  },
+
+  async getReportCooldownMs(forceRefresh = false): Promise<number> {
+    if (!forceRefresh && cachedReportCooldownAt > 0 && Date.now() - cachedReportCooldownAt < SERVICE_AREA_CACHE_TTL_MS) {
+      return cachedReportCooldownMs;
+    }
+    if (!forceRefresh && inFlightReportCooldown) {
+      return inFlightReportCooldown;
+    }
+
+    inFlightReportCooldown = (async () => {
+      try {
+        const response = await apiService.get<
+          BackendApiResponse<{ values?: { reportCooldownMinutes?: number }; reportCooldownMinutes?: number }>
+        >(Endpoints.SETTINGS.CITIZEN_INCIDENT_ALERTS);
+        const data = response.data;
+        const rawMinutes = data?.values?.reportCooldownMinutes ?? data?.reportCooldownMinutes;
+        if (typeof rawMinutes === 'number' && Number.isFinite(rawMinutes)) {
+          const clamped = Math.min(60, Math.max(0, Math.round(rawMinutes)));
+          cachedReportCooldownMs = clamped * 60_000;
+        }
+        cachedReportCooldownAt = Date.now();
+        return cachedReportCooldownMs;
+      } catch {
+        return cachedReportCooldownMs;
+      } finally {
+        inFlightReportCooldown = null;
+      }
+    })();
+
+    return inFlightReportCooldown;
   },
 
   /**

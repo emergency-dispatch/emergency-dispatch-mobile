@@ -94,7 +94,7 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
           >
             <Languages size={moderateScale(13)} color="#DC2626" />
             <Text style={styles.langText}>
-              {currentLang?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+              {currentLang?.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
             </Text>
           </TouchableOpacity>
         )}

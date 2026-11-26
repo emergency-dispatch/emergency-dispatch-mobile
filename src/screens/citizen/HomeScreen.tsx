@@ -39,6 +39,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useLocationStore } from '../../store/useLocationStore';
 import { storage } from '../../services/storage';
 import { requireSosAuth } from '../../utils/sosAuth';
+import { mobileIncidentHub, MobileHubEvents } from '../../services/signalr.service';
 
 type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'HomeTab'>;
 
@@ -116,21 +117,34 @@ export const HomeScreen: React.FC = () => {
     refreshLocation();
 
     const checkCooldown = async () => {
+      const cooldownMs = incidentService.getCachedReportCooldownMs();
+      if (cooldownMs <= 0) {
+        setCooldownSeconds(0);
+        return;
+      }
       const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
       const last = await storage.getItem<number>(cooldownKey);
       if (last) {
         const diff = Date.now() - Number(last);
-        if (diff < 180000) {
-          setCooldownSeconds(Math.ceil((180000 - diff) / 1000));
+        if (diff < cooldownMs) {
+          setCooldownSeconds(Math.ceil((cooldownMs - diff) / 1000));
           return;
         }
       }
       setCooldownSeconds(0);
     };
 
+    incidentService.getReportCooldownMs().then(() => checkCooldown()).catch(() => { });
     checkCooldown();
     const interval = setInterval(checkCooldown, 1000);
-    return () => clearInterval(interval);
+    const unsubSettings = mobileIncidentHub.on(MobileHubEvents.ReceiveSettingsChanged, (evt: any) => {
+      if (String(evt?.key ?? '').toLowerCase() !== 'citizenincidentalerts') return;
+      incidentService.getReportCooldownMs(true).then(() => checkCooldown()).catch(() => { });
+    });
+    return () => {
+      clearInterval(interval);
+      unsubSettings();
+    };
   }, [user?.id]);
 
   const handleRefreshGps = () => {
@@ -351,7 +365,7 @@ export const HomeScreen: React.FC = () => {
       await recordIncidentId(created.id, { ...created, reportedEventType: eventType } as any);
       const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
       await storage.setItem(cooldownKey, Date.now());
-      setCooldownSeconds(180);
+      setCooldownSeconds(Math.ceil(incidentService.getCachedReportCooldownMs() / 1000));
       setPendingSosAsset(null);
       setPendingSosAudio(null);
       setIsSosSuccessModalVisible(true);

@@ -223,7 +223,7 @@ export const ProfileScreen: React.FC = () => {
           >
             <Languages size={14} color="#DC2626" />
             <Text style={styles.headerLangText}>
-              {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+              {i18n.language?.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -323,7 +323,7 @@ export const ProfileScreen: React.FC = () => {
         >
           <Languages size={14} color="#DC2626" />
           <Text style={styles.headerLangText}>
-            {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+            {i18n.language?.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
           </Text>
         </TouchableOpacity>
       </View>

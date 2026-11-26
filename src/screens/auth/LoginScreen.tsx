@@ -289,7 +289,7 @@ export const LoginScreen: React.FC = () => {
             >
               <Languages size={13} color="#DC2626" />
               <Text style={styles.langPillText}>
-                {i18n.language?.startsWith('vi') ? '🇻🇳 VI' : '🇬🇧 EN'}
+                {i18n.language?.startsWith('vi') ? '🇻🇳' : '🇬🇧'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -1045,10 +1045,14 @@ export const SafetyMapScreen: React.FC = () => {
       loadMapData(true);
     });
     const unsubSettingsChanged = mobileIncidentHub.on(MobileHubEvents.ReceiveSettingsChanged, (evt: any) => {
-      if (String(evt?.key ?? '').toLowerCase() !== 'servicearea') return;
-      incidentService.getServiceArea(true).then((area) => {
-        if (active && area) setServiceArea(area);
-      }).catch(() => { });
+      const key = String(evt?.key ?? '').toLowerCase();
+      if (key === 'servicearea') {
+        incidentService.getServiceArea(true).then((area) => {
+          if (active && area) setServiceArea(area);
+        }).catch(() => { });
+      } else if (key === 'citizenincidentalerts') {
+        incidentService.getReportCooldownMs(true).catch(() => { });
+      }
     });
 
     return () => {
@@ -1337,20 +1341,23 @@ export const SafetyMapScreen: React.FC = () => {
       }
 
       // Check cooldown
-      const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
-      const last = await storage.getItem<number>(cooldownKey);
-      if (last && Date.now() - Number(last) < 180000) {
-        const remaining = Math.ceil((180000 - (Date.now() - Number(last))) / 1000);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        Alert.alert(
-          t('map.cooldown_wait_title', 'Vui Lòng Chờ'),
-          t('map.cooldown_wait_desc', 'Bạn vừa gửi một yêu cầu cứu hộ. Vui lòng chờ {{min}}:{{sec}} trước khi gửi lại.', {
-            min: m,
-            sec: s < 10 ? `0${s}` : s,
-          })
-        );
-        return;
+      const cooldownMs = await incidentService.getReportCooldownMs();
+      if (cooldownMs > 0) {
+        const cooldownKey = user?.id ? `LAST_SOS_REPORTED_AT_${user.id}` : 'LAST_SOS_REPORTED_AT';
+        const last = await storage.getItem<number>(cooldownKey);
+        if (last && Date.now() - Number(last) < cooldownMs) {
+          const remaining = Math.ceil((cooldownMs - (Date.now() - Number(last))) / 1000);
+          const m = Math.floor(remaining / 60);
+          const s = remaining % 60;
+          Alert.alert(
+            t('map.cooldown_wait_title', 'Vui Lòng Chờ'),
+            t('map.cooldown_wait_desc', 'Bạn vừa gửi một yêu cầu cứu hộ. Vui lòng chờ {{min}}:{{sec}} trước khi gửi lại.', {
+              min: m,
+              sec: s < 10 ? `0${s}` : s,
+            })
+          );
+          return;
+        }
       }
 
       setIsSosCameraVisible(true);

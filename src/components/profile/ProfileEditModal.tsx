@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import {
+  Modal,
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Switch,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -20,27 +19,16 @@ import {
   X,
   Save,
   User,
-  HeartPulse,
-  Phone,
   Info,
-  Plus,
-  Trash2,
   Check,
   AlertTriangle,
-  Pill,
-  Accessibility,
-  Droplet,
   Camera,
   Calendar,
   ChevronDown,
   Images,
 } from 'lucide-react-native';
 import { mediaService } from '../../services/media.service';
-import {
-  UserEmergencyProfile,
-  BloodType,
-  IceContact,
-} from '../../types/profile';
+import { UserEmergencyProfile } from '../../types/profile';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
@@ -72,8 +60,6 @@ const DECADES = [
   { label: '< 1960', start: MIN_BIRTH_YEAR, end: 1959 },
 ];
 
-import { EmergencyBadge } from './EmergencyBadge';
-
 interface ProfileEditModalProps {
   visible: boolean;
   onClose: () => void;
@@ -82,67 +68,7 @@ interface ProfileEditModalProps {
   initialTab?: TabKey;
 }
 
-export type TabKey = 'identity' | 'medical' | 'ice' | 'special';
-
-const BLOOD_TYPES: BloodType[] = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Chưa rõ'];
-
-const SUGGESTED_ALLERGIES = [
-  'Penicillin',
-  'Aspirin',
-  'Kháng sinh Sulfonamide',
-  'Hải sản (Tôm, Cua)',
-  'Đậu phộng (Lạc)',
-  'Phấn hoa',
-  'Vết đốt côn trùng/ong',
-];
-
-const SUGGESTED_CONDITIONS = [
-  'Hen suyễn',
-  'Tim mạch / Thiếu máu cục bộ',
-  'Tăng huyết áp',
-  'Tiểu đường Type 2',
-  'Động kinh',
-  'Rối loạn đông máu',
-  'Suy thận mãn',
-];
-
-const SUGGESTED_MOBILITY = [
-  'Khiếm thính',
-  'Khiếm thị',
-  'Sử dụng xe lăn',
-  'Liệt chi / Yếu cơ',
-  'Khó thở khi gắng sức',
-  'Gãy xương đang cố định',
-];
-
-const SUGGESTED_ALLERGIES_EN = [
-  'Penicillin',
-  'Aspirin',
-  'Sulfonamide antibiotics',
-  'Seafood (Shrimp, Crab)',
-  'Peanuts',
-  'Pollen',
-  'Insect / Bee stings',
-];
-
-const SUGGESTED_CONDITIONS_EN = [
-  'Asthma',
-  'Heart disease / Ischemia',
-  'Hypertension',
-  'Type 2 Diabetes',
-  'Epilepsy',
-  'Bleeding disorder',
-  'Chronic kidney disease',
-];
-
-const SUGGESTED_MOBILITY_EN = [
-  'Hearing impairment',
-  'Visual impairment',
-  'Wheelchair user',
-  'Limb paralysis / Weakness',
-  'Exertional dyspnea',
-  'Immobilized fracture',
-];
+export type TabKey = 'identity' | 'special';
 
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   visible,
@@ -197,44 +123,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [gender, setGender] = useState<'Nam' | 'Nữ' | 'Khác'>(
     profile.gender || 'Nam'
   );
-
-  // Medical state
-  const [bloodType, setBloodType] = useState<BloodType>(
-    profile.medicalId?.bloodType || 'Chưa rõ'
-  );
-  const [chronicConditions, setChronicConditions] = useState<string[]>(
-    profile.medicalId?.chronicConditions || []
-  );
-  const [allergies, setAllergies] = useState<string[]>(
-    profile.medicalId?.allergies || []
-  );
-  const [currentMedications, setCurrentMedications] = useState<string[]>(
-    profile.medicalId?.currentMedications || []
-  );
-  const [mobilityLimitations, setMobilityLimitations] = useState<string[]>(
-    profile.medicalId?.mobilityLimitations || []
-  );
-  const [additionalNotes, setAdditionalNotes] = useState(
-    profile.medicalId?.additionalNotes || ''
-  );
-
-  // Input states for custom chips
-  const [customAllergy, setCustomAllergy] = useState('');
-  const [customCondition, setCustomCondition] = useState('');
-  const [customMed, setCustomMed] = useState('');
-  const [customMobility, setCustomMobility] = useState('');
-
-  // ICE state
-  const [contacts, setContacts] = useState<IceContact[]>(
-    profile.ice?.contacts || []
-  );
-  const [autoSendSmsOnSos, setAutoSendSmsOnSos] = useState(
-    profile.ice?.autoSendSmsOnSos ?? true
-  );
-  const [newContactName, setNewContactName] = useState('');
-  const [newContactRelation, setNewContactRelation] = useState('');
-  const [newContactPhone, setNewContactPhone] = useState('');
-  const [isAddingContact, setIsAddingContact] = useState(false);
 
   // Special Info state
   const [preferredLanguage, setPreferredLanguage] = useState(
@@ -384,98 +272,10 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       setGender(profile.gender || 'Nam');
       setDobError('');
 
-      setBloodType(profile.medicalId?.bloodType || 'Chưa rõ');
-      setChronicConditions(profile.medicalId?.chronicConditions || []);
-      setAllergies(profile.medicalId?.allergies || []);
-      setCurrentMedications(profile.medicalId?.currentMedications || []);
-      setMobilityLimitations(profile.medicalId?.mobilityLimitations || []);
-      setAdditionalNotes(profile.medicalId?.additionalNotes || '');
-
-      setContacts(profile.ice?.contacts || []);
-      setAutoSendSmsOnSos(profile.ice?.autoSendSmsOnSos ?? true);
-
       setPreferredLanguage(profile.specialInfo?.preferredLanguage || 'Tiếng Việt');
       setDependentsNote(profile.specialInfo?.dependentsNote || '');
     }
   }, [visible, profile, initialTab]);
-
-  const handleAddAllergy = (item: string) => {
-    if (item.trim() && !allergies.includes(item.trim())) {
-      setAllergies([...allergies, item.trim()]);
-      setCustomAllergy('');
-    }
-  };
-
-  const handleRemoveAllergy = (index: number) => {
-    setAllergies(allergies.filter((_, i) => i !== index));
-  };
-
-  const handleAddCondition = (item: string) => {
-    if (item.trim() && !chronicConditions.includes(item.trim())) {
-      setChronicConditions([...chronicConditions, item.trim()]);
-      setCustomCondition('');
-    }
-  };
-
-  const handleRemoveCondition = (index: number) => {
-    setChronicConditions(chronicConditions.filter((_, i) => i !== index));
-  };
-
-  const handleAddMedication = (item: string) => {
-    if (item.trim() && !currentMedications.includes(item.trim())) {
-      setCurrentMedications([...currentMedications, item.trim()]);
-      setCustomMed('');
-    }
-  };
-
-  const handleRemoveMedication = (index: number) => {
-    setCurrentMedications(currentMedications.filter((_, i) => i !== index));
-  };
-
-  const handleAddMobility = (item: string) => {
-    if (item.trim() && !mobilityLimitations.includes(item.trim())) {
-      setMobilityLimitations([...mobilityLimitations, item.trim()]);
-      setCustomMobility('');
-    }
-  };
-
-  const handleRemoveMobility = (index: number) => {
-    setMobilityLimitations(mobilityLimitations.filter((_, i) => i !== index));
-  };
-
-  const handleAddIceContact = () => {
-    if (!newContactName.trim() || !newContactPhone.trim()) {
-      Alert.alert(
-        isEn ? 'Missing Info' : 'Thiếu thông tin',
-        isEn ? 'Please enter contact name and phone number.' : 'Vui lòng nhập họ tên và số điện thoại người thân.'
-      );
-      return;
-    }
-    const cleanContactPhone = newContactPhone.trim().replace(/\s/g, '');
-    if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(cleanContactPhone)) {
-      Alert.alert(
-        isEn ? 'Invalid Phone Number' : 'Số điện thoại không hợp lệ',
-        isEn ? 'Emergency contact phone does not match valid Vietnam mobile format (e.g. 0912345678).' : 'Số điện thoại người thân không đúng định dạng di động Việt Nam (ví dụ: 0912345678).'
-      );
-      return;
-    }
-    const newContact: IceContact = {
-      id: `ice_${Date.now()}`,
-      name: newContactName.trim(),
-      relationship: newContactRelation.trim() || (isEn ? 'Relative' : 'Người thân'),
-      phoneNumber: cleanContactPhone,
-      isPrimary: contacts.length === 0,
-    };
-    setContacts([...contacts, newContact]);
-    setNewContactName('');
-    setNewContactRelation('');
-    setNewContactPhone('');
-    setIsAddingContact(false);
-  };
-
-  const handleRemoveIceContact = (contactId: string) => {
-    setContacts(contacts.filter((c) => c.id !== contactId));
-  };
 
   const handleSaveAll = () => {
     if (!fullName.trim()) {
@@ -532,19 +332,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       idCardNumber: idCardNumber.trim(),
       dateOfBirth: dateOfBirth.trim(),
       gender,
-      medicalId: {
-        bloodType,
-        chronicConditions,
-        allergies,
-        currentMedications,
-        mobilityLimitations,
-        additionalNotes: additionalNotes.trim(),
-      },
-      ice: {
-        ...profile.ice,
-        contacts,
-        autoSendSmsOnSos,
-      },
       specialInfo: {
         ...profile.specialInfo,
         preferredLanguage: preferredLanguage.trim(),
@@ -617,51 +404,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     numberOfLines={1}
                   >
                     {isEn ? 'Identity' : 'Định Danh'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tabItem,
-                    activeTab === 'medical' && styles.tabItemActive,
-                  ]}
-                  onPress={() => setActiveTab('medical')}
-                >
-                  <HeartPulse
-                    size={14}
-                    color={activeTab === 'medical' ? '#DC2626' : '#64748B'}
-                  />
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      activeTab === 'medical' && styles.tabLabelActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {isEn ? 'Medical' : 'Y Tế'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tabItem,
-                    activeTab === 'ice' && styles.tabItemActive,
-                  ]}
-                  onPress={() => setActiveTab('ice')}
-                >
-                  <Phone
-                    size={14}
-                    color={activeTab === 'ice' ? '#10B981' : '#64748B'}
-                  />
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      activeTab === 'ice' && styles.tabLabelActive,
-                      activeTab === 'ice' && { color: '#059669' },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {isEn ? 'Contacts' : 'Người Thân'}
                   </Text>
                 </TouchableOpacity>
 
@@ -907,340 +649,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   </View>
                 )}
 
-                {/* TAB 2: MEDICAL ID */}
-                {activeTab === 'medical' && (
-                  <View style={styles.tabContainer}>
-                    {/* Blood Type Selector */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>{isEn ? 'Blood Type' : 'Nhóm máu (Blood Type)'}</Text>
-                      <View style={styles.bloodTypeGrid}>
-                        {BLOOD_TYPES.map((bt) => (
-                          <TouchableOpacity
-                            key={bt}
-                            style={[
-                              styles.bloodBtn,
-                              bloodType === bt && styles.bloodBtnActive,
-                            ]}
-                            onPress={() => setBloodType(bt)}
-                          >
-                            <Droplet
-                              size={14}
-                              color={bloodType === bt ? '#FFFFFF' : '#EF4444'}
-                            />
-                            <Text
-                              style={[
-                                styles.bloodText,
-                                bloodType === bt && styles.bloodTextActive,
-                              ]}
-                            >
-                              {isEn && bt === 'Chưa rõ' ? 'Unknown' : bt}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-
-                    {/* Allergies */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: '#FCA5A5' }]}>
-                        {isEn ? 'Allergies (Medication, Food, Environment)' : 'Dị ứng (Thuốc, Thức ăn, Môi trường)'}
-                      </Text>
-                      <View style={styles.chipsWrap}>
-                        {allergies.map((alg, index) => (
-                          <EmergencyBadge
-                            key={`alg_edit_${index}`}
-                            label={alg}
-                            variant="allergy"
-                            isRemovable={true}
-                            onRemove={() => handleRemoveAllergy(index)}
-                          />
-                        ))}
-                      </View>
-                      <View style={styles.addRow}>
-                        <TextInput
-                          style={[styles.input, { flex: 1 }]}
-                          value={customAllergy}
-                          onChangeText={setCustomAllergy}
-                          placeholder={isEn ? 'Add allergy (e.g. Paracetamol)...' : 'Thêm dị ứng khác (vd: Dị ứng Paracetamol)...'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TouchableOpacity
-                          style={styles.addBtn}
-                          onPress={() => handleAddAllergy(customAllergy)}
-                        >
-                          <Plus size={18} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                      {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
-                      <View style={styles.suggestionWrap}>
-                        {(isEn ? SUGGESTED_ALLERGIES_EN : SUGGESTED_ALLERGIES).filter((s) => !allergies.includes(s))
-                          .slice(0, 4)
-                          .map((sug) => (
-                            <TouchableOpacity
-                              key={sug}
-                              style={styles.sugChip}
-                              onPress={() => handleAddAllergy(sug)}
-                            >
-                              <Text style={styles.sugText}>+ {sug}</Text>
-                            </TouchableOpacity>
-                          ))}
-                      </View>
-                    </View>
-
-                    {/* Chronic Conditions */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: '#FCD34D' }]}>
-                        {isEn ? 'Chronic Medical Conditions' : 'Tiền sử bệnh nền mãn tính'}
-                      </Text>
-                      <View style={styles.chipsWrap}>
-                        {chronicConditions.map((cond, index) => (
-                          <EmergencyBadge
-                            key={`cond_edit_${index}`}
-                            label={cond}
-                            variant="condition"
-                            isRemovable={true}
-                            onRemove={() => handleRemoveCondition(index)}
-                          />
-                        ))}
-                      </View>
-                      <View style={styles.addRow}>
-                        <TextInput
-                          style={[styles.input, { flex: 1 }]}
-                          value={customCondition}
-                          onChangeText={setCustomCondition}
-                          placeholder={isEn ? 'Add chronic condition...' : 'Thêm bệnh nền khác...'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TouchableOpacity
-                          style={[styles.addBtn, { backgroundColor: '#F59E0B' }]}
-                          onPress={() => handleAddCondition(customCondition)}
-                        >
-                          <Plus size={18} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                      {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
-                      <View style={styles.suggestionWrap}>
-                        {(isEn ? SUGGESTED_CONDITIONS_EN : SUGGESTED_CONDITIONS).filter(
-                          (s) => !chronicConditions.includes(s)
-                        )
-                          .slice(0, 4)
-                          .map((sug) => (
-                            <TouchableOpacity
-                              key={sug}
-                              style={styles.sugChip}
-                              onPress={() => handleAddCondition(sug)}
-                            >
-                              <Text style={styles.sugText}>+ {sug}</Text>
-                            </TouchableOpacity>
-                          ))}
-                      </View>
-                    </View>
-
-                    {/* Current Medications */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: '#7DD3FC' }]}>
-                        {isEn ? 'Regular Medications' : 'Thuốc đang điều trị thường xuyên'}
-                      </Text>
-                      <View style={styles.chipsWrap}>
-                        {currentMedications.map((med, index) => (
-                          <EmergencyBadge
-                            key={`med_edit_${index}`}
-                            label={med}
-                            variant="medication"
-                            isRemovable={true}
-                            onRemove={() => handleRemoveMedication(index)}
-                          />
-                        ))}
-                      </View>
-                      <View style={styles.addRow}>
-                        <TextInput
-                          style={[styles.input, { flex: 1 }]}
-                          value={customMed}
-                          onChangeText={setCustomMed}
-                          placeholder={isEn ? 'Add medication & dosage...' : 'Thêm tên thuốc & liều lượng...'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TouchableOpacity
-                          style={[styles.addBtn, { backgroundColor: '#38BDF8' }]}
-                          onPress={() => handleAddMedication(customMed)}
-                        >
-                          <Plus size={18} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Mobility Limitations */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: '#D8B4FE' }]}>
-                        {isEn ? 'Disabilities / Mobility Limitations' : 'Tình trạng khuyết tật / Khó khăn vận động'}
-                      </Text>
-                      <View style={styles.chipsWrap}>
-                        {mobilityLimitations.map((mob, index) => (
-                          <EmergencyBadge
-                            key={`mob_edit_${index}`}
-                            label={mob}
-                            variant="mobility"
-                            isRemovable={true}
-                            onRemove={() => handleRemoveMobility(index)}
-                          />
-                        ))}
-                      </View>
-                      <View style={styles.addRow}>
-                        <TextInput
-                          style={[styles.input, { flex: 1 }]}
-                          value={customMobility}
-                          onChangeText={setCustomMobility}
-                          placeholder={isEn ? 'Add mobility limitation...' : 'Thêm tình trạng hạn chế...'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TouchableOpacity
-                          style={[styles.addBtn, { backgroundColor: '#A855F7' }]}
-                          onPress={() => handleAddMobility(customMobility)}
-                        >
-                          <Plus size={18} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                      {/* Suggestions */}
-                      <Text style={styles.suggestionTitle}>{isEn ? 'Common suggestions:' : 'Gợi ý phổ biến:'}</Text>
-                      <View style={styles.suggestionWrap}>
-                        {(isEn ? SUGGESTED_MOBILITY_EN : SUGGESTED_MOBILITY).filter(
-                          (s) => !mobilityLimitations.includes(s)
-                        )
-                          .slice(0, 3)
-                          .map((sug) => (
-                            <TouchableOpacity
-                              key={sug}
-                              style={styles.sugChip}
-                              onPress={() => handleAddMobility(sug)}
-                            >
-                              <Text style={styles.sugText}>+ {sug}</Text>
-                            </TouchableOpacity>
-                          ))}
-                      </View>
-                    </View>
-
-                    {/* Additional notes */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>{isEn ? 'Additional Medical Notes' : 'Ghi chú y khoa khác'}</Text>
-                      <TextInput
-                        style={[styles.input, styles.textArea]}
-                        value={additionalNotes}
-                        onChangeText={setAdditionalNotes}
-                        multiline={true}
-                        numberOfLines={2}
-                        placeholder={isEn ? 'Detailed notes for doctors / rescuers...' : 'Ghi chú chi tiết cho bác sĩ/cứu hộ...'}
-                        placeholderTextColor="#64748B"
-                      />
-                    </View>
-                  </View>
-                )}
-
-                {/* TAB 3: ICE CONTACTS & SMS TOGGLE */}
-                {activeTab === 'ice' && (
-                  <View style={styles.tabContainer}>
-                    {/* Auto SMS GPS switch */}
-                    <View style={styles.switchBox}>
-                      <View style={styles.switchTextCol}>
-                        <Text style={styles.switchTitle}>
-                          {isEn ? 'Auto-send GPS SMS on SOS' : 'Tự động gửi SMS toạ độ khi bấm SOS'}
-                        </Text>
-                        <Text style={styles.switchDesc}>
-                          {isEn
-                            ? 'Automatically compose and send an SMS with your GPS coordinates to emergency contacts when SOS is triggered.'
-                            : 'Hệ thống sẽ ngay lập tức soạn và gửi tin nhắn chứa toạ độ GPS cứu hộ tới các số liên hệ ICE khi kích hoạt báo động.'}
-                        </Text>
-                      </View>
-                      <Switch
-                        value={autoSendSmsOnSos}
-                        onValueChange={setAutoSendSmsOnSos}
-                        trackColor={{ false: '#334155', true: '#10B981' }}
-                        thumbColor="#FFFFFF"
-                      />
-                    </View>
-
-                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>
-                      {isEn ? 'Emergency Contacts (1 - 2 people)' : 'Danh sách người thân khẩn cấp (1 - 2 người)'}
-                    </Text>
-
-                    {contacts.map((c) => (
-                      <View key={c.id} style={styles.contactItemRow}>
-                        <View style={styles.contactItemInfo}>
-                          <Text style={styles.contactItemName}>{c.name}</Text>
-                          <Text style={styles.contactItemMeta}>
-                            {isEn ? 'Relationship' : 'Mối quan hệ'}: {c.relationship} • {isEn ? 'Phone' : 'SĐT'}: {c.phoneNumber}
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => handleRemoveIceContact(c.id)}
-                          style={styles.deleteContactBtn}
-                        >
-                          <Trash2 size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-
-                    {/* Add contact button or form */}
-                    {isAddingContact ? (
-                      <View style={styles.addContactCard}>
-                        <Text style={styles.addContactTitle}>
-                          {isEn ? 'Add New Emergency Contact' : 'Thêm người thân khẩn cấp mới'}
-                        </Text>
-                        <TextInput
-                          style={styles.input}
-                          value={newContactName}
-                          onChangeText={setNewContactName}
-                          placeholder={isEn ? 'Contact full name' : 'Họ và tên người thân'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TextInput
-                          style={styles.input}
-                          value={newContactRelation}
-                          onChangeText={setNewContactRelation}
-                          placeholder={isEn ? 'Relationship (e.g. Spouse, Parent, Friend)' : 'Mối quan hệ (VD: Vợ, Bố, Chồng, Bạn thân)'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <TextInput
-                          style={styles.input}
-                          value={newContactPhone}
-                          onChangeText={setNewContactPhone}
-                          keyboardType="phone-pad"
-                          placeholder={isEn ? 'Phone number' : 'Số điện thoại'}
-                          placeholderTextColor="#64748B"
-                        />
-                        <View style={styles.addContactActions}>
-                          <TouchableOpacity
-                            style={styles.cancelAddBtn}
-                            onPress={() => setIsAddingContact(false)}
-                          >
-                            <Text style={styles.cancelAddText}>{isEn ? 'Cancel' : 'Huỷ'}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.confirmAddBtn}
-                            onPress={handleAddIceContact}
-                          >
-                            <Text style={styles.confirmAddText}>{isEn ? 'Add' : 'Thêm'}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      contacts.length < 3 && (
-                        <TouchableOpacity
-                          style={styles.addNewContactBtn}
-                          onPress={() => setIsAddingContact(true)}
-                        >
-                          <Plus size={18} color="#38BDF8" />
-                          <Text style={styles.addNewContactText}>
-                            {isEn ? '+ Add Emergency Contact' : '+ Thêm Người Liên Hệ Khẩn Cấp'}
-                          </Text>
-                        </TouchableOpacity>
-                      )
-                    )}
-                  </View>
-                )}
-
-                {/* TAB 4: SPECIAL INFO */}
+                {/* TAB 2: SPECIAL INFO */}
                 {activeTab === 'special' && (
                   <View style={styles.tabContainer}>
                     <View style={styles.inputGroup}>

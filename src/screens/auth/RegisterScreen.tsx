@@ -18,11 +18,7 @@ import {
   Lock,
   Eye,
   EyeOff,
-  HeartPulse,
-  PhoneCall,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AuthHeader } from '../../components/auth/AuthHeader';
@@ -32,21 +28,18 @@ import { Button } from '../../components/common/Button';
 import { AuthStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
-import { BloodType } from '../../types/profile';
 import { authService } from '../../services/auth.service';
 import { isValidEmail, isValidPhoneNumber } from '../../utils/validators';
 import { useTranslation } from 'react-i18next';
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
-const BLOOD_TYPES: BloodType[] = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-', 'Chưa rõ'];
-
 export const RegisterScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isEn = !i18n.language?.startsWith('vi');
   const navigation = useNavigation<RegisterNavProp>();
   const { setAuth } = useAppStore();
-  const { profile, updateProfile } = useProfileStore();
+  const { updateProfile } = useProfileStore();
 
   // Basic Account Form
   const [fullName, setFullName] = useState('');
@@ -56,12 +49,6 @@ export const RegisterScreen: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Optional Emergency Info
-  const [showEmergencySection, setShowEmergencySection] = useState(false);
-  const [selectedBloodType, setSelectedBloodType] = useState<BloodType>('O+');
-  const [icePhone, setIcePhone] = useState('');
-  const [iceName, setIceName] = useState('');
 
   // Agreement
   const [agreedTerms, setAgreedTerms] = useState(true);
@@ -100,10 +87,6 @@ export const RegisterScreen: React.FC = () => {
       newErrors.confirmPassword = isEn ? 'Passwords do not match' : 'Mật khẩu xác nhận không trùng khớp';
     }
 
-    if (icePhone.trim() && !isValidPhoneNumber(icePhone.trim())) {
-      newErrors.icePhone = isEn ? 'Emergency contact phone number is invalid' : 'Số điện thoại người thân không hợp lệ';
-    }
-
     if (!agreedTerms) {
       newErrors.terms = isEn ? 'Please accept the Emergency Service Terms to continue' : 'Bạn cần đồng ý với Điều khoản dịch vụ cứu hộ để tiếp tục';
     }
@@ -129,24 +112,6 @@ export const RegisterScreen: React.FC = () => {
       updateProfile({
         fullName: fullName.trim(),
         phoneNumber: phone.trim(),
-        medicalId: {
-          ...profile.medicalId,
-          bloodType: selectedBloodType,
-        },
-        ice: {
-          ...profile.ice,
-          contacts: icePhone
-            ? [
-                {
-                  id: 'ice_' + Date.now(),
-                  name: iceName.trim() || (isEn ? 'Emergency Contact' : 'Người thân khẩn cấp'),
-                  phoneNumber: icePhone.trim(),
-                  relationship: isEn ? 'Family' : 'Gia đình',
-                  isPrimary: true,
-                },
-              ]
-            : profile.ice.contacts,
-        },
       });
 
       Alert.alert(
@@ -308,84 +273,6 @@ export const RegisterScreen: React.FC = () => {
                 </TouchableOpacity>
               }
             />
-
-            {/* Optional Section: Quick Emergency Setup */}
-            <TouchableOpacity
-              style={styles.accordionToggle}
-              activeOpacity={0.8}
-              onPress={() => setShowEmergencySection(!showEmergencySection)}
-            >
-              <View style={styles.accordionLeft}>
-                <View style={styles.emergencyIconWrap}>
-                  <HeartPulse color="#DC2626" size={16} />
-                </View>
-                <View>
-                  <Text style={styles.accordionTitle}>
-                    {isEn ? '2. Quick Rescue Setup (Recommended)' : '2. Thiết lập Cứu hộ nhanh (Khuyên dùng)'}
-                  </Text>
-                  <Text style={styles.accordionSubtitle}>
-                    {isEn ? 'Blood Type & Emergency Contact (ICE)' : 'Nhóm máu & Liên hệ người thân ICE'}
-                  </Text>
-                </View>
-              </View>
-              {showEmergencySection ? (
-                <ChevronUp color="#64748B" size={20} />
-              ) : (
-                <ChevronDown color="#64748B" size={20} />
-              )}
-            </TouchableOpacity>
-
-            {showEmergencySection && (
-              <View style={styles.emergencyBox}>
-                {/* Blood Type Selection */}
-                <Text style={styles.fieldLabel}>{isEn ? 'Your blood type:' : 'Nhóm máu của bạn:'}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bloodList}>
-                  {BLOOD_TYPES.map((bt) => (
-                    <TouchableOpacity
-                      key={bt}
-                      style={[
-                        styles.bloodBadge,
-                        selectedBloodType === bt && styles.bloodBadgeSelected,
-                      ]}
-                      onPress={() => setSelectedBloodType(bt)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.bloodBadgeText,
-                          selectedBloodType === bt && styles.bloodBadgeTextSelected,
-                        ]}
-                      >
-                        {bt === 'Chưa rõ' && isEn ? 'Unknown' : bt}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* ICE Contact Name & Phone */}
-                <Input
-                  label={isEn ? 'Emergency Contact Name' : 'Tên người thân liên hệ khẩn cấp'}
-                  placeholder={isEn ? 'Enter relative name (Parent, Spouse...)' : 'Nhập tên người thân (Bố, Mẹ, Vợ...)'}
-                  value={iceName}
-                  onChangeText={setIceName}
-                  variant="light"
-                  leftIcon={<User size={18} color="#64748B" />}
-                />
-                <Input
-                  label={isEn ? 'Emergency Contact Phone (ICE)' : 'Số điện thoại người thân (ICE)'}
-                  placeholder={isEn ? 'Enter emergency contact phone number' : 'Nhập số điện thoại người thân'}
-                  value={icePhone}
-                  onChangeText={(val) => {
-                    setIcePhone(val);
-                    if (errors.icePhone) setErrors((prev) => ({ ...prev, icePhone: undefined }));
-                  }}
-                  variant="light"
-                  keyboardType="phone-pad"
-                  error={errors.icePhone}
-                  leftIcon={<PhoneCall size={18} color="#64748B" />}
-                />
-              </View>
-            )}
 
             {/* Terms & Privacy Checkbox */}
             <TouchableOpacity

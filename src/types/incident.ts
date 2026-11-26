@@ -153,6 +153,7 @@ export interface MyReportDto {
   linkedToIncidentStatus?: IncidentStatus | null;
   reportedEventType?: string | null;
   mediaUrls: string[];
+  mediaItems?: IncidentMediaDto[];
   reportedAt: string;
   verifiedAt?: string | null;
   dispatchedAt?: string | null;

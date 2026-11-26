@@ -131,9 +131,17 @@ const ReportCard = React.memo<ReportCardProps>(
           </View>
           {(() => {
             const mediaList = item.mediaItems || [];
-            const visualMedia = mediaList.filter(
-              (m) => String(m.mediaType) !== 'Audio' && (m.mediaType as any) !== 2
-            );
+            const isAudioMedia = (m: any) => {
+              const lower = String(m?.mediaUrl || '').toLowerCase().split('?')[0];
+              return (
+                String(m?.mediaType) === 'Audio' ||
+                m?.mediaType === 2 ||
+                lower.includes('/emergency_dispatch/audio/') ||
+                lower.includes('/video/authenticated/') ||
+                /\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
+              );
+            };
+            const visualMedia = mediaList.filter((m) => Boolean(m.mediaUrl) && !isAudioMedia(m));
             const audioMedia = mediaList.filter(
               (m) => String(m.mediaType) === 'Audio' || (m.mediaType as any) === 2
             );
@@ -293,21 +301,24 @@ export const MyReportsScreen: React.FC = () => {
               createdAt: item.reportedAt,
               updatedAt: item.reportedAt,
               verifiedAt: item.verifiedAt,
-              mediaItems: (item.mediaUrls || [])
-                .filter((url) => {
-                  const lower = (url || '').toLowerCase().split('?')[0];
-                  return (
-                    Boolean(lower) &&
-                    !lower.includes('/emergency_dispatch/audio/') &&
-                    !lower.includes('/video/authenticated/') &&
-                    !/\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
-                  );
-                })
-                .map((url, idx) => ({
-                  id: `${item.id}-media-${idx}`,
-                  mediaUrl: url,
-                  mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
-                })),
+              mediaItems:
+                item.mediaItems && item.mediaItems.length > 0
+                  ? item.mediaItems
+                  : (item.mediaUrls || [])
+                      .filter((url) => {
+                        const lower = (url || '').toLowerCase().split('?')[0];
+                        return (
+                          Boolean(lower) &&
+                          !lower.includes('/emergency_dispatch/audio/') &&
+                          !lower.includes('/video/authenticated/') &&
+                          !/\.(m4a|mp3|aac|wav|ogg|opus|weba)$/.test(lower)
+                        );
+                      })
+                      .map((url, idx) => ({
+                        id: `${item.id}-media-${idx}`,
+                        mediaUrl: url,
+                        mediaType: url.toLowerCase().endsWith('.mp4') ? 'Video' : 'Image',
+                      })),
             } as IncidentResponseDto));
 
             // Chỉ gọi chi tiết bù nếu backend chưa trả linkedToIncidentId cho ca Linked / Cancelled (Duplicate)

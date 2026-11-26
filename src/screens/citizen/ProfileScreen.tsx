@@ -19,18 +19,11 @@ import {
   Phone,
   Calendar,
   CreditCard,
-  HeartPulse,
-  AlertTriangle,
-  Pill,
-  Accessibility,
-  PhoneCall,
-  MessageSquare,
   Users,
   Languages,
   FileText,
   Edit3,
   ChevronRight,
-  Info,
   Sparkles,
   Layers,
   ChevronDown,
@@ -58,10 +51,6 @@ import { ConfirmationModal, LanguageSelectorModal, Avatar } from '../../componen
 import { useAppStore } from '../../store/useAppStore';
 import { useProfileStore } from '../../store/useProfileStore';
 
-import { BloodTypeBadge } from '../../components/profile/BloodTypeBadge';
-import { EmergencyBadge } from '../../components/profile/EmergencyBadge';
-import { IceContactCard } from '../../components/profile/IceContactCard';
-import { MedicalIdCardModal } from '../../components/profile/MedicalIdCardModal';
 import {
   ProfileEditModal,
   TabKey,
@@ -78,12 +67,9 @@ export const ProfileScreen: React.FC = () => {
     profile,
     loadProfile,
     updateProfile,
-    toggleAutoSendSms,
-    removeIceContact,
   } = useProfileStore();
 
   const { t, i18n } = useTranslation();
-  const [isMedicalModalVisible, setIsMedicalModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<TabKey>('identity');
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
@@ -152,9 +138,7 @@ export const ProfileScreen: React.FC = () => {
 
   // Accordion state: Track which cards are expanded
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
-    identity: false,
-    medical: true, // Medical ID expanded by default for rescue priority
-    ice: false,
+    identity: true,
     special: false,
   });
 
@@ -164,7 +148,7 @@ export const ProfileScreen: React.FC = () => {
     }
   }, [loadProfile, isAuthenticated]);
 
-  const { medicalId, ice, specialInfo } = profile;
+  const { specialInfo } = profile;
 
   const toggleCard = (key: string) => {
     setExpandedCards((prev) => ({
@@ -179,8 +163,6 @@ export const ProfileScreen: React.FC = () => {
     const nextState = !isAllExpanded;
     setExpandedCards({
       identity: nextState,
-      medical: nextState,
-      ice: nextState,
       special: nextState,
     });
   };
@@ -188,14 +170,6 @@ export const ProfileScreen: React.FC = () => {
   const handleOpenEditTab = (tab: TabKey) => {
     setEditInitialTab(tab);
     setIsEditModalVisible(true);
-  };
-
-  const handleToggleSms = (val: boolean) => {
-    toggleAutoSendSms(val);
-    Alert.alert(
-      val ? t('profile.alert_sms_on_title') : t('profile.alert_sms_off_title'),
-      val ? t('profile.alert_sms_on_desc') : t('profile.alert_sms_off_desc')
-    );
   };
 
   const handleSaveProfile = (updated: UserEmergencyProfile) => {
@@ -207,20 +181,6 @@ export const ProfileScreen: React.FC = () => {
     { text: profile.fullName || t('profile.badge_no_name'), color: '#0F172A', bg: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.2)' },
     { text: profile.phoneNumber || t('profile.badge_no_phone'), color: '#DC2626' },
     { text: profile.email || t('profile.badge_no_email'), color: '#64748B' },
-  ];
-
-  const medicalBadges: SummaryBadgeItem[] = [
-    { text: t('profile.badge_blood', { type: medicalId.bloodType || t('profile.unknown') }), color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
-    { text: t('profile.badge_allergies', { count: medicalId.allergies?.length || 0 }), color: '#DC2626', bg: '#FEE2E2', borderColor: '#FECACA' },
-    { text: t('profile.badge_conditions', { count: medicalId.chronicConditions?.length || 0 }), color: '#B45309', bg: '#FEF3C7', borderColor: '#FDE68A' },
-  ];
-
-  const iceBadges: SummaryBadgeItem[] = [
-    { text: t('profile.badge_relatives', { count: ice.contacts?.length || 0 }), color: '#059669', bg: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' },
-    {
-      text: ice.autoSendSmsOnSos ? t('profile.badge_sms_on') : t('profile.badge_sms_off'),
-      color: ice.autoSendSmsOnSos ? '#059669' : '#64748B',
-    },
   ];
 
   const specialBadges: SummaryBadgeItem[] = [
@@ -251,7 +211,7 @@ export const ProfileScreen: React.FC = () => {
               allowFontScaling={false}
               maxFontSizeMultiplier={1.2}
             >
-              {t('profile.header_subtitle', 'Medical ID & Thông Tin Định Danh')}
+              {i18n.language?.startsWith('vi') ? 'Thông Tin Định Danh & Cứu Hộ' : 'Identity & Rescue Profile'}
             </Text>
           </View>
 
@@ -275,7 +235,7 @@ export const ProfileScreen: React.FC = () => {
           {/* Main Card: Request Login */}
           <View style={styles.unauthCard}>
             <View style={styles.unauthIconCircle}>
-              <HeartPulse size={moderateScale(38)} color="#DC2626" />
+              <ShieldCheck size={moderateScale(38)} color="#DC2626" />
             </View>
 
             <Text style={styles.unauthTitle}>{t('profile.unauth_title')}</Text>
@@ -306,30 +266,6 @@ export const ProfileScreen: React.FC = () => {
           {/* Benefits List */}
           <View style={styles.unauthBenefitsSection}>
             <Text style={styles.unauthBenefitsTitle}>{t('profile.unauth_benefits_title')}</Text>
-
-            <View style={styles.benefitItem}>
-              <View style={[styles.benefitIconWrap, { backgroundColor: '#FEE2E2' }]}>
-                <ShieldCheck size={moderateScale(16)} color="#DC2626" />
-              </View>
-              <View style={styles.benefitTextCol}>
-                <Text style={styles.benefitItemTitle}>{t('profile.unauth_benefit_medical_title')}</Text>
-                <Text style={styles.benefitItemDesc}>
-                  {t('profile.unauth_benefit_medical_desc')}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <View style={[styles.benefitIconWrap, { backgroundColor: '#ECFDF5' }]}>
-                <PhoneCall size={moderateScale(16)} color="#059669" />
-              </View>
-              <View style={styles.benefitTextCol}>
-                <Text style={styles.benefitItemTitle}>{t('profile.unauth_benefit_ice_title')}</Text>
-                <Text style={styles.benefitItemDesc}>
-                  {t('profile.unauth_benefit_ice_desc')}
-                </Text>
-              </View>
-            </View>
 
             <View style={styles.benefitItem}>
               <View style={[styles.benefitIconWrap, { backgroundColor: '#EFF6FF' }]}>
@@ -375,7 +311,7 @@ export const ProfileScreen: React.FC = () => {
             allowFontScaling={false}
             maxFontSizeMultiplier={1.2}
           >
-            {t('profile.header_subtitle')}
+            {i18n.language?.startsWith('vi') ? 'Thông Tin Định Danh & Cứu Hộ' : 'Identity & Rescue Profile'}
           </Text>
         </View>
 
@@ -441,31 +377,7 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 3. Hero Action: Open Emergency Medical ID Sheet */}
-        <TouchableOpacity
-          style={styles.medicalIdBanner}
-          activeOpacity={0.8}
-          onPress={() => setIsMedicalModalVisible(true)}
-          accessible={true}
-          accessibilityLabel={t('profile.open_medical_card')}
-        >
-          <View style={styles.medicalBannerLeft}>
-            <View style={styles.medicalBannerIconWrap}>
-              <HeartPulse size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.medicalBannerTextCol}>
-              <Text style={styles.medicalBannerTitle}>
-                {t('profile.medical_banner_title')}
-              </Text>
-              <Text style={styles.medicalBannerSubtitle}>
-                {t('profile.medical_banner_sub')}
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={20} color="#FCA5A5" />
-        </TouchableOpacity>
-
-        {/* 4. Controls: Section List Title & Toggle All Button */}
+        {/* 3. Controls: Section List Title & Toggle All Button */}
         <View style={styles.controlsRow}>
           <View style={styles.controlsLeft}>
             <Layers size={16} color="#DC2626" />
@@ -561,203 +473,7 @@ export const ProfileScreen: React.FC = () => {
         </AccordionSection>
 
         {/* ========================================================= */}
-        {/* CARD 2: THÔNG TIN Y TẾ KHẨN CẤP (MEDICAL ID - EXPANDABLE)  */}
-        {/* ========================================================= */}
-        <AccordionSection
-          id="medical"
-          title={t('profile.section_medical_title')}
-          subtitle={t('profile.section_medical_sub')}
-          icon={<HeartPulse size={20} color="#DC2626" />}
-          iconBgColor="#FEE2E2"
-          titleColor="#0F172A"
-          isExpanded={!!expandedCards.medical}
-          onToggle={() => toggleCard('medical')}
-          summaryBadges={medicalBadges}
-          onQuickEdit={() => handleOpenEditTab('medical')}
-        >
-          <View style={styles.cardContent}>
-            {/* Blood Type Display */}
-            <View style={styles.bloodTypeCardRow}>
-              <BloodTypeBadge bloodType={medicalId.bloodType} size="medium" />
-              <View style={styles.bloodTypeNote}>
-                <Text style={styles.bloodTypeNoteTitle}>{t('profile.indicated_blood_type')}</Text>
-                <Text style={styles.bloodTypeNoteDesc}>
-                  {t('profile.blood_type_desc')}
-                </Text>
-              </View>
-            </View>
-
-            {/* Allergies */}
-            <View style={styles.subCategoryBlock}>
-              <View style={styles.subCatHeader}>
-                <AlertTriangle size={15} color="#DC2626" />
-                <Text style={[styles.subCatTitle, { color: '#991B1B' }]}>
-                  {t('profile.allergies_title')}
-                </Text>
-              </View>
-              {medicalId.allergies && medicalId.allergies.length > 0 ? (
-                <View style={styles.badgeFlexWrap}>
-                  {medicalId.allergies.map((alg, index) => (
-                    <EmergencyBadge
-                      key={`alg_${index}`}
-                      label={alg}
-                      variant="allergy"
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyNoteText}>{t('profile.no_allergies')}</Text>
-              )}
-            </View>
-
-            {/* Chronic Conditions */}
-            <View style={styles.subCategoryBlock}>
-              <View style={styles.subCatHeader}>
-                <HeartPulse size={15} color="#D97706" />
-                <Text style={[styles.subCatTitle, { color: '#B45309' }]}>
-                  {t('profile.conditions_title')}
-                </Text>
-              </View>
-              {medicalId.chronicConditions &&
-                medicalId.chronicConditions.length > 0 ? (
-                <View style={styles.badgeFlexWrap}>
-                  {medicalId.chronicConditions.map((cond, index) => (
-                    <EmergencyBadge
-                      key={`cond_${index}`}
-                      label={cond}
-                      variant="condition"
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyNoteText}>{t('profile.no_conditions')}</Text>
-              )}
-            </View>
-
-            {/* Medications */}
-            <View style={styles.subCategoryBlock}>
-              <View style={styles.subCatHeader}>
-                <Pill size={15} color="#0284C7" />
-                <Text style={[styles.subCatTitle, { color: '#0369A1' }]}>
-                  {t('profile.medications_title')}
-                </Text>
-              </View>
-              {medicalId.currentMedications &&
-                medicalId.currentMedications.length > 0 ? (
-                <View style={styles.badgeFlexWrap}>
-                  {medicalId.currentMedications.map((med, index) => (
-                    <EmergencyBadge
-                      key={`med_${index}`}
-                      label={med}
-                      variant="medication"
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyNoteText}>{t('profile.no_medications')}</Text>
-              )}
-            </View>
-
-            {/* Mobility / Disability */}
-            <View style={styles.subCategoryBlock}>
-              <View style={styles.subCatHeader}>
-                <Accessibility size={15} color="#7C3AED" />
-                <Text style={[styles.subCatTitle, { color: '#6D28D9' }]}>
-                  {t('profile.mobility_title')}
-                </Text>
-              </View>
-              {medicalId.mobilityLimitations &&
-                medicalId.mobilityLimitations.length > 0 ? (
-                <View style={styles.badgeFlexWrap}>
-                  {medicalId.mobilityLimitations.map((mob, index) => (
-                    <EmergencyBadge
-                      key={`mob_${index}`}
-                      label={mob}
-                      variant="mobility"
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyNoteText}>{t('profile.normal_mobility')}</Text>
-              )}
-            </View>
-
-            {medicalId.additionalNotes ? (
-              <View style={styles.additionalNoteBox}>
-                <Info size={14} color="#64748B" />
-                <Text style={styles.additionalNoteText}>
-                  {medicalId.additionalNotes}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </AccordionSection>
-
-        {/* ========================================================= */}
-        {/* CARD 3: LIÊN HỆ KHẨN CẤP (ICE - EXPANDABLE)               */}
-        {/* ========================================================= */}
-        <AccordionSection
-          id="ice"
-          title={t('profile.section_ice_title')}
-          subtitle={t('profile.section_ice_sub')}
-          icon={<PhoneCall size={20} color="#059669" />}
-          iconBgColor="rgba(16, 185, 129, 0.1)"
-          titleColor="#0F172A"
-          isExpanded={!!expandedCards.ice}
-          onToggle={() => toggleCard('ice')}
-          summaryBadges={iceBadges}
-          onQuickEdit={() => handleOpenEditTab('ice')}
-        >
-          <View style={styles.cardContent}>
-            {/* Toggle: Auto Send SMS GPS */}
-            <View style={styles.smsToggleBox}>
-              <View style={styles.smsToggleTextCol}>
-                <View style={styles.smsTagRow}>
-                  <MessageSquare size={13} color="#DC2626" />
-                  <Text style={styles.smsTag}>{t('profile.auto_sms_tag')}</Text>
-                </View>
-                <Text style={styles.smsToggleTitle}>
-                  {t('profile.auto_sms_title')}
-                </Text>
-                <Text style={styles.smsToggleDesc}>
-                  {t('profile.auto_sms_desc')}
-                </Text>
-              </View>
-
-              <Switch
-                value={ice.autoSendSmsOnSos}
-                onValueChange={handleToggleSms}
-                trackColor={{ false: '#CBD5E1', true: '#10B981' }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-
-            {/* List of ICE Contacts */}
-            <Text style={styles.iceListHeader}>
-              {t('profile.ice_list_title')}
-            </Text>
-
-            {ice.contacts && ice.contacts.length > 0 ? (
-              ice.contacts.map((contact) => (
-                <IceContactCard
-                  key={contact.id}
-                  contact={contact}
-                  onDelete={removeIceContact}
-                  showActions={true}
-                />
-              ))
-            ) : (
-              <View style={styles.noIceBox}>
-                <Text style={styles.noIceText}>
-                  {t('profile.no_ice_contacts')}
-                </Text>
-              </View>
-            )}
-          </View>
-        </AccordionSection>
-
-        {/* ========================================================= */}
-        {/* CARD 4: THÔNG TIN BỔ SUNG ĐẶC THÙ (EXPANDABLE)           */}
+        {/* CARD 2: THÔNG TIN BỔ SUNG ĐẶC THÙ (EXPANDABLE)           */}
         {/* ========================================================= */}
         <AccordionSection
           id="special"
@@ -839,13 +555,6 @@ export const ProfileScreen: React.FC = () => {
         cancelText={t('profile.stay')}
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutModalVisible(false)}
-      />
-
-      {/* Modal: Full Emergency Medical ID Sheet */}
-      <MedicalIdCardModal
-        visible={isMedicalModalVisible}
-        onClose={() => setIsMedicalModalVisible(false)}
-        profile={profile}
       />
 
       {/* Modal: Edit Profile */}

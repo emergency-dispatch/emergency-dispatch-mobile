@@ -120,6 +120,10 @@ export const StaffReportIncidentModal: React.FC<StaffReportIncidentModalProps> =
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

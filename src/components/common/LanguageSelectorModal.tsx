@@ -43,6 +43,10 @@ export const LanguageSelectorModal: React.FC<LanguageSelectorModalProps> = ({
     onClose();
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

@@ -319,6 +319,10 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

@@ -62,14 +62,18 @@ interface MapboxViewProps {
   style?: any;
 }
 
+const EMPTY_MARKERS: MapMarkerItem[] = [];
+const EMPTY_COORDINATES: RouteCoordinate[] = [];
+const EMPTY_ROUTES: RoutePathItem[] = [];
+
 export const MapboxView = forwardRef<MapboxViewRef, MapboxViewProps>(
   (
     {
       userLatitude = 10.776889,
       userLongitude = 106.700806,
-      markers = [],
-      routeCoordinates = [],
-      routes = [],
+      markers = EMPTY_MARKERS,
+      routeCoordinates = EMPTY_COORDINATES,
+      routes = EMPTY_ROUTES,
       isApproximateRoute = false,
       serviceArea = null,
       pickedLocation = null,

@@ -67,6 +67,10 @@ export const StaffRejectModal: React.FC<StaffRejectModalProps> = ({
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

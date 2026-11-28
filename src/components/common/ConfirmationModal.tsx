@@ -162,6 +162,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   const theme = getThemeConfig();
 
   return (

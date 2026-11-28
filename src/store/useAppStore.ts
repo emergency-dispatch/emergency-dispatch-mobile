@@ -117,11 +117,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateUser: (patch) => {
-    const updated = get().user ? { ...get().user!, ...patch } : null;
-    set({ user: updated });
-    if (updated) {
-      storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, updated).catch(() => { });
+    const current = get().user;
+    if (!current) return;
+    let hasChanged = false;
+    for (const key of Object.keys(patch) as (keyof User)[]) {
+      if (current[key] !== patch[key]) {
+        hasChanged = true;
+        break;
+      }
     }
+    if (!hasChanged) return;
+    const updated = { ...current, ...patch };
+    set({ user: updated });
+    storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, updated).catch(() => { });
   },
 
   setUserRole: (role) =>

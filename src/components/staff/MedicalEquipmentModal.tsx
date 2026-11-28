@@ -188,6 +188,10 @@ export const MedicalEquipmentModal: React.FC<MedicalEquipmentModalProps> = ({
     );
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

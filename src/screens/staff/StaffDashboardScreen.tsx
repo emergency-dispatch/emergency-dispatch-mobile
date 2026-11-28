@@ -207,7 +207,10 @@ export const StaffDashboardScreen: React.FC = () => {
   const activeMissionAssignment = assignments.find(
     (a) => a.status === 'Accepted' || a.status === 'EnRoute' || a.status === 'OnScene'
   );
-  const completedAssignments = assignments.filter((a) => a.status === 'Completed');
+  const completedAssignments = useMemo(
+    () => assignments.filter((a) => a.status === 'Completed'),
+    [assignments]
+  );
 
   // Dynamic Shift Metrics computed from real assignments
   const totalCompletedDistance = useMemo(() => {
@@ -233,36 +236,40 @@ export const StaffDashboardScreen: React.FC = () => {
   }, [dutyStatus]);
 
   // Convert completed assignments to RecentMissions
-  const missionsList: MissionItem[] = completedAssignments.map((a) => ({
-    id: a.id,
-    code: a.incidentCode || `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
-    type: 'traffic_accident',
-    title: a.incidentTitle || t('staff.emergency_active_title', 'Nhiệm vụ cứu hộ khẩn cấp'),
-    severity: a.incidentSeverity === 'Level3' ? 'critical' : 'urgent',
-    address: a.incidentAddress || t('staff.incident_scene_fallback', 'Hiện trường'),
-    completedAt: a.completedAt
-      ? new Date(a.completedAt).toLocaleTimeString(i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-      : t('staff.badge_completed', 'Hoàn thành'),
-    durationMinutes: 24,
-    distanceKm: a.distanceKm ?? 2.1,
-    etaMinutes: a.estimatedArrivalMinutes ?? 5,
-    status: 'completed',
-    patientCount: a.completionReport?.victimsAssistedCount ?? 1,
-    destinationHospital: a.completionReport?.handoverEntity || '',
-    notes: a.completionReport?.actionsSummary || a.notes || '',
-  }));
+  const missionsList = useMemo<MissionItem[]>(() => {
+    return completedAssignments.map((a) => ({
+      id: a.id,
+      code: a.incidentCode || `#${(a.incidentId || a.id).slice(0, 8).toUpperCase()}`,
+      type: 'traffic_accident',
+      title: a.incidentTitle || t('staff.emergency_active_title', 'Nhiệm vụ cứu hộ khẩn cấp'),
+      severity: a.incidentSeverity === 'Level3' ? 'critical' : 'urgent',
+      address: a.incidentAddress || t('staff.incident_scene_fallback', 'Hiện trường'),
+      completedAt: a.completedAt
+        ? new Date(a.completedAt).toLocaleTimeString(i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+        : t('staff.badge_completed', 'Hoàn thành'),
+      durationMinutes: 24,
+      distanceKm: a.distanceKm ?? 2.1,
+      etaMinutes: a.estimatedArrivalMinutes ?? 5,
+      status: 'completed',
+      patientCount: a.completionReport?.victimsAssistedCount ?? 1,
+      destinationHospital: a.completionReport?.handoverEntity || '',
+      notes: a.completionReport?.actionsSummary || a.notes || '',
+    }));
+  }, [completedAssignments, t, i18n.language]);
 
-  const dispatchedIncident = dispatchedAssignment
-    ? mapAssignmentToIncident(dispatchedAssignment)
-    : undefined;
+  const dispatchedIncident = useMemo(() => {
+    return dispatchedAssignment ? mapAssignmentToIncident(dispatchedAssignment) : undefined;
+  }, [dispatchedAssignment]);
 
-  const activeIncident = dispatchedIncident || (activeMissionAssignment
-    ? mapAssignmentToIncident(activeMissionAssignment)
-    : undefined);
+  const activeIncident = useMemo(() => {
+    if (dispatchedIncident) return dispatchedIncident;
+    if (activeMissionAssignment) return mapAssignmentToIncident(activeMissionAssignment);
+    return undefined;
+  }, [dispatchedIncident, activeMissionAssignment]);
 
   // Tự động bật màn hình báo động khi có lệnh điều động mới chưa xử lý
   useEffect(() => {

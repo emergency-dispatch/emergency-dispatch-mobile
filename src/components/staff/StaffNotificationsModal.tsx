@@ -45,6 +45,10 @@ export const StaffNotificationsModal: React.FC<StaffNotificationsModalProps> = (
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}

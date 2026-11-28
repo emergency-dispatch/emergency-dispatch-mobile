@@ -441,7 +441,104 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
             </View>
 
             {/* 4. Equipment Used Input (Optional) */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionLabel}>
+                {t('staff.closure_equipment_label', 'TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):')}
+              </Text>
 
+              {/* Text Input Row to let users type their own equipment */}
+              <View style={styles.equipmentInputRow}>
+                <TextInput
+                  style={styles.equipmentInput}
+                  placeholder={t('staff.closure_equipment_placeholder', 'Nhập trang thiết bị, vật tư đã sử dụng...')}
+                  placeholderTextColor="#94A3B8"
+                  value={equipmentInputText}
+                  onChangeText={setEquipmentInputText}
+                  onSubmitEditing={handleAddCustomEquipment}
+                  returnKeyType="done"
+                  editable={!isSubmitting}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[
+                    styles.addEquipmentBtn,
+                    !equipmentInputText.trim() && styles.addEquipmentBtnDisabled,
+                  ]}
+                  onPress={handleAddCustomEquipment}
+                  disabled={!equipmentInputText.trim() || isSubmitting}
+                >
+                  <Plus size={moderateScale(15)} color={equipmentInputText.trim() ? '#FFFFFF' : '#94A3B8'} />
+                  <Text
+                    style={[
+                      styles.addEquipmentBtnText,
+                      !equipmentInputText.trim() && styles.addEquipmentBtnTextDisabled,
+                    ]}
+                  >
+                    {t('staff.closure_btn_add', 'Thêm')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tag List of Added Equipment */}
+              {selectedEquipment.length > 0 && (
+                <View style={styles.selectedEquipmentWrap}>
+                  {selectedEquipment.map((item, index) => (
+                    <View key={`${item}-${index}`} style={styles.equipmentTag}>
+                      <Text style={styles.equipmentTagText} numberOfLines={1}>
+                        {item}
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleRemoveEquipment(index)}
+                        style={styles.removeTagBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <X size={moderateScale(12)} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Quick Suggestions below */}
+              <View style={styles.suggestionSection}>
+                <Text style={styles.suggestionTitle}>
+                  {t('staff.closure_suggestions_title', 'Gợi ý nhanh (chạm để thêm vào danh sách):')}
+                </Text>
+                <View style={styles.chipsWrap}>
+                  {QUICK_SUGGESTIONS.map((sug) => {
+                    const isAdded = selectedEquipment.includes(sug.vi) || selectedEquipment.includes(sug.en);
+                    const displayText = isEn ? sug.en : sug.vi;
+                    return (
+                      <TouchableOpacity
+                        key={sug.key}
+                        activeOpacity={0.75}
+                        style={[
+                          styles.chip,
+                          isAdded && styles.chipAdded,
+                        ]}
+                        onPress={() => toggleSuggestion(sug)}
+                        disabled={isSubmitting}
+                      >
+                        {isAdded ? (
+                          <CheckCircle2 size={moderateScale(12)} color="#059669" />
+                        ) : (
+                          <Plus size={moderateScale(12)} color="#64748B" />
+                        )}
+                        <Text
+                          style={[
+                            styles.chipText,
+                            isAdded && styles.chipTextAdded,
+                          ]}
+                        >
+                          {displayText}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
 
             {/* 5. Inter-Agency Handover Info (Optional) */}
             <View style={styles.formSection}>

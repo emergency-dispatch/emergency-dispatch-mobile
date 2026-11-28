@@ -17,6 +17,8 @@ import {
   FieldRequestDto,
   TrafficHotspotResponseDto,
   ReportTrafficHotspotPayload,
+  FieldIncidentReportPayload,
+  FieldIncidentReportResultDto,
 } from '../types/dispatch';
 import { CitizenTracking, IncidentResponseDto } from '../types/incident';
 
@@ -167,6 +169,24 @@ export const staffDispatchService = {
     );
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Không thể hủy yêu cầu.');
+    }
+    return response.data;
+  },
+
+  /**
+   * POST /api/dispatch/field-report
+   * §64: Tổ cứu hộ phát hiện sự cố ngoài hiện trường: báo trung tâm và tự nhận xử lý tại chỗ.
+   * Lượt phân công vào thẳng OnScene, xe chuyển sang OnScene mà không cần còi hú hay nhận lệnh.
+   */
+  async reportFieldIncident(
+    payload: FieldIncidentReportPayload
+  ): Promise<FieldIncidentReportResultDto> {
+    const response = await apiService.post<BackendApiResponse<FieldIncidentReportResultDto>>(
+      Endpoints.DISPATCH.FIELD_REPORT,
+      payload
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Không thể tạo báo cáo sự cố hiện trường.');
     }
     return response.data;
   },

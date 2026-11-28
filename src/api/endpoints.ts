@@ -24,6 +24,7 @@ export const Endpoints = {
   },
   DISPATCH: {
     MY_ASSIGNMENTS: '/dispatch/my-assignments',
+    FIELD_REPORT: '/dispatch/field-report',
     ASSIGNMENT_BY_ID: (id: string) => `/dispatch/assignments/${id}`,
     ASSIGNMENT_STATUS: (id: string) => `/dispatch/assignments/${id}/status`,
     ASSIGNMENT_REJECT: (id: string) => `/dispatch/assignments/${id}/reject`,

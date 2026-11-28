@@ -95,6 +95,8 @@ export interface IncidentResponseDto {
   locationAddress: string;
   status: IncidentStatus;
   severity: SeverityLevel;
+  source?: 'CitizenApp' | 'PhoneCall' | 'Radio' | 'Cctv' | 'FieldObservation' | 'RescueTeam' | 'Other' | string;
+  isFieldReportedByTeam?: boolean;
   eventType?: string | null;
   reportedByUserId?: string | null;
   reporterName?: string | null;

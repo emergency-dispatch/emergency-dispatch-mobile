@@ -9,3 +9,4 @@ export * from './MissionDetailModal';
 export * from './StaffNotificationsModal';
 export * from './StaffRejectModal';
 export * from './StaffClosureReportModal';
+export * from './StaffReportIncidentModal';

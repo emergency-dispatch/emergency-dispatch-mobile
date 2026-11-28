@@ -26,6 +26,7 @@ import {
   Navigation,
   CheckCircle2,
   AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { ConfirmationModal, LanguageSelectorModal } from '../../components/common';
@@ -39,6 +40,7 @@ import {
   MedicalEquipmentModal,
   MissionDetailModal,
   StaffNotificationsModal,
+  StaffReportIncidentModal,
 } from '../../components/staff';
 import { EmergencyAlertModal } from '../../components/dispatch/EmergencyAlertModal';
 import { MissionItem, DispatchNotification } from '../../types/staff';
@@ -48,6 +50,7 @@ import {
   RejectAssignmentPayload,
   MyTeamDto,
   mapAssignmentToIncident,
+  FieldIncidentReportResultDto,
 } from '../../types/dispatch';
 import { staffDispatchService } from '../../services/staffDispatch.service';
 import { mobileIncidentHub, mobileTrackingHub, MobileHubEvents } from '../../services/signalr.service';
@@ -82,6 +85,7 @@ export const StaffDashboardScreen: React.FC = () => {
   const [isNavigateStationModalVisible, setIsNavigateStationModalVisible] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+  const [isReportIncidentModalVisible, setIsReportIncidentModalVisible] = useState(false);
 
   // Load Real Data from Backend
   const loadStaffData = useCallback(async (force = false) => {
@@ -390,6 +394,20 @@ export const StaffDashboardScreen: React.FC = () => {
     [dispatchedAssignment?.id, loadStaffData]
   );
 
+  // Field report success handler (§64)
+  const handleFieldReportSuccess = useCallback(
+    (result: FieldIncidentReportResultDto) => {
+      setIsReportIncidentModalVisible(false);
+      const incident = mapAssignmentToIncident(result.assignment);
+      navigation.navigate('IncidentOverview', {
+        incident,
+        assignmentId: result.assignment.id,
+      });
+      loadStaffData(true);
+    },
+    [navigation, loadStaffData]
+  );
+
   // Navigate to ongoing active mission
   const handleResumeActiveMission = () => {
     if (activeMissionAssignment) {
@@ -615,7 +633,29 @@ export const StaffDashboardScreen: React.FC = () => {
             }
           />
 
-          {/* 4. Quick Actions: 2-Column Clean Utility Grid */}
+          {/* 4. Field Incident Report Action (§64) */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.fieldReportBanner}
+            onPress={() => setIsReportIncidentModalVisible(true)}
+          >
+            <View style={styles.fieldReportIconWrap}>
+              <ShieldAlert size={moderateScale(20)} color="#DC2626" />
+            </View>
+            <View style={styles.fieldReportTextWrap}>
+              <View style={styles.fieldReportTitleRow}>
+                <Text style={styles.fieldReportTitle}>Báo Sự Cố Hiện Trường</Text>
+                <View style={styles.fieldReportBadge}>
+                  <Text style={styles.fieldReportBadgeText}>Tự Nhận Lệnh</Text>
+                </View>
+              </View>
+              <Text style={styles.fieldReportSubtitle}>
+                Tổ phát hiện sự cố trực tiếp, lập hồ sơ & tác chiến ngay
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* 5. Quick Actions: 2-Column Clean Utility Grid */}
           <View style={styles.quickUtilityGrid}>
             {/* Kiểm tra trang bị */}
             <TouchableOpacity
@@ -774,6 +814,16 @@ export const StaffDashboardScreen: React.FC = () => {
           visible={isLanguageModalVisible}
           onClose={() => setIsLanguageModalVisible(false)}
         />
+
+        {/* Báo sự cố hiện trường (§64: POST /api/dispatch/field-report) */}
+        <StaffReportIncidentModal
+          visible={isReportIncidentModalVisible}
+          onClose={() => setIsReportIncidentModalVisible(false)}
+          onSubmitSuccess={handleFieldReportSuccess}
+          defaultVehicleId={user?.rescueUnitId}
+          defaultPlate={responderPlate}
+          teamName={myTeam?.myTeamName || user?.teamName}
+        />
       </View>
     </ScreenContainer>
   );
@@ -794,6 +844,54 @@ const styles = StyleSheet.create({
   },
 
   /* Hero Card: Shift & Operational Status */
+  fieldReportBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    borderRadius: moderateScale(14),
+    padding: moderateScale(12),
+    marginBottom: verticalScale(12),
+    gap: scale(10),
+  },
+  fieldReportIconWrap: {
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(12),
+    backgroundColor: '#FFE4E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fieldReportTextWrap: {
+    flex: 1,
+  },
+  fieldReportTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  fieldReportTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+    color: '#9F1239',
+  },
+  fieldReportBadge: {
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(6),
+    backgroundColor: '#DC2626',
+  },
+  fieldReportBadgeText: {
+    fontSize: moderateScale(9),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  fieldReportSubtitle: {
+    fontSize: moderateScale(11),
+    color: '#BE123C',
+    marginTop: verticalScale(2),
+  },
   heroCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: moderateScale(14),

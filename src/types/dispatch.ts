@@ -201,6 +201,8 @@ export interface DispatchAssignmentResponseDto {
   distanceKm?: number;
   estimatedArrivalMinutes?: number;
   assignedByUserId?: string | null;
+  /** §64: Lượt phân công do tổ tự nhận tại hiện trường */
+  isSelfDispatched?: boolean;
   completionReport?: CompletionReportDto | null;
   incidentTitle?: string;
   incidentAddress?: string;
@@ -504,4 +506,26 @@ export interface ReportTrafficHotspotPayload {
   reporterName?: string | null;
   reporterPhone?: string | null;
   ttlMinutes?: number;
+}
+
+/**
+ * §64: DTO gửi lên khi tổ cứu hộ phát hiện sự cố ngoài hiện trường (POST /api/dispatch/field-report).
+ */
+export interface FieldIncidentReportPayload {
+  title?: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  locationAddress: string;
+  eventType?: 'FireExplosion' | 'TrafficAccident' | 'Other';
+  incidentTypeCode?: string | null;
+  severity: 'Level1' | 'Level2' | 'Level3';
+  rescueUnitId?: string | null;
+  mediaUrls?: string[];
+}
+
+export interface FieldIncidentReportResultDto {
+  incidentId: string;
+  incidentCode: string;
+  assignment: DispatchAssignmentResponseDto;
 }

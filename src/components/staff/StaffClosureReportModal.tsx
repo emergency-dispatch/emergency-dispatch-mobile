@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,16 +24,21 @@ import {
   User,
   Phone,
   FileText,
+  Truck,
+  PackageCheck,
 } from 'lucide-react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import { ResolveAssignmentPayload } from '../../types/dispatch';
 import { mediaService } from '../../services/media.service';
+import { equipmentService, EquipmentDto } from '../../services/equipment.service';
+import { useAppStore } from '../../store/useAppStore';
 import { DigitalSignaturePad } from '../common/DigitalSignaturePad';
 
 interface StaffClosureReportModalProps {
   visible: boolean;
   incidentCode?: string;
+  vehiclePlate?: string;
   onClose: () => void;
   onSubmitResolve: (payload: ResolveAssignmentPayload) => Promise<void> | void;
 }
@@ -51,11 +56,14 @@ const QUICK_SUGGESTIONS = [
 export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = ({
   visible,
   incidentCode,
+  vehiclePlate,
   onClose,
   onSubmitResolve,
 }) => {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
+  const user = useAppStore((s) => s.user);
+  const activePlate = vehiclePlate || user?.vehiclePlate || '';
 
   const [summary, setSummary] = useState('');
   const [victimsCount, setVictimsCount] = useState(1);
@@ -72,6 +80,69 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Trang thiết bị gắn trên xe của kíp trực
+  const [vehicleEquipment, setVehicleEquipment] = useState<EquipmentDto[]>([]);
+  const [loadingEquipment, setLoadingEquipment] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    let isMounted = true;
+    setLoadingEquipment(true);
+
+    equipmentService
+      .listEquipment()
+      .then((data) => {
+        if (!isMounted) return;
+        const targetPlate = (activePlate || '').toUpperCase().trim();
+        const onVehicle = (data || []).filter((item) => {
+          const itemPlate = (item.rescueUnitPlate || '').toUpperCase().trim();
+          return targetPlate && itemPlate === targetPlate;
+        });
+        setVehicleEquipment(onVehicle.length > 0 ? onVehicle : (data || []));
+      })
+      .catch((err) => {
+        console.warn('[StaffClosureReportModal] Error loading vehicle equipment:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingEquipment(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, activePlate]);
+
+  const inferEquipmentUnit = (name: string): string => {
+    const lower = name.toLowerCase();
+    if (lower.includes('bình')) return isEn ? 'Tank' : 'Bình';
+    if (lower.includes('túi')) return isEn ? 'Bag' : 'Túi';
+    if (lower.includes('hộp')) return isEn ? 'Box' : 'Hộp';
+    if (lower.includes('cuộn') || lower.includes('băng') || lower.includes('gạc') || lower.includes('dây')) return isEn ? 'Roll' : 'Cuộn';
+    if (lower.includes('bộ') || lower.includes('đồ bảo hộ') || lower.includes('quần áo')) return isEn ? 'Set' : 'Bộ';
+    if (lower.includes('đôi') || lower.includes('găng') || lower.includes('ủng')) return isEn ? 'Pair' : 'Đôi';
+    if (lower.includes('viên') || lower.includes('thuốc')) return isEn ? 'Pill' : 'Viên';
+    if (lower.includes('lít') || lower.includes('nước') || lower.includes('xăng') || lower.includes('dầu')) return isEn ? 'Liter' : 'Lít';
+    if (lower.includes('ống')) return isEn ? 'Tube' : 'Ống';
+    return isEn ? 'Item' : 'Cái';
+  };
+
+  const toggleVehicleEquipment = (item: EquipmentDto) => {
+    const unit = inferEquipmentUnit(item.name);
+    const itemPrefix = item.name.toLowerCase();
+
+    setSelectedEquipment((prev) => {
+      const existsIdx = prev.findIndex((entry) => {
+        const cleanEntry = entry.toLowerCase();
+        return cleanEntry.startsWith(itemPrefix) || cleanEntry.includes(itemPrefix);
+      });
+
+      if (existsIdx >= 0) {
+        return prev.filter((_, idx) => idx !== existsIdx);
+      }
+      return [...prev, `${item.name}: 1 ${unit}`];
+    });
+  };
 
   const isSummaryValid = summary.trim().length >= 10;
   const hasPhotos = evidenceUrls.length >= 1;
@@ -442,9 +513,83 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
 
             {/* 4. Equipment Used Input (Optional) */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>
-                {t('staff.closure_equipment_label', 'TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):')}
-              </Text>
+              <View style={styles.equipmentHeaderRow}>
+                <Text style={styles.sectionLabel}>
+                  {t('staff.closure_equipment_label', 'TRANG THIẾT BỊ / VẬT TƯ TIÊU HAO (TÙY CHỌN):')}
+                </Text>
+                {activePlate ? (
+                  <View style={styles.vehiclePlateBadge}>
+                    <Truck size={moderateScale(11)} color="#0284C7" />
+                    <Text style={styles.vehiclePlateText}>
+                      {isEn ? `Vehicle ${activePlate}` : `Xe kíp trực: ${activePlate}`}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Danh mục trang bị trên xe (Chọn nhanh) */}
+              <View style={styles.vehicleEquipmentCard}>
+                <View style={styles.vehicleEquipmentHeader}>
+                  <View style={styles.vehicleEquipmentHeaderLeft}>
+                    <PackageCheck size={moderateScale(13)} color="#0284C7" />
+                    <Text style={styles.vehicleEquipmentTitle}>
+                      {isEn ? 'Equipment On-Board Vehicle:' : 'Trang thiết bị sẵn có trên xe:'}
+                    </Text>
+                  </View>
+                  {loadingEquipment && (
+                    <ActivityIndicator size="small" color="#0284C7" />
+                  )}
+                </View>
+
+                {vehicleEquipment.length > 0 ? (
+                  <View style={styles.chipsWrap}>
+                    {vehicleEquipment.map((eq) => {
+                      const isAdded = selectedEquipment.some((entry) =>
+                        entry.toLowerCase().includes(eq.name.toLowerCase())
+                      );
+                      const unit = inferEquipmentUnit(eq.name);
+                      return (
+                        <TouchableOpacity
+                          key={eq.id}
+                          activeOpacity={0.75}
+                          style={[
+                            styles.vehicleChip,
+                            isAdded && styles.vehicleChipAdded,
+                          ]}
+                          onPress={() => toggleVehicleEquipment(eq)}
+                          disabled={isSubmitting}
+                        >
+                          {isAdded ? (
+                            <CheckCircle2 size={moderateScale(12)} color="#059669" />
+                          ) : (
+                            <Plus size={moderateScale(12)} color="#0284C7" />
+                          )}
+                          <Text
+                            style={[
+                              styles.vehicleChipText,
+                              isAdded && styles.vehicleChipTextAdded,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {eq.name}
+                          </Text>
+                          <View style={[styles.vehicleQtyBadge, isAdded && styles.vehicleQtyBadgeAdded]}>
+                            <Text style={[styles.vehicleQtyText, isAdded && styles.vehicleQtyTextAdded]}>
+                              x{eq.quantity} {unit}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text style={styles.noVehicleEquipmentText}>
+                    {loadingEquipment
+                      ? (isEn ? 'Syncing vehicle equipment...' : 'Đang đồng bộ trang thiết bị trên xe...')
+                      : (isEn ? 'No registered equipment on this vehicle. You can type custom items below.' : 'Chưa có trang thiết bị gán trên xe này. Có thể nhập thủ công bên dưới.')}
+                  </Text>
+                )}
+              </View>
 
               {/* Text Input Row to let users type their own equipment */}
               <View style={styles.equipmentInputRow}>
@@ -484,6 +629,7 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
                 <View style={styles.selectedEquipmentWrap}>
                   {selectedEquipment.map((item, index) => (
                     <View key={`${item}-${index}`} style={styles.equipmentTag}>
+                      <PackageCheck size={moderateScale(12)} color="#059669" />
                       <Text style={styles.equipmentTagText} numberOfLines={1}>
                         {item}
                       </Text>
@@ -503,11 +649,13 @@ export const StaffClosureReportModal: React.FC<StaffClosureReportModalProps> = (
               {/* Quick Suggestions below */}
               <View style={styles.suggestionSection}>
                 <Text style={styles.suggestionTitle}>
-                  {t('staff.closure_suggestions_title', 'Gợi ý nhanh (chạm để thêm vào danh sách):')}
+                  {t('staff.closure_suggestions_title', 'Vật tư phổ biến khác (chạm để thêm vào danh sách):')}
                 </Text>
                 <View style={styles.chipsWrap}>
                   {QUICK_SUGGESTIONS.map((sug) => {
-                    const isAdded = selectedEquipment.includes(sug.vi) || selectedEquipment.includes(sug.en);
+                    const isAdded = selectedEquipment.some(
+                      (entry) => entry.includes(sug.vi) || entry.includes(sug.en)
+                    );
                     const displayText = isEn ? sug.en : sug.vi;
                     return (
                       <TouchableOpacity
@@ -1050,5 +1198,102 @@ const styles = StyleSheet.create({
   chipTextAdded: {
     color: '#065F46',
     fontWeight: '800',
+  },
+  equipmentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: scale(6),
+  },
+  vehiclePlateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: moderateScale(6),
+    paddingHorizontal: scale(7),
+    paddingVertical: verticalScale(2),
+  },
+  vehiclePlateText: {
+    fontSize: moderateScale(9.5),
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  vehicleEquipmentCard: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: moderateScale(12),
+    padding: scale(10),
+    gap: verticalScale(8),
+    marginBottom: verticalScale(4),
+  },
+  vehicleEquipmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  vehicleEquipmentHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+  },
+  vehicleEquipmentTitle: {
+    fontSize: moderateScale(10.5),
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.2,
+  },
+  noVehicleEquipmentText: {
+    fontSize: moderateScale(10),
+    color: '#94A3B8',
+    fontStyle: 'italic',
+    paddingVertical: verticalScale(4),
+  },
+  vehicleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(8),
+    borderRadius: moderateScale(14),
+    maxWidth: '100%',
+  },
+  vehicleChipAdded: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  vehicleChipText: {
+    fontSize: moderateScale(10.5),
+    fontWeight: '600',
+    color: '#334155',
+    maxWidth: scale(140),
+  },
+  vehicleChipTextAdded: {
+    color: '#065F46',
+    fontWeight: '800',
+  },
+  vehicleQtyBadge: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: moderateScale(6),
+    paddingHorizontal: scale(4),
+    paddingVertical: verticalScale(1),
+  },
+  vehicleQtyBadgeAdded: {
+    backgroundColor: '#D1FAE5',
+  },
+  vehicleQtyText: {
+    fontSize: moderateScale(9),
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  vehicleQtyTextAdded: {
+    color: '#047857',
   },
 });

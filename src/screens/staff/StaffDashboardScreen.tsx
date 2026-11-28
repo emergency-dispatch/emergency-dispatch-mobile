@@ -133,8 +133,8 @@ export const StaffDashboardScreen: React.FC = () => {
     loadStaffData(true);
 
     // 2. Connect SignalR hubs
-    mobileIncidentHub.start().catch(() => {});
-    mobileTrackingHub.start().catch(() => {});
+    mobileIncidentHub.start().catch(() => { });
+    mobileTrackingHub.start().catch(() => { });
 
     // 3. Listen for backend real-time dispatch & notification events
     const unsubNotif = mobileIncidentHub.on(MobileHubEvents.ReceiveNotification, () => {
@@ -238,10 +238,10 @@ export const StaffDashboardScreen: React.FC = () => {
     address: a.incidentAddress || t('staff.incident_scene_fallback', 'Hiện trường'),
     completedAt: a.completedAt
       ? new Date(a.completedAt).toLocaleTimeString(i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
       : t('staff.badge_completed', 'Hoàn thành'),
     durationMinutes: 24,
     distanceKm: a.distanceKm ?? 2.1,
@@ -418,7 +418,7 @@ export const StaffDashboardScreen: React.FC = () => {
       ios: `maps:0,0?q=${stationQuery}`,
       android: `geo:0,0?q=${stationQuery}`,
     });
-    if (url) Linking.openURL(url).catch(() => {});
+    if (url) Linking.openURL(url).catch(() => { });
   };
 
   // Settings action
@@ -667,8 +667,8 @@ export const StaffDashboardScreen: React.FC = () => {
               dutyStatus === 'online'
                 ? t('staff.vehicle_status_ready', 'Đang trực tại trạm • Sẵn sàng xuất kích')
                 : dutyStatus === 'busy'
-                ? t('staff.vehicle_status_busy', 'Kiểm tra thiết bị & nạp khí SCBA')
-                : t('staff.vehicle_status_off', 'Đã nghỉ ca • Bàn giao xe')
+                  ? t('staff.vehicle_status_busy', 'Kiểm tra thiết bị & nạp khí SCBA')
+                  : t('staff.vehicle_status_off', 'Đã nghỉ ca • Bàn giao xe')
             }
             latitude={10.8415}
             longitude={106.8098}

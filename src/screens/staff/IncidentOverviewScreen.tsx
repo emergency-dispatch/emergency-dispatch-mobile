@@ -502,7 +502,7 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
       staffDispatchService.invalidateCache();
       setCurrentStage('completed');
       if (activeIncidentData?.id) {
-        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => {});
+        AsyncStorage.setItem(`@mission_stage_${activeIncidentData.id}`, 'completed').catch(() => { });
       }
       setIsCompleteModalVisible(true);
     } catch (err: any) {
@@ -901,7 +901,6 @@ export const IncidentOverviewScreen: React.FC<IncidentOverviewScreenProps> = ({
         <StaffClosureReportModal
           visible={isClosureModalVisible}
           incidentCode={incident.code}
-          vehiclePlate={incident.vehiclePlate || user?.vehiclePlate}
           onClose={() => setIsClosureModalVisible(false)}
           onSubmitResolve={handleSubmitClosureReport}
         />

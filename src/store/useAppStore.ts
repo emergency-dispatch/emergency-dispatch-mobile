@@ -120,7 +120,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = get().user ? { ...get().user!, ...patch } : null;
     set({ user: updated });
     if (updated) {
-      storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, updated).catch(() => {});
+      storage.setItem(AppConfig.STORAGE_KEYS.USER_INFO, updated).catch(() => { });
     }
   },
 
@@ -129,8 +129,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       user: state.user
         ? { ...state.user, role }
         : role === 'staff'
-        ? DEMO_STAFF_USER
-        : DEMO_CITIZEN_USER,
+          ? DEMO_STAFF_USER
+          : DEMO_CITIZEN_USER,
     })),
 
   switchDemoRole: (role) =>

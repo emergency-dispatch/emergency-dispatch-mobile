@@ -282,8 +282,8 @@ export const mapAssignmentToIncident = (dto: DispatchAssignmentResponseDto): Eme
       dto.incidentSeverity === 'Level3'
         ? 'code_red'
         : dto.incidentSeverity === 'Level2'
-        ? 'code_orange'
-        : 'code_yellow',
+          ? 'code_orange'
+          : 'code_yellow',
     severityLabel: `MỨC ĐỘ: ${dto.incidentSeverity || 'Level3'}`,
     title: dto.incidentTitle || 'SỰ CỐ KHẨN CẤP ĐƯỢC ĐIỀU PHỐI',
     category: dto.rescueUnitType || 'Cứu hộ khẩn cấp',

@@ -49,12 +49,12 @@ export const StaffProfileHeader: React.FC<StaffProfileHeaderProps> = ({
   // Get 2-letter initials
   const initials = name
     ? name
-        .trim()
-        .split(' ')
-        .map((part) => part[0])
-        .slice(-2)
-        .join('')
-        .toUpperCase()
+      .trim()
+      .split(' ')
+      .map((part) => part[0])
+      .slice(-2)
+      .join('')
+      .toUpperCase()
     : 'TC';
 
   return (
